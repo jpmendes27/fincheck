@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fincheck · parser de fatura</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2026;
+  --border:#2a2d35; --text:#e8e9ec; --muted:#6b7080;
+  --accent:#c8f564; --accent-dim:rgba(200,245,100,0.1);
+  --red:#ff5c5c; --blue:#5c9eff; --green:#4dcc8f;
+  --amber:#f5a623; --purple:#a78bfa; --radius:16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Syne',sans-serif;min-height:100vh;
+  padding:2rem 1.5rem 4rem;overflow-x:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#2a2d35 1px,transparent 1px);
+  background-size:32px 32px;opacity:0.35;pointer-events:none;z-index:0;
+}
+.wrap{max-width:860px;margin:0 auto;position:relative;z-index:1}
+
+/* HEADER */
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
+.logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--accent)}
+.logo span{color:var(--muted);font-style:italic}
+.step-pills{display:flex;gap:.4rem}
+.step-pill{
+  padding:.3rem .9rem;border-radius:999px;font-size:.68rem;
+  font-family:'DM Mono',monospace;letter-spacing:.06em;
+  border:1px solid var(--border);color:var(--muted);background:var(--surface);
+  transition:all .2s;
+}
+.step-pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.step-pill.done{border-color:#2a3a20;color:#4dcc8f;background:rgba(77,204,143,.07)}
+
+/* API KEY INPUT */
+.api-section{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.5rem;margin-bottom:1rem;
+}
+.api-label{font-size:.65rem;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:.6rem}
+.api-row{display:flex;gap:.6rem;align-items:center}
+.api-input{
+  flex:1;background:var(--surface2);border:1px solid var(--border);
+  border-radius:10px;padding:.65rem 1rem;color:var(--text);
+  font-family:'DM Mono',monospace;font-size:.82rem;outline:none;
+  transition:border-color .15s;
+}
+.api-input:focus{border-color:var(--accent)}
+.api-input::placeholder{color:var(--muted)}
+.api-hint{font-size:.68rem;color:var(--muted);margin-top:.5rem}
+.api-hint a{color:var(--accent);text-decoration:none}
+
+/* DROP ZONE */
+.drop-zone{
+  border:1.5px dashed var(--border);border-radius:var(--radius);
+  padding:3rem 2rem;text-align:center;cursor:pointer;
+  transition:all .2s;background:var(--surface);margin-bottom:1rem;
+  position:relative;
+}
+.drop-zone:hover,.drop-zone.drag-over{
+  border-color:var(--accent);background:var(--accent-dim);
+}
+.drop-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.drop-icon{font-size:2.5rem;margin-bottom:.75rem;display:block}
+.drop-title{font-size:1rem;font-weight:600;margin-bottom:.4rem}
+.drop-sub{font-size:.78rem;color:var(--muted)}
+.drop-sub strong{color:var(--text)}
+
+/* FILE QUEUE */
+.file-queue{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+.file-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:.85rem 1rem;
+  display:flex;align-items:center;gap:.75rem;
+}
+.file-icon{font-size:1.1rem;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:.15rem}
+.file-status{
+  font-size:.65rem;padding:3px 8px;border-radius:999px;font-family:'DM Mono',monospace;
+  font-weight:600;flex-shrink:0;
+}
+.file-remove{
+  width:24px;height:24px;border-radius:6px;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;
+  font-size:.9rem;display:flex;align-items:center;justify-content:center;
+  transition:all .15s;flex-shrink:0;
+}
+.file-remove:hover{background:var(--surface2);color:var(--red)}
+
+/* PROGRESS BAR */
+.progress-wrap{height:3px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:.5rem;display:none}
+.progress-wrap.show{display:block}
+.progress-bar{height:100%;background:var(--accent);border-radius:999px;transition:width .3s;width:0%}
+
+/* PARSE BUTTON */
+.parse-btn{
+  width:100%;padding:.9rem;border-radius:12px;
+  background:var(--accent-dim);border:1px solid var(--accent);
+  color:var(--accent);font-family:'Syne',sans-serif;
+  font-size:.88rem;font-weight:700;cursor:pointer;
+  transition:all .2s;letter-spacing:.03em;margin-bottom:1rem;
+}
+.parse-btn:hover{background:rgba(200,245,100,.18)}
+.parse-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* LOG / STATUS */
+.log-box{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem;
+  font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted);
+  max-height:160px;overflow-y:auto;display:none;
+}
+.log-box.show{display:block}
+.log-line{padding:.15rem 0;border-bottom:1px solid rgba(42,45,53,.4)}
+.log-line:last-child{border:none}
+.log-line.ok{color:var(--green)}
+.log-line.err{color:var(--red)}
+.log-line.info{color:var(--accent)}
+.log-line.dim{color:var(--muted)}
+
+/* RESULTS */
+#results{display:none}
+#results.show{display:block}
+
+.result-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;
+}
+.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem}
+.result-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem}
+.reset-btn{
+  padding:.45rem 1.1rem;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:.72rem;
+  font-family:'DM Mono',monospace;cursor:pointer;transition:all .15s;
+}
+.reset-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* CARD CHIPS */
+.card-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.chip{
+  display:flex;align-items:center;gap:.4rem;padding:.4rem .9rem;
+  border-radius:999px;border:1px solid var(--border);background:var(--surface);
+  font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;
+}
+.chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.chip .cdot{width:7px;height:7px;border-radius:50%}
+
+/* SUMMARY GRID */
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem}
+.sum-label{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:.4rem}
+.sum-val{font-size:1.3rem;font-weight:700;font-family:'DM Mono',monospace}
+.sum-sub{font-size:.65rem;color:var(--muted);margin-top:.2rem}
+
+/* INCOME SECTION */
+.income-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.income-row{display:flex;align-items:center;gap:.75rem}
+.income-label-col{min-width:160px}
+.ilabel{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.ivalue{font-size:.85rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:.15rem}
+.ibar-bg{flex:1;height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.ibar-fill{height:100%;border-radius:999px;transition:width .6s,background .3s}
+.ipct{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:600;min-width:44px;text-align:right}
+.income-edit-row{display:flex;align-items:center;gap:.75rem;margin-top:.75rem}
+.income-edit-row label{font-size:.7rem;color:var(--muted);white-space:nowrap}
+.income-edit-row input[type=range]{flex:1;accent-color:var(--accent)}
+.income-edit-row span{font-size:.7rem;font-family:'DM Mono',monospace;min-width:80px}
+
+/* CATS */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem}
+.ptitle{font-size:.65rem;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1.1rem}
+.cat-row{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.75rem}
+.cat-head{display:flex;justify-content:space-between}
+.cat-name{font-size:.78rem;font-weight:600}
+.cat-pct{font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted)}
+.cbar-bg{height:4px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.cbar{height:100%;border-radius:999px;transition:width .6s}
+
+/* TX TABLE */
+.tx-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.tx-table th{font-size:.6rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:.5rem .75rem;border-bottom:1px solid var(--border);text-align:left}
+.tx-table th:last-child{text-align:right}
+.tx-table td{padding:.55rem .75rem;border-bottom:1px solid rgba(42,45,53,.4);vertical-align:middle}
+.tx-table td:last-child{text-align:right;font-family:'DM Mono',monospace}
+.tx-table tr:hover td{background:var(--surface2)}
+.tx-table-wrap{max-height:320px;overflow-y:auto}
+.tx-table-wrap::-webkit-scrollbar{width:3px}
+.tx-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+.ttag{font-size:.58rem;padding:2px 7px;border-radius:999px;font-weight:600}
+.tcard{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace}
+
+/* DEDUP BANNER */
+.dedup-banner{
+  display:none;align-items:flex-start;gap:.75rem;
+  background:rgba(92,158,255,.08);border:1px solid rgba(92,158,255,.25);
+  border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem;
+}
+.dedup-banner.show{display:flex}
+.dedup-banner-body{flex:1;font-size:.78rem;line-height:1.6;color:var(--muted)}
+.dedup-banner-body strong{color:var(--text)}
+.dedup-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap}
+.dbtn{
+  padding:.35rem .85rem;border-radius:999px;border:1px solid var(--border);
+  font-size:.68rem;font-family:'DM Mono',monospace;cursor:pointer;
+  background:transparent;color:var(--muted);transition:all .15s;
+}
+.dbtn:hover{color:var(--text);border-color:#3a3d45}
+.dbtn.primary{background:rgba(92,158,255,.12);color:var(--blue);border-color:rgba(92,158,255,.4)}
+
+/* ANIM */
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .35s ease both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
+
+@media(max-width:620px){
+  .summary-grid{grid-template-columns:1fr 1fr}
+  .two-col{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">fincheck<span> · parser</span></div>
+    <div class="step-pills">
+      <div class="step-pill active" id="pill1">1 · API key</div>
+      <div class="step-pill" id="pill2">2 · Upload</div>
+      <div class="step-pill" id="pill3">3 · Diagnóstico</div>
+    </div>
+  </header>
+
+  <!-- STEP 1: API KEY -->
+  <div id="stepApiKey">
+    <div class="api-section fu">
+      <div class="api-label">Anthropic API Key</div>
+      <div class="api-row">
+        <input class="api-input" type="password" id="apiKeyInput"
+          placeholder="sk-ant-api03-..." autocomplete="off">
+        <button class="parse-btn" style="width:auto;padding:.65rem 1.4rem;margin:0"
+          onclick="confirmApiKey()">Continuar →</button>
+      </div>
+      <div class="api-hint">
+        Sua chave é usada apenas localmente, nunca enviada a terceiros.
+        Obtenha em <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: UPLOAD -->
+  <div id="stepUpload" style="display:none">
+
+    <div class="drop-zone fu" id="dropZone">
+      <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
+      <span class="drop-icon">📄</span>
+      <div class="drop-title">Arraste PDFs de fatura aqui</div>
+      <div class="drop-sub">Suporta <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
+    </div>
+
+    <div class="file-queue" id="fileQueue"></div>
+
+    <div class="log-box" id="logBox"></div>
+
+    <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
+      Analisar faturas com Claude →
+    </button>
+  </div>
+
+  <!-- STEP 3: RESULTS -->
+  <div id="results">
+
+    <div class="result-header fu">
+      <div>
+        <div class="result-title">Diagnóstico de gastos</div>
+        <div class="result-sub" id="resultSub">Carregando...</div>
+      </div>
+      <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
+    </div>
+
+    <!-- Dedup banner -->
+    <div class="dedup-banner" id="dedupBanner">
+      <span style="font-size:1.1rem;flex-shrink:0">🔄</span>
+      <div class="dedup-banner-body">
+        <span id="dedupText"></span>
+        <div class="dedup-actions">
+          <button class="dbtn primary" onclick="applyMerge()">Mesclar (recomendado)</button>
+          <button class="dbtn" onclick="applyReplace()">Substituir existente</button>
+          <button class="dbtn" onclick="closeDedupBanner()">Ignorar por ora</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card chips -->
+    <div class="card-chips" id="cardChips"></div>
+
+    <!-- Summary -->
+    <div class="summary-grid fu" id="summaryGrid"></div>
+
+    <!-- Income -->
+    <div class="income-block fu" style="animation-delay:.05s">
+      <div class="income-row">
+        <div class="income-label-col">
+          <div class="ilabel">renda mensal</div>
+          <div class="ivalue" id="incomeDisplay">R$ 12.500</div>
+        </div>
+        <div class="ibar-bg"><div class="ibar-fill" id="ibarFill" style="width:0%;background:var(--green)"></div></div>
+        <div class="ipct" id="ipct" style="color:var(--green)">0%</div>
+      </div>
+      <div class="income-edit-row">
+        <label>Ajustar renda:</label>
+        <input type="range" min="2000" max="30000" step="500" value="12500" id="rendaSlider" oninput="updateRenda(this.value)">
+        <span id="rendaVal">R$ 12.500</span>
+      </div>
+    </div>
+
+    <!-- Cats + top merchants -->
+    <div class="two-col">
+      <div class="panel fu" style="animation-delay:.1s">
+        <div class="ptitle">categorias</div>
+        <div id="catList"></div>
+      </div>
+      <div class="panel fu" style="animation-delay:.15s">
+        <div class="ptitle">estabelecimentos frequentes</div>
+        <div id="merchantList"></div>
+      </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="panel fu" style="animation-delay:.2s">
+      <div class="ptitle">todas as transações</div>
+      <div class="tx-table-wrap">
+        <table class="tx-table">
+          <thead><tr>
+            <th>Data</th><th>Estabelecimento</th>
+            <th>Categoria</th><th>Cartão</th><th>Valor</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── config ────────────────────────────────────────────────────────────────────
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+const CAT_COLORS = {
+  'Alimentação':'#f5a623','Delivery':'#f5a623','Mercado':'#5c9eff',
+  'Assinaturas':'#a78bfa','Transporte':'#4dcc8f','Combustível':'#4dcc8f',
+  'Saúde':'#ff5c5c','Farmácia':'#ff5c5c','Lazer':'#c8f564',
+  'Viagem':'#ff5c5c','Hospedagem':'#ff5c5c','Educação':'#5c9eff',
+  'Outros':'#6b7080'
+}
+const CARD_COLORS = ['#820AD1','#ec7000','#00b86b','#5c9eff','#f5a623','#ff5c5c','#a78bfa']
+
+// ── state ─────────────────────────────────────────────────────────────────────
+let apiKey = ''
+let fileQueue = []         // {id, file, name, size, status, text}
+let allTransactions = []   // parsed & deduplicated
+let cardRegistry = {}      // key: "bank|last4|month" → [txs]
+let renda = 12500
+let activeCard = 'all'
+let dedupPending = null    // pending dedup decision
+
+// ── step 1: api key ───────────────────────────────────────────────────────────
+function confirmApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim()
+  if (!val.startsWith('sk-ant')) {
+    document.getElementById('apiKeyInput').style.borderColor = 'var(--red)'
+    setTimeout(() => document.getElementById('apiKeyInput').style.borderColor = '', 1500)
+    return
+  }
+  apiKey = val
+  setPill(1, 'done'); setPill(2, 'active')
+  document.getElementById('stepApiKey').style.display = 'none'
+  document.getElementById('stepUpload').style.display = 'block'
+}
+
+// ── step 2: upload ────────────────────────────────────────────────────────────
+const dropZone = document.getElementById('dropZone')
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over') })
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag-over')
+  handleFiles(e.dataTransfer.files)
+})
+
+function handleFiles(files) {
+  for (const f of files) {
+    if (!f.name.endsWith('.pdf')) continue
+    const id = Date.now() + Math.random()
+    fileQueue.push({ id, file: f, name: f.name, size: f.size, status: 'pending', text: '' })
+  }
+  renderQueue()
+  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+}
+
+function removeFile(id) {
+  fileQueue = fileQueue.filter(f => f.id !== id)
+  renderQueue()
+  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+}
+
+function renderQueue() {
+  const el = document.getElementById('fileQueue')
+  el.innerHTML = fileQueue.map(f => {
+    const kb = (f.size / 1024).toFixed(0)
+    const statusMap = {
+      pending: ['#6b7080', 'var(--surface2)', 'aguardando'],
+      extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>extraindo texto...'],
+      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>analisando com Claude...'],
+      done: ['#4dcc8f', 'rgba(77,204,143,.1)', '✓ processado'],
+      error: ['#ff5c5c', 'rgba(255,92,92,.1)', '✗ erro'],
+    }
+    const [tc, bg, label] = statusMap[f.status] || statusMap.pending
+    return `<div class="file-item">
+      <span class="file-icon">📄</span>
+      <div class="file-info">
+        <div class="file-name">${f.name}</div>
+        <div class="file-meta">${kb} KB</div>
+        <div class="progress-wrap ${f.status === 'extracting' || f.status === 'parsing' ? 'show' : ''}" id="prog-${f.id}">
+          <div class="progress-bar" id="bar-${f.id}" style="width:${f.progress||0}%"></div>
+        </div>
+      </div>
+      <span class="file-status" style="color:${tc};background:${bg}">${label}</span>
+      ${f.status === 'pending' ? `<button class="file-remove" onclick="removeFile(${f.id})">✕</button>` : ''}
+    </div>`
+  }).join('')
+}
+
+// ── PDF text extraction ───────────────────────────────────────────────────────
+async function extractPdfText(file, onProgress) {
+  const buf = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise
+  let text = ''
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    text += content.items.map(s => s.str).join(' ') + '\n'
+    onProgress(Math.round((i / pdf.numPages) * 100))
+  }
+  return text
+}
+
+// ── Claude API call ───────────────────────────────────────────────────────────
+async function parseWithClaude(text, filename) {
+  const prompt = `Você é um especialista em análise de faturas de cartão de crédito brasileiros.
+
+Analise o texto abaixo extraído de um PDF de fatura de cartão de crédito e extraia as informações em JSON.
+
+TEXTO DA FATURA:
+---
+${text.slice(0, 12000)}
+---
+
+Retorne SOMENTE um JSON válido (sem markdown, sem explicação) com este formato exato:
+{
+  "banco": "nome do banco (ex: Nubank, Itaú, Bradesco, XP, Inter, C6, etc)",
+  "ultimos_digitos": "4 últimos dígitos do cartão (string) ou null se não encontrar",
+  "mes_referencia": "MM/AAAA (ex: 03/2025) ou null se não encontrar",
+  "titular": "nome do titular ou null",
+  "total_fatura": 0.00,
+  "transacoes": [
+    {
+      "data": "DD/MM/AAAA",
+      "estabelecimento": "nome limpo do estabelecimento",
+      "valor": 0.00,
+      "categoria": "uma de: Alimentação, Delivery, Mercado, Assinaturas, Transporte, Combustível, Saúde, Farmácia, Lazer, Viagem, Hospedagem, Educação, Outros",
+      "parcelado": false,
+      "parcela_atual": null,
+      "total_parcelas": null
+    }
+  ]
+}
+
+Regras importantes:
+- Inclua TODAS as transações encontradas, sem exceção
+- Para valores negativos (estornos/créditos), use valor negativo
+- Limpe os nomes dos estabelecimentos (remova códigos, cidades, datas embutidas)
+- Categorize com base no nome do estabelecimento
+- Ignore linhas de pagamento, fatura anterior, encargos e totais — apenas transações de compra/crédito
+
+`
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error?.message || `HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+  const raw = data.content?.[0]?.text || ''
+  // strip possible markdown fences
+  const clean = raw.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+}
+
+// ── main parse flow ───────────────────────────────────────────────────────────
+async function startParsing() {
+  document.getElementById('parseBtn').disabled = true
+  document.getElementById('logBox').classList.add('show')
+  setPill(2, 'done'); setPill(3, 'active')
+
+  for (const f of fileQueue) {
+    if (f.status === 'done') continue
+    try {
+      // Extract text
+      f.status = 'extracting'; f.progress = 0; renderQueue()
+      log(`Extraindo texto de ${f.name}...`, 'dim')
+      f.text = await extractPdfText(f.file, p => {
+        f.progress = p / 2; renderQueue()
+        document.getElementById(`bar-${f.id}`) &&
+          (document.getElementById(`bar-${f.id}`).style.width = (p/2) + '%')
+      })
+      log(`✓ ${f.text.split('\n').length} linhas extraídas`, 'ok')
+
+      // Parse with Claude
+      f.status = 'parsing'; f.progress = 50; renderQueue()
+      log('Enviando para Claude...', 'info')
+      const parsed = await parseWithClaude(f.text, f.name)
+      f.progress = 100; renderQueue()
+
+      log(`✓ ${parsed.banco} ····${parsed.ultimos_digitos || '????'} — ${parsed.transacoes?.length || 0} transações`, 'ok')
+
+      // Dedup check
+      const key = `${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`
+      if (cardRegistry[key]) {
+        dedupPending = { key, incoming: parsed, existing: cardRegistry[key] }
+        showDedupBanner(parsed)
+      } else {
+        cardRegistry[key] = parsed
+        mergeTransactions(parsed)
+      }
+
+      f.status = 'done'
+    } catch(e) {
+      f.status = 'error'; renderQueue()
+      log(`✗ Erro em ${f.name}: ${e.message}`, 'err')
+    }
+  }
+
+  renderQueue()
+  if (allTransactions.length > 0) showResults()
+}
+
+function mergeTransactions(parsed) {
+  const txs = (parsed.transacoes || []).map(tx => ({
+    ...tx,
+    banco: parsed.banco,
+    ultimos_digitos: parsed.ultimos_digitos,
+    mes_referencia: parsed.mes_referencia,
+    _key: `${tx.data}|${tx.estabelecimento}|${tx.valor}`
+  }))
+
+  // Dedup by key
+  const existingKeys = new Set(allTransactions.map(t => t._key))
+  const newTxs = txs.filter(t => !existingKeys.has(t._key))
+  allTransactions.push(...newTxs)
+  return newTxs.length
+}
+
+// ── dedup banner ──────────────────────────────────────────────────────────────
+function showDedupBanner(parsed) {
+  const b = document.getElementById('dedupBanner')
+  const incomingCount = parsed.transacoes?.length || 0
+  const existingCount = cardRegistry[`${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`]?.transacoes?.length || 0
+  document.getElementById('dedupText').innerHTML =
+    `Já existe uma fatura do <strong>${parsed.banco} ····${parsed.ultimos_digitos}</strong> para <strong>${parsed.mes_referencia}</strong> com ${existingCount} transações. A nova tem ${incomingCount}. Como deseja tratar?`
+  b.classList.add('show')
+}
+
+function applyMerge() {
+  if (!dedupPending) return
+  const added = mergeTransactions(dedupPending.incoming)
+  log(`✓ Mesclado: ${added} transações novas adicionadas`, 'ok')
+  closeDedupBanner(); showResults()
+}
+function applyReplace() {
+  if (!dedupPending) return
+  allTransactions = allTransactions.filter(t =>
+    !(t.banco === dedupPending.incoming.banco &&
+      t.ultimos_digitos === dedupPending.incoming.ultimos_digitos &&
+      t.mes_referencia === dedupPending.incoming.mes_referencia))
+  mergeTransactions(dedupPending.incoming)
+  log(`✓ Fatura substituída`, 'ok')
+  closeDedupBanner(); showResults()
+}
+function closeDedupBanner() {
+  document.getElementById('dedupBanner').classList.remove('show')
+  dedupPending = null
+}
+
+// ── results ───────────────────────────────────────────────────────────────────
+function showResults() {
+  document.getElementById('results').classList.add('show')
+  renderResults()
+}
+
+function getFilteredTxs() {
+  if (activeCard === 'all') return allTransactions
+  return allTransactions.filter(t => `${t.banco}|${t.ultimos_digitos}` === activeCard)
+}
+
+function renderResults() {
+  const txs = getFilteredTxs()
+  if (!txs.length) return
+
+  // subtitle
+  const months = [...new Set(allTransactions.map(t => t.mes_referencia).filter(Boolean))]
+  document.getElementById('resultSub').textContent =
+    `${allTransactions.length} transações · ${months.join(', ')}`
+
+  // card chips
+  const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.ultimos_digitos}`))]
+  const chips = document.getElementById('cardChips')
+  chips.innerHTML = `<div class="chip active" data-card="all" onclick="setCard('all')">
+    <span class="cdot" style="background:var(--accent)"></span> Todos
+  </div>` + cards.map((c, i) => {
+    const [banco, last4] = c.split('|')
+    const color = CARD_COLORS[i % CARD_COLORS.length]
+    return `<div class="chip" data-card="${c}" onclick="setCard('${c}')">
+      <span class="cdot" style="background:${color}"></span> ${banco} ····${last4||'????'}
+    </div>`
+  }).join('')
+
+  // summary
+  const total = txs.reduce((s, t) => s + (t.valor > 0 ? t.valor : 0), 0)
+  const avgTicket = total / txs.filter(t=>t.valor>0).length
+  const months2 = [...new Set(txs.map(t=>t.mes_referencia).filter(Boolean))].length || 1
+  const pct = Math.round((total/months2/renda)*100)
+  const pctColor = pct<30?'var(--green)':pct<60?'var(--amber)':'var(--red)'
+
+  document.getElementById('summaryGrid').innerHTML = 
+    `<div class="sum-card"><div class="sum-label">Total gasto</div>
+      <div class="sum-val">${fmt(total)}</div>
+      <div class="sum-sub">${months2 > 1 ? months2 + ' meses' : '1 mês'}</div></div>
+    <div class="sum-card"><div class="sum-label">Transações</div>
+      <div class="sum-val">${txs.filter(t=>t.valor>0).length}</div>
+      <div class="sum-sub">compras</div></div>
+    <div class="sum-card"><div class="sum-label">Ticket médio</div>
+      <div class="sum-val">${fmt(avgTicket||0)}</div>
+      <div class="sum-sub">por compra</div></div>
+    <div class="sum-card"><div class="sum-label">Comprometimento</div>
+      <div class="sum-val" style="color:${pctColor}">${pct}%</div>
+      <div class="sum-sub">da renda/mês</div></div>`
+
+  // income bar
+  document.getElementById('incomeDisplay').textContent = fmt(renda)
+  const barW = Math.min(pct, 100)
+  document.getElementById('ibarFill').style.width = barW + '%'
+  document.getElementById('ibarFill').style.background = pctColor
+  document.getElementById('ipct').textContent = pct + '%'
+  document.getElementById('ipct').style.color = pctColor
+
+  // categories
+  const bycat = {}
+  txs.filter(t=>t.valor>0).forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria]||0) + t.valor
+  })
+  const sorted = Object.entries(bycat).sort((a,b)=>b[1]-a[1])
+  const catEl = document.getElementById('catList')
+  catEl.innerHTML = sorted.slice(0,7).map(([cat,val])=>{
+    const pctC = Math.round((val/total)*100)
+    const color = CAT_COLORS[cat]||'#6b7080'
+    return `<div class="cat-row">
+      <div class="cat-head"><span class="cat-name">${cat}</span>
+        <span class="cat-pct">${fmt(val)} · ${pctC}%</span></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${pctC}%;background:${color}"></div></div>
+    </div>`
+  }).join('')
+
+  // merchants
+  const bymerch = {}
+  txs.filter(t=>t.valor>0).forEach(t => {
+    bymerch[t.estabelecimento] = (bymerch[t.estabelecimento]||0) + t.valor
+  })
+  const sortedM = Object.entries(bymerch).sort((a,b)=>b[1]-a[1])
+  const merchEl = document.getElementById('merchantList')
+  const maxM = sortedM[0]?.[1]||1
+  merchEl.innerHTML = sortedM.slice(0,8).map(([name, val])=>{
+    const pctM = Math.round((val/maxM)*100)
+    return `<div class="cat-row">
+      <div class="cat-head"><span class="cat-name" style="font-size:.75rem">${name}</span>
+        <span class="cat-pct">${fmt(val)}</span></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${pctM}%;background:var(--blue)"></div></div>
+    </div>`
+  }).join('')
+
+  // transactions table
+  const txSorted = [...txs].sort((a,b)=>new Date(b.data.split('/').reverse().join('-'))-new Date(a.data.split('/').reverse().join('-')))
+  document.getElementById('txBody').innerHTML = txSorted.map(tx=>{
+    const color = CAT_COLORS[tx.categoria]||'#6b7080'
+    const neg = tx.valor < 0
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:.7rem;white-space:nowrap">${tx.data}</td>
+      <td>${tx.estabelecimento}${tx.parcelado? `<span style="font-size:.6rem;color:var(--muted)">${tx.parcela_atual}/${tx.total_parcelas}</span>`:''}</td>
+      <td><span class="ttag" style="background:${color}22;color:${color}">${tx.categoria}</span></td>
+      <td><span class="tcard">${tx.banco} ····${tx.ultimos_digitos||'????'}</span></td>
+      <td style="color:${neg?'var(--green)':'var(--text)'};font-size:.78rem">
+        ${neg?'−':''}${Math.abs(tx.valor).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})}
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function setCard(card) {
+  activeCard = card
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c.dataset.card===card))
+  renderResults()
+}
+
+function updateRenda(v) {
+  renda = parseInt(v)
+  document.getElementById('rendaVal').textContent = fmt(v)
+  renderResults()
+}
+
+function resetAll() {
+  fileQueue = []; allTransactions = []; cardRegistry = {}
+  activeCard = 'all'; dedupPending = null
+  document.getElementById('results').classList.remove('show')
+  document.getElementById('logBox').classList.remove('show')
+  document.getElementById('logBox').innerHTML = ''
+  document.getElementById('fileQueue').innerHTML = ''
+  document.getElementById('parseBtn').disabled = true
+  setPill(2,'active'); setPill(3,'')
+  document.getElementById('dedupBanner').classList.remove('show')
+}
+
+// ── utils ─────────────────────────────────────────────────────────────────────
+function fmt(n){ return 'R$\u00a0' + (Math.round(n)||0).toLocaleString('pt-BR') }
+function log(msg, cls='dim'){
+  const el = document.getElementById('logBox')
+  el.innerHTML += `<div class="log-line ${cls}">${msg}</div>`
+  el.scrollTop = el.scrollHeight
+}
+function setPill(n, state) {
+  const el = document.getElementById('pill'+n)
+  el.className = 'step-pill' + (state ? ' '+state : '')
+}
+</script>
+</body>
+</html>

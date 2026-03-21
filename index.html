@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fincheck · parser de fatura</title>
+<title>fincheck · cuide dos seus gastos com cartão de crédito</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -237,7 +237,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <div class="wrap">
 
   <header>
-    <div class="logo">fincheck<span> · parser</span></div>
+    <div class="logo">fincheck<span> · cuide dos seus gastos com cartão de crédito</span></div>
     <div class="step-pills">
       <div class="step-pill active" id="pill1">1 · Upload</div>
       <div class="step-pill" id="pill2">2 · Diagnóstico</div>
@@ -260,22 +260,6 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
     <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
       Analisar faturas →
-    </button>
-  </div>
-
-    <div class="drop-zone fu" id="dropZone">
-      <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
-      <span class="drop-icon">📄</span>
-      <div class="drop-title">Arraste PDFs de fatura aqui</div>
-      <div class="drop-sub">Suporta <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
-    </div>
-
-    <div class="file-queue" id="fileQueue"></div>
-
-    <div class="log-box" id="logBox"></div>
-
-    <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
-      Analisar faturas com Claude →
     </button>
   </div>
 
@@ -409,7 +393,7 @@ function renderQueue() {
     const statusMap = {
       pending: ['#6b7080', 'var(--surface2)', 'aguardando'],
       extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>extraindo texto...'],
-      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>analisando com Claude...'],
+      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>analisando transações...'],
       done: ['#4dcc8f', 'rgba(77,204,143,.1)', '✓ processado'],
       error: ['#ff5c5c', 'rgba(255,92,92,.1)', '✗ erro'],
     }
@@ -445,7 +429,6 @@ async function extractPdfText(file, onProgress) {
 
 // ── Real data parse ──────────────────────────────────────────────────────────
 function parseRealData(text, filename) {
-  // Detect bank from filename
   const lower = filename.toLowerCase()
   let banco = 'Desconhecido'
   if (lower.includes('nubank')) banco = 'Nubank'
@@ -456,52 +439,113 @@ function parseRealData(text, filename) {
   else if (lower.includes('c6')) banco = 'C6'
   else if (lower.includes('santander')) banco = 'Santander'
 
-  // Mock last 4 digits
-  const ultimos_digitos = Math.floor(Math.random() * 9000 + 1000).toString()
+  // Try to find last 4 digits in the text
+  const cardMatch = text.match(/\d{4}(?=\D*$)/)
+  const ultimos_digitos = cardMatch ? cardMatch[0] : null
 
-  // Mock reference month (current month)
-  const now = new Date()
-  const mes_referencia = `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`
+  // Reference month in MM/YYYY style
+  const monthMatch = text.match(/(\d{2})\/(\d{4})/)
+  const mes_referencia = monthMatch ? `${monthMatch[1]}/${monthMatch[2]}` : null
 
-  // Generate mock transactions based on text length
-  const numTx = Math.max(5, Math.min(50, Math.floor(text.length / 200)))
-  const transacoes = []
-  const estabelecimentos = [
-    'Supermercado Extra', 'Uber', 'Amazon', 'Netflix', 'Posto Shell', 'Farmácia Drogasil',
-    'McDonalds', 'Shopping Iguatemi', 'Hospital São Lucas', 'Escola Kids', 'Hotel Hilton',
-    'Restaurante Outback', 'Loja Americanas', 'Spotify', 'Gás Natural', 'Academia Bodytech'
-  ]
-  const categorias = ['Alimentação', 'Transporte', 'Assinaturas', 'Mercado', 'Saúde', 'Lazer', 'Educação', 'Outros']
-
-  for (let i = 0; i < numTx; i++) {
-    const data = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000)
-    const dataStr = `${data.getDate().toString().padStart(2,'0')}/${(data.getMonth()+1).toString().padStart(2,'0')}/${data.getFullYear()}`
-    const estabelecimento = estabelecimentos[Math.floor(Math.random() * estabelecimentos.length)]
-    const valor = Math.round((Math.random() * 500 + 10) * 100) / 100
-    const categoria = categorias[Math.floor(Math.random() * categorias.length)]
-    transacoes.push({
-      data: dataStr,
-      estabelecimento,
-      valor,
-      categoria,
-      parcelado: Math.random() < 0.1,
-      parcela_atual: Math.random() < 0.1 ? 1 : null,
-      total_parcelas: Math.random() < 0.1 ? Math.floor(Math.random() * 10 + 2) : null
-    })
-  }
+  const transacoes = extractTransactions(text)
+  const total_fatura = transacoes.reduce((sum, tx) => sum + tx.valor, 0)
 
   return {
     banco,
     ultimos_digitos,
     mes_referencia,
-    titular: 'João Silva',
-    total_fatura: transacoes.reduce((s, t) => s + t.valor, 0),
+    titular: null,
+    total_fatura,
     transacoes
   }
 }
 
 function extractTransactions(text) {
   const transactions = []
+  const lines = text.split(/\r?\n/).map(line => line.trim()).filter(line => line.length > 0)
+
+  const dateRegex = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/
+  const valueRegex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/
+  const negativeValueRegex = /-\s*(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/
+  const stopWords = /\b(total|fatura anterior|pagamento|encargos|juros|saldo|pli|dinheiro|cielo|tef|cnpj|cpf|loja|parcelado)\b/i
+
+  const categorias = {
+    'mercado': 'Mercado', 'supermercado': 'Mercado', 'extra': 'Mercado', 'carrefour': 'Mercado',
+    'uber': 'Transporte', '99': 'Transporte', 'taxi': 'Transporte', 'onibus': 'Transporte',
+    'posto': 'Combustível', 'shell': 'Combustível', 'petrobras': 'Combustível', 'ipiranga': 'Combustível',
+    'netflix': 'Assinaturas', 'spotify': 'Assinaturas', 'amazon': 'Assinaturas', 'prime': 'Assinaturas',
+    'farmacia': 'Farmácia', 'drogasil': 'Farmácia', 'drogaria': 'Farmácia', 'pacheco': 'Farmácia',
+    'hospital': 'Saúde', 'clinica': 'Saúde', 'medico': 'Saúde', 'odontologico': 'Saúde',
+    'restaurante': 'Alimentação', 'mcdonalds': 'Alimentação', 'burger': 'Alimentação', 'pizzaria': 'Alimentação',
+    'shopping': 'Lazer', 'cinema': 'Lazer', 'teatro': 'Lazer', 'show': 'Lazer',
+    'hotel': 'Hospedagem', 'pousada': 'Hospedagem', 'airbnb': 'Hospedagem',
+    'escola': 'Educação', 'curso': 'Educação', 'faculdade': 'Educação', 'livraria': 'Educação'
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (stopWords.test(line)) continue
+
+    const dateMatch = line.match(dateRegex)
+    const valueMatch = line.match(valueRegex) || line.match(negativeValueRegex)
+    if (!dateMatch || !valueMatch) continue
+
+    const day = Number(dateMatch[1])
+    const month = Number(dateMatch[2])
+    let year = dateMatch[3] ? Number(dateMatch[3]) : new Date().getFullYear()
+    if (year < 100) year += 2000
+    const data = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`
+
+    let valor = Number(valueMatch[1].replace(/\./g, '') + '.' + valueMatch[2])
+    if (line.includes('-') && !line.trim().startsWith('-')) {
+      // ensure negative means one specific transaction (reembolso / crédito)
+      valor = -Math.abs(valor)
+    }
+
+    const dateEnd = dateMatch.index + dateMatch[0].length
+    const valueStart = valueMatch.index
+    let estabelecimento = line.substring(dateEnd, valueStart).trim()
+
+    if (estabelecimento.length < 3 && i + 1 < lines.length) {
+      const nextLine = lines[i + 1].trim()
+      if (!stopWords.test(nextLine)) {
+        estabelecimento = nextLine
+      }
+    }
+
+    estabelecimento = estabelecimento
+      .replace(/\s+/g, ' ')
+      .replace(/[^\wÀ-ÿ\s]/g, '')
+      .trim()
+
+    if (estabelecimento.length < 3) continue
+
+    let categoria = 'Outros'
+    const lowerEstab = estabelecimento.toLowerCase()
+    for (const [keyword, cat] of Object.entries(categorias)) {
+      if (lowerEstab.includes(keyword)) {
+        categoria = cat
+        break
+      }
+    }
+
+    if (Math.abs(valor) < 0.5) continue
+
+    transactions.push({
+      data,
+      estabelecimento,
+      valor,
+      categoria,
+      parcelado: false,
+      parcela_atual: null,
+      total_parcelas: null
+    })
+  }
+
+  return transactions
+}
+
+// ── main parse flow ───────────────────────────────────────────────────────────  const transactions = []
   const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
 
   // Common patterns for Brazilian credit card statements

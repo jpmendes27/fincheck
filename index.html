@@ -239,31 +239,29 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   <header>
     <div class="logo">fincheck<span> · parser</span></div>
     <div class="step-pills">
-      <div class="step-pill active" id="pill1">1 · API key</div>
-      <div class="step-pill" id="pill2">2 · Upload</div>
-      <div class="step-pill" id="pill3">3 · Diagnóstico</div>
+      <div class="step-pill active" id="pill1">1 · Upload</div>
+      <div class="step-pill" id="pill2">2 · Diagnóstico</div>
     </div>
   </header>
 
-  <!-- STEP 1: API KEY -->
-  <div id="stepApiKey">
-    <div class="api-section fu">
-      <div class="api-label">Anthropic API Key</div>
-      <div class="api-row">
-        <input class="api-input" type="password" id="apiKeyInput"
-          placeholder="sk-ant-api03-..." autocomplete="off">
-        <button class="parse-btn" style="width:auto;padding:.65rem 1.4rem;margin:0"
-          onclick="confirmApiKey()">Continuar →</button>
-      </div>
-      <div class="api-hint">
-        Sua chave é usada apenas localmente, nunca enviada a terceiros.
-        Obtenha em <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>
-      </div>
-    </div>
-  </div>
+  <!-- STEP 1: UPLOAD -->
+  <div id="stepUpload">
 
-  <!-- STEP 2: UPLOAD -->
-  <div id="stepUpload" style="display:none">
+    <div class="drop-zone fu" id="dropZone">
+      <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
+      <span class="drop-icon">📄</span>
+      <div class="drop-title">Arraste PDFs de fatura aqui</div>
+      <div class="drop-sub">Suporta <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
+    </div>
+
+    <div class="file-queue" id="fileQueue"></div>
+
+    <div class="log-box" id="logBox"></div>
+
+    <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
+      Analisar faturas →
+    </button>
+  </div>
 
     <div class="drop-zone fu" id="dropZone">
       <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
@@ -372,7 +370,6 @@ const CAT_COLORS = {
 const CARD_COLORS = ['#820AD1','#ec7000','#00b86b','#5c9eff','#f5a623','#ff5c5c','#a78bfa']
 
 // ── state ─────────────────────────────────────────────────────────────────────
-let apiKey = ''
 let fileQueue = []         // {id, file, name, size, status, text}
 let allTransactions = []   // parsed & deduplicated
 let cardRegistry = {}      // key: "bank|last4|month" → [txs]
@@ -380,21 +377,7 @@ let renda = 12500
 let activeCard = 'all'
 let dedupPending = null    // pending dedup decision
 
-// ── step 1: api key ───────────────────────────────────────────────────────────
-function confirmApiKey() {
-  const val = document.getElementById('apiKeyInput').value.trim()
-  if (!val.startsWith('sk-ant')) {
-    document.getElementById('apiKeyInput').style.borderColor = 'var(--red)'
-    setTimeout(() => document.getElementById('apiKeyInput').style.borderColor = '', 1500)
-    return
-  }
-  apiKey = val
-  setPill(1, 'done'); setPill(2, 'active')
-  document.getElementById('stepApiKey').style.display = 'none'
-  document.getElementById('stepUpload').style.display = 'block'
-}
-
-// ── step 2: upload ────────────────────────────────────────────────────────────
+// ── step 1: upload ────────────────────────────────────────────────────────────
 const dropZone = document.getElementById('dropZone')
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over') })
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
@@ -460,77 +443,68 @@ async function extractPdfText(file, onProgress) {
   return text
 }
 
-// ── Claude API call ───────────────────────────────────────────────────────────
-async function parseWithClaude(text, filename) {
-  const prompt = `Você é um especialista em análise de faturas de cartão de crédito brasileiros.
+// ── Mock parse ───────────────────────────────────────────────────────────────
+function mockParse(text, filename) {
+  // Detect bank from filename
+  const lower = filename.toLowerCase()
+  let banco = 'Desconhecido'
+  if (lower.includes('nubank')) banco = 'Nubank'
+  else if (lower.includes('itau') || lower.includes('itaú')) banco = 'Itaú'
+  else if (lower.includes('bradesco')) banco = 'Bradesco'
+  else if (lower.includes('xp')) banco = 'XP'
+  else if (lower.includes('inter')) banco = 'Inter'
+  else if (lower.includes('c6')) banco = 'C6'
+  else if (lower.includes('santander')) banco = 'Santander'
 
-Analise o texto abaixo extraído de um PDF de fatura de cartão de crédito e extraia as informações em JSON.
+  // Mock last 4 digits
+  const ultimos_digitos = Math.floor(Math.random() * 9000 + 1000).toString()
 
-TEXTO DA FATURA:
----
-${text.slice(0, 12000)}
----
+  // Mock reference month (current month)
+  const now = new Date()
+  const mes_referencia = `${(now.getMonth()+1).toString().padStart(2,'0')}/${now.getFullYear()}`
 
-Retorne SOMENTE um JSON válido (sem markdown, sem explicação) com este formato exato:
-{
-  "banco": "nome do banco (ex: Nubank, Itaú, Bradesco, XP, Inter, C6, etc)",
-  "ultimos_digitos": "4 últimos dígitos do cartão (string) ou null se não encontrar",
-  "mes_referencia": "MM/AAAA (ex: 03/2025) ou null se não encontrar",
-  "titular": "nome do titular ou null",
-  "total_fatura": 0.00,
-  "transacoes": [
-    {
-      "data": "DD/MM/AAAA",
-      "estabelecimento": "nome limpo do estabelecimento",
-      "valor": 0.00,
-      "categoria": "uma de: Alimentação, Delivery, Mercado, Assinaturas, Transporte, Combustível, Saúde, Farmácia, Lazer, Viagem, Hospedagem, Educação, Outros",
-      "parcelado": false,
-      "parcela_atual": null,
-      "total_parcelas": null
-    }
+  // Generate mock transactions based on text length
+  const numTx = Math.max(5, Math.min(50, Math.floor(text.length / 200)))
+  const transacoes = []
+  const estabelecimentos = [
+    'Supermercado Extra', 'Uber', 'Amazon', 'Netflix', 'Posto Shell', 'Farmácia Drogasil',
+    'McDonalds', 'Shopping Iguatemi', 'Hospital São Lucas', 'Escola Kids', 'Hotel Hilton',
+    'Restaurante Outback', 'Loja Americanas', 'Spotify', 'Gás Natural', 'Academia Bodytech'
   ]
-}
+  const categorias = ['Alimentação', 'Transporte', 'Assinaturas', 'Mercado', 'Saúde', 'Lazer', 'Educação', 'Outros']
 
-Regras importantes:
-- Inclua TODAS as transações encontradas, sem exceção
-- Para valores negativos (estornos/créditos), use valor negativo
-- Limpe os nomes dos estabelecimentos (remova códigos, cidades, datas embutidas)
-- Categorize com base no nome do estabelecimento
-- Ignore linhas de pagamento, fatura anterior, encargos e totais — apenas transações de compra/crédito
-
-`
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }]
+  for (let i = 0; i < numTx; i++) {
+    const data = new Date(now.getTime() - Math.random() * 30 * 24 * 60 * 60 * 1000)
+    const dataStr = `${data.getDate().toString().padStart(2,'0')}/${(data.getMonth()+1).toString().padStart(2,'0')}/${data.getFullYear()}`
+    const estabelecimento = estabelecimentos[Math.floor(Math.random() * estabelecimentos.length)]
+    const valor = Math.round((Math.random() * 500 + 10) * 100) / 100
+    const categoria = categorias[Math.floor(Math.random() * categorias.length)]
+    transacoes.push({
+      data: dataStr,
+      estabelecimento,
+      valor,
+      categoria,
+      parcelado: Math.random() < 0.1,
+      parcela_atual: Math.random() < 0.1 ? 1 : null,
+      total_parcelas: Math.random() < 0.1 ? Math.floor(Math.random() * 10 + 2) : null
     })
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.error?.message || `HTTP ${response.status}`)
   }
 
-  const data = await response.json()
-  const raw = data.content?.[0]?.text || ''
-  // strip possible markdown fences
-  const clean = raw.replace(/```json|```/g, '').trim()
-  return JSON.parse(clean)
+  return {
+    banco,
+    ultimos_digitos,
+    mes_referencia,
+    titular: 'João Silva',
+    total_fatura: transacoes.reduce((s, t) => s + t.valor, 0),
+    transacoes
+  }
 }
 
 // ── main parse flow ───────────────────────────────────────────────────────────
 async function startParsing() {
   document.getElementById('parseBtn').disabled = true
   document.getElementById('logBox').classList.add('show')
-  setPill(2, 'done'); setPill(3, 'active')
+  setPill(1, 'done'); setPill(2, 'active')
 
   for (const f of fileQueue) {
     if (f.status === 'done') continue
@@ -545,10 +519,10 @@ async function startParsing() {
       })
       log(`✓ ${f.text.split('\n').length} linhas extraídas`, 'ok')
 
-      // Parse with Claude
+      // Parse with mock
       f.status = 'parsing'; f.progress = 50; renderQueue()
-      log('Enviando para Claude...', 'info')
-      const parsed = await parseWithClaude(f.text, f.name)
+      log('Analisando dados...', 'info')
+      const parsed = mockParse(f.text, f.name)
       f.progress = 100; renderQueue()
 
       log(`✓ ${parsed.banco} ····${parsed.ultimos_digitos || '????'} — ${parsed.transacoes?.length || 0} transações`, 'ok')
@@ -754,7 +728,7 @@ function resetAll() {
   document.getElementById('logBox').innerHTML = ''
   document.getElementById('fileQueue').innerHTML = ''
   document.getElementById('parseBtn').disabled = true
-  setPill(2,'active'); setPill(3,'')
+  setPill(1,'active'); setPill(2,'')
   document.getElementById('dedupBanner').classList.remove('show')
 }
 

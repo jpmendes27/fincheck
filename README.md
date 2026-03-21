@@ -19,24 +19,21 @@ Um serviço para integração de dados de múltiplos cartões de crédito, forne
 
 ## Como Usar
 
-1. **Obtenha uma API Key**: Acesse [console.anthropic.com](https://console.anthropic.com) e gere uma chave API do Claude
-2. **Abra o index.html**: Execute o arquivo em um navegador web
-3. **Insira a API Key**: Cole sua chave no primeiro passo
-4. **Faça Upload**: Arraste e solte PDFs de faturas de cartão
-5. **Analise**: Clique em "Analisar faturas com Claude" para processar
-6. **Explore o Diagnóstico**: Navegue pelas métricas e transações extraídas
+1. **Abra o index.html**: Execute o arquivo em um navegador web
+2. **Faça Upload**: Arraste e solte PDFs de faturas de cartão
+3. **Analise**: Clique em "Analisar faturas" para processar
+4. **Explore o Diagnóstico**: Navegue pelas métricas e transações extraídas
 
 ## Requisitos
 
 - Navegador web moderno com suporte a ES6+
-- Chave API válida do Anthropic Claude
 - PDFs de faturas de cartão de crédito
 
 ## Privacidade
 
-- A API key é usada apenas localmente no navegador
-- Os dados das faturas são processados client-side
-- Nada é enviado para servidores externos exceto a API do Claude
+- Os dados das faturas são processados localmente no navegador
+- Nada é enviado para servidores externos
+- Análise é feita com dados simulados para demonstração
 
 ## Desenvolvimento
 

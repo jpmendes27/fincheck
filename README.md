@@ -5,7 +5,8 @@ Um serviço para integração de dados de múltiplos cartões de crédito, forne
 ## Funcionalidades
 
 - **Upload de Faturas PDF**: Suporte para faturas de diversos bancos brasileiros (Nubank, Itaú, XP, Inter, C6, Bradesco, etc.)
-- **Extração Inteligente**: Usa IA (Claude API) para analisar e categorizar transações automaticamente
+- **Extração Inteligente**: Usa regex e padrões para extrair transações reais dos PDFs
+- **Categorização Automática**: Classifica transações por categoria baseada no estabelecimento
 - **Diagnóstico Completo**:
   - Total de gastos e transações
   - Ticket médio por compra
@@ -16,6 +17,17 @@ Um serviço para integração de dados de múltiplos cartões de crédito, forne
 - **Filtragem por Cartão**: Visualize dados de cartões específicos ou todos juntos
 - **Ajuste de Renda**: Personalize o diagnóstico com sua renda mensal
 - **Dedup Automático**: Evita duplicatas de transações entre faturas
+
+## Como Funciona a Extração
+
+O sistema analisa o texto extraído dos PDFs usando padrões regex para identificar:
+
+- **Datas**: Padrões DD/MM ou DD/MM/AAAA
+- **Valores**: R$ XXX,XX ou apenas XXX,XX (positivos e negativos)
+- **Estabelecimentos**: Texto entre data e valor
+- **Categorias**: Baseadas em palavras-chave no nome do estabelecimento
+
+Se não conseguir extrair transações estruturadas, tenta uma abordagem mais simples procurando apenas por valores monetários.
 
 ## Como Usar
 
@@ -32,8 +44,9 @@ Um serviço para integração de dados de múltiplos cartões de crédito, forne
 ## Privacidade
 
 - Os dados das faturas são processados localmente no navegador
-- Nada é enviado para servidores externos
-- Análise é feita com dados simulados para demonstração
+- Não há envio de dados para servidores externos
+- Extração feita com algoritmos client-side usando regex
+- Seus dados financeiros permanecem no seu dispositivo
 
 ## Desenvolvimento
 

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>fincheck · controle seus gastos com cartão de crédito</title>
+<link rel="icon" type="image/svg+xml" href="../logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -35,10 +36,13 @@ body::before{
 .screen.active{display:block}
 .screen.active{flex:1}
 
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
+header{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:2.5rem;gap:1rem;text-align:center}
+.page-back{position:fixed;top:1.9rem;left:1.6rem;z-index:2}
+.header-home{display:inline-flex;align-items:center;color:var(--accent);text-decoration:none;font-size:.86rem;font-weight:600;line-height:1.2;transition:color var(--t-med) var(--ease-smooth), opacity var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth)}
+.header-home:hover{opacity:.86;transform:translateX(-2px)}
 .logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--accent)}
 .logo span{color:var(--muted);font-style:italic}
-.step-pills{display:flex;gap:.4rem}
+.step-pills{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap}
 .step-pill{
   padding:.3rem .9rem;border-radius:999px;font-size:.68rem;
   font-family:'DM Mono',monospace;letter-spacing:.06em;
@@ -346,6 +350,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 .spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
 
 @media(max-width:620px){
+  .page-back{top:1.1rem;left:1rem}
+  header{gap:.85rem}
   .loading-title{font-size:1.8rem}
   .diagnosis-hero{flex-direction:column;align-items:flex-start}
   .site-footer{justify-content:center}
@@ -376,6 +382,8 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   body::before,
   #screenUpload,
   #screenLoading,
+  .page-back,
+  .header-home,
   .step-pills,
   .site-footer,
   .dedup-banner{
@@ -393,6 +401,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   }
 
   header{
+    display:block !important;
     margin-bottom:8mm !important;
   }
 
@@ -468,6 +477,10 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <body>
 <div class="wrap">
 
+  <div class="page-back">
+    <a class="header-home" href="../index.html">&lt; Voltar para página inicial</a>
+  </div>
+
   <header>
     <div class="logo">fincheck®<span> • controle seus gastos com cartão de crédito</span></div>
     <div class="step-pills">
@@ -479,16 +492,16 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
   <div id="screenUpload" class="screen active">
     <div class="drop-zone fu" id="dropZone">
-      <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
+      <input type="file" id="fileInput" accept=".pdf,.csv,.ofx" multiple onchange="handleFiles(this.files)">
       <span class="drop-icon">📄</span>
-      <div class="drop-title">Arraste PDFs de fatura aqui</div>
-      <div class="drop-sub">Suporta <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
+      <div class="drop-title">Arraste arquivos de extrato aqui</div>
+      <div class="drop-sub">Suporta <strong>PDF, CSV e OFX</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
     </div>
 
     <div class="file-queue" id="fileQueue"></div>
 
     <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
-      Analisar faturas →
+      Analisar arquivos →
     </button>
   </div>
 
@@ -602,7 +615,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
       <span>Todos os direitos reservados.</span>
     </div>
     <div class="footer-meta">
-      <span>Designed for clearer financial conversations</span>
+      <span>Feito para conversas financeiras mais claras</span>
       <span>Relatórios privados e compartilháveis</span>
     </div>
   </footer>
@@ -611,9 +624,6 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <script>
 pdfjsLib.GlobalWorkerOptions.workerSrc =
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
-
-const HARDCODED_API_KEY =
-  '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'
 
 const CAT_COLORS = {
   'Alimentacao':'#f5a623','Delivery':'#f5a623','Mercado':'#5c9eff',
@@ -627,8 +637,21 @@ const CAT_COLORS = {
   'Farmácia':'#ff5c5c','Educação':'#5c9eff'
 }
 const CARD_COLORS = ['#820AD1','#ec7000','#00b86b','#5c9eff','#f5a623','#ff5c5c','#a78bfa']
+const MONTH_MAP = {
+  'JAN': 1, 'JANEIRO': 1,
+  'FEV': 2, 'FEVEREIRO': 2,
+  'MAR': 3, 'MARCO': 3,
+  'ABR': 4, 'ABRIL': 4,
+  'MAI': 5, 'MAIO': 5,
+  'JUN': 6, 'JUNHO': 6,
+  'JUL': 7, 'JULHO': 7,
+  'AGO': 8, 'AGOSTO': 8,
+  'SET': 9, 'SETEMBRO': 9,
+  'OUT': 10, 'OUTUBRO': 10,
+  'NOV': 11, 'NOVEMBRO': 11,
+  'DEZ': 12, 'DEZEMBRO': 12
+}
 
-let apiKey = HARDCODED_API_KEY
 let fileQueue = []
 let allTransactions = []
 let cardRegistry = {}
@@ -639,7 +662,7 @@ let loadingInterval = null
 let loadingPhaseIndex = 0
 
 const LOADING_PHASES = [
-  { title: 'Analisando seus gastos', copy: 'Estamos lendo as páginas dos PDFs e identificando cada movimentação do período.' },
+  { title: 'Analisando seus gastos', copy: 'Estamos lendo seus arquivos e identificando cada movimentação do período.' },
   { title: 'Preparando seu relatório', copy: 'Agora agrupamos categorias, estabelecimentos e padrões de consumo.' },
   { title: 'Calculando tudo pra você', copy: 'Finalizando indicadores, alertas e insights para montar o relatório completo.' }
 ]
@@ -655,9 +678,10 @@ dropZone.addEventListener('drop', e => {
 
 function handleFiles(files) {
   for (const f of files) {
-    if (!f.name.toLowerCase().endsWith('.pdf')) continue
+    const kind = detectFileKind(f.name)
+    if (!kind) continue
     const id = Date.now() + Math.random()
-    fileQueue.push({ id, file: f, name: f.name, size: f.size, status: 'pending', text: '' })
+    fileQueue.push({ id, file: f, name: f.name, size: f.size, kind, status: 'pending', text: '' })
   }
   renderQueue()
   document.getElementById('parseBtn').disabled = fileQueue.length === 0
@@ -675,17 +699,18 @@ function renderQueue() {
     const kb = (f.size / 1024).toFixed(0)
     const statusMap = {
       pending: ['#6b7080', 'var(--surface2)', 'aguardando'],
-      extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>extraindo texto...'],
-      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>analisando fatura...'],
+      extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>lendo arquivo...'],
+      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>estruturando transacoes...'],
       done: ['#4dcc8f', 'rgba(77,204,143,.1)', '✓ processado'],
       error: ['#ff5c5c', 'rgba(255,92,92,.1)', '✗ erro']
     }
     const [tc, bg, label] = statusMap[f.status] || statusMap.pending
+    const kindLabel = (f.kind || 'pdf').toUpperCase()
     return `<div class="file-item">
       <span class="file-icon">📄</span>
       <div class="file-info">
         <div class="file-name">${escapeHtml(f.name)}</div>
-        <div class="file-meta">${kb} KB</div>
+        <div class="file-meta">${kb} KB · ${kindLabel}</div>
         <div class="progress-wrap ${f.status === 'extracting' || f.status === 'parsing' ? 'show' : ''}">
           <div class="progress-bar" style="width:${f.progress || 0}%"></div>
         </div>
@@ -696,384 +721,708 @@ function renderQueue() {
   }).join('')
 }
 
-async function extractPdfText(file, onProgress) {
+function detectFileKind(name) {
+  const lower = String(name || '').toLowerCase()
+  if (lower.endsWith('.pdf')) return 'pdf'
+  if (lower.endsWith('.csv')) return 'csv'
+  if (lower.endsWith('.ofx')) return 'ofx'
+  return null
+}
+
+async function extractPdfDocument(file, onProgress) {
   const buf = await file.arrayBuffer()
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise
-  let text = ''
+  const pages = []
+  const allLines = []
+  const rawItemLines = []
+
   for (let i = 1; i <= pdf.numPages; i++) {
     const page = await pdf.getPage(i)
     const content = await page.getTextContent()
-    text += content.items.map(s => s.str).join(' ') + '\n'
+    const sortedItems = sortPageItems(content.items || [])
+    const lines = buildPageLines(sortedItems)
+    pages.push({ pageNumber: i, lines })
+    allLines.push(...lines.map(line => line.text))
+    rawItemLines.push(...sortedItems.map(item => normalizeSpace(item.str)).filter(Boolean))
     onProgress(Math.round((i / pdf.numPages) * 100))
   }
-  return text
-}
-
-async function parseWithClaude(text) {
-  const chunks = splitStatementText(text, 9000, 1200)
-  const parsedChunks = []
-
-  for (let i = 0; i < chunks.length; i++) {
-    parsedChunks.push(await parseChunkWithFallback(chunks[i], i + 1, chunks.length))
-  }
-
-  return combineParsedStatements(parsedChunks)
-}
-
-async function parseChunkWithFallback(textChunk, chunkIndex, chunkCount) {
-  try {
-    const prompt = buildStatementPrompt(textChunk, chunkIndex, chunkCount)
-    const raw = await requestClaudeMessage(prompt)
-    return await parseClaudeJson(raw)
-  } catch (error) {
-    const fallbackPrompt = buildFallbackPrompt(textChunk, chunkIndex, chunkCount)
-    const raw = await requestClaudeMessage(fallbackPrompt)
-    return parseFallbackBlock(raw)
+  return {
+    fileName: file.name,
+    text: allLines.join('\n'),
+    rawText: rawItemLines.join('\n'),
+    rawItemLines,
+    pages
   }
 }
 
-function buildStatementPrompt(textChunk, chunkIndex, chunkCount) {
-  return `Voce e um especialista em analise de documentos financeiros brasileiros.
-
-Analise o trecho abaixo extraido de um PDF e identifique se ele e uma fatura de cartao de credito ou um extrato de conta corrente. Depois extraia as informacoes em JSON.
-
-TRECHO DO DOCUMENTO (${chunkIndex}/${chunkCount}):
----
-${textChunk}
----
-
-Retorne SOMENTE um JSON valido (sem markdown, sem explicacao) com este formato exato:
-{
-  "tipo_documento": "fatura_cartao ou extrato_conta",
-  "banco": "nome do banco (ex: Nubank, Itau, Bradesco, XP, Inter, C6, etc)",
-  "identificador": "ultimos 4 digitos do cartao, numero da conta ou outro identificador curto encontrado no documento",
-  "ultimos_digitos": "4 ultimos digitos do cartao (string) ou null se nao encontrar",
-  "mes_referencia": "MM/AAAA (ex: 03/2025) ou null se nao encontrar",
-  "titular": "nome do titular ou null",
-  "total_fatura": 0.00,
-  "total_gastos_periodo": 0.00,
-  "transacoes": [
-    {
-      "data": "DD/MM/AAAA",
-      "estabelecimento": "nome limpo do estabelecimento",
-      "valor": 0.00,
-      "natureza": "gasto, entrada, estorno ou ajuste",
-      "categoria": "uma de: Alimentacao, Delivery, Mercado, Assinaturas, Transporte, Combustivel, Saude, Farmacia, Lazer, Viagem, Hospedagem, Educacao, Outros",
-      "parcelado": false,
-      "parcela_atual": null,
-      "total_parcelas": null
-    }
-  ]
-}
-
-Regras importantes:
-- Inclua TODAS as transacoes encontradas, sem excecao
-- Se for fatura de cartao:
-  - compras devem vir como natureza "gasto" e valor positivo
-  - estornos/creditos devem vir como natureza "estorno" e valor negativo
-- Se for extrato de conta:
-  - saidas/debitos devem vir como natureza "gasto" e valor negativo
-  - entradas/creditos devem vir como natureza "entrada" e valor positivo
-- Limpe os nomes dos estabelecimentos (remova codigos, cidades, datas embutidas)
-- Categorize com base no nome do estabelecimento
-- Ignore linhas de saldo inicial/final e totais consolidados; capture apenas as movimentacoes/transacoes
-- Se algum campo de cabecalho nao aparecer neste trecho, use null
-- Nao invente transacoes ausentes neste trecho`
-}
-
-async function requestClaudeMessage(prompt) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.error && err.error.message ? err.error.message : `HTTP ${response.status}`)
+async function parseImportedFile(file, kind, onProgress) {
+  if (kind === 'pdf') {
+    const document = await extractPdfDocument(file, onProgress)
+    return parseStatementDocument(document)
   }
 
-  const data = await response.json()
-  return data.content && data.content[0] ? data.content[0].text || '' : ''
+  onProgress(100)
+  const content = await file.text()
+  if (kind === 'csv') return parseCsvDocument(content, file.name)
+  if (kind === 'ofx') return parseOfxDocument(content, file.name)
+  throw new Error('Formato de arquivo nao suportado')
 }
 
-async function repairJsonWithClaude(raw) {
-  const prompt = `Corrija o texto abaixo para virar um JSON valido.
-
-Regras:
-- Retorne SOMENTE o JSON corrigido
-- Nao invente campos novos
-- Preserve a estrutura original
-- Remova comentarios, virgulas sobrando e texto fora do JSON
-
-TEXTO:
----
-${raw.slice(0, 18000)}
----`
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.error && err.error.message ? err.error.message : `HTTP ${response.status}`)
+function parseCsvDocument(content, fileName) {
+  const rows = parseDelimitedRows(content)
+  if (rows.length < 2) {
+    throw new Error('Nao consegui identificar linhas suficientes neste CSV')
   }
 
-  const data = await response.json()
-  return data.content && data.content[0] ? data.content[0].text || '' : ''
-}
+  const header = rows[0].map(cell => normalizeDocText(cell))
+  const schema = detectCsvSchema(header)
+  const tipoDocumento = getCsvDocumentType(schema, fileName)
+  const bankName = detectCsvBank(schema, content, fileName)
+  const dateIdx = findHeaderIndex(header, ['DATA', 'DATE', 'DTPOSTED', 'TRANSACTION CREATED AT', 'MOVEMENT CREATED AT'])
+  const descIdx = findHeaderIndex(header, [
+    'DESCRICAO', 'DESCRIÇÃO', 'HISTORICO', 'HISTÓRICO', 'ESTABELECIMENTO', 'DESCR', 'MEMO', 'NAME', 'TITLE',
+    'MOVEMENT DESCRIPTION', 'MOVEMENT ADDITIONAL INFORMATION', 'TRANSACTION DESCRIPTION', 'DESCRIPTION'
+  ])
+  const amountIdx = findHeaderIndex(header, ['VALOR', 'AMOUNT', 'VALOR FINAL', 'TRNAMT', 'MOVEMENT AMOUNT', 'AMOUNT BRL'])
+  const debitIdx = findHeaderIndex(header, ['DEBITO', 'DÉBITO', 'SAIDA', 'SAÍDA', 'DEBIT'])
+  const creditIdx = findHeaderIndex(header, ['CREDITO', 'CRÉDITO', 'ENTRADA', 'CREDIT'])
+  const identifierIdx = findHeaderIndex(header, ['IDENTIFICADOR', 'ID', 'IDENTIFIER', 'MOVEMENT IDENTIFIER', 'TRANSACTION ID'])
 
-async function parseClaudeJson(raw) {
-  const attempts = []
-  attempts.push(cleanClaudeJson(raw))
-  attempts.push(extractFirstJsonObject(cleanClaudeJson(raw)))
-  attempts.push(normalizeJsonString(extractFirstJsonObject(cleanClaudeJson(raw))))
-
-  for (const candidate of attempts) {
-    if (!candidate) continue
-    try {
-      return JSON.parse(candidate)
-    } catch (error) {
-      continue
-    }
+  if (dateIdx === -1 || descIdx === -1 || (amountIdx === -1 && debitIdx === -1 && creditIdx === -1)) {
+    throw new Error('Nao consegui mapear as colunas principais do CSV')
   }
 
-  const repairedRaw = await repairJsonWithClaude(raw)
-  const repairedAttempts = [
-    cleanClaudeJson(repairedRaw),
-    extractFirstJsonObject(cleanClaudeJson(repairedRaw)),
-    normalizeJsonString(extractFirstJsonObject(cleanClaudeJson(repairedRaw)))
-  ]
+  const transacoes = rows.slice(1).map((row, rowIndex) => parseCsvRow(row, {
+    schema,
+    tipoDocumento,
+    dateIdx,
+    descIdx,
+    amountIdx,
+    debitIdx,
+    creditIdx,
+    identifierIdx,
+    rowIndex
+  })).filter(Boolean)
 
-  for (const candidate of repairedAttempts) {
-    if (!candidate) continue
-    try {
-      return JSON.parse(candidate)
-    } catch (error) {
-      continue
-    }
+  if (!transacoes.length) {
+    throw new Error('Nao consegui identificar transacoes validas neste CSV')
   }
 
-  throw new Error('Nao consegui interpretar o JSON retornado pela analise da fatura')
-}
+  const mesReferencia = inferReferenceMonthFromTransactions(transacoes)
+  const gastos = transacoes.filter(tx => tx.natureza === 'gasto').reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
 
-function cleanClaudeJson(raw) {
-  return String(raw || '')
-    .replace(/```json|```/gi, '')
-    .replace(/^[^{[]*/, '')
-    .trim()
-}
-
-function extractFirstJsonObject(text) {
-  const source = String(text || '')
-  const start = source.search(/[\[{]/)
-  if (start === -1) return ''
-
-  let depth = 0
-  let inString = false
-  let escaped = false
-
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i]
-
-    if (inString) {
-      if (escaped) {
-        escaped = false
-      } else if (ch === '\\') {
-        escaped = true
-      } else if (ch === '"') {
-        inString = false
-      }
-      continue
-    }
-
-    if (ch === '"') {
-      inString = true
-      continue
-    }
-
-    if (ch === '{' || ch === '[') depth += 1
-    if (ch === '}' || ch === ']') depth -= 1
-
-    if (depth === 0) {
-      return source.slice(start, i + 1)
-    }
-  }
-
-  return source.slice(start)
-}
-
-function normalizeJsonString(text) {
-  return String(text || '')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/,\s*([}\]])/g, '$1')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[\u0000-\u0019]+/g, ' ')
-    .trim()
-}
-
-function buildFallbackPrompt(textChunk, chunkIndex, chunkCount) {
-  return `Analise o trecho abaixo e retorne SOMENTE linhas estruturadas neste formato:
-
-META|tipo_documento|banco|identificador|ultimos_digitos|mes_referencia|titular|total_fatura|total_gastos_periodo
-TX|data|estabelecimento|valor|natureza|categoria|parcelado|parcela_atual|total_parcelas
-
-Regras:
-- tipo_documento deve ser fatura_cartao ou extrato_conta
-- natureza deve ser gasto, entrada, estorno ou ajuste
-- valor deve usar ponto decimal e sinal correto
-- parcelado deve ser true ou false
-- Se um campo nao existir, use null
-- Retorne uma linha META e depois uma linha TX por transacao
-- Nao escreva explicacoes
-
-TRECHO (${chunkIndex}/${chunkCount}):
----
-${textChunk}
----`
-}
-
-function parseFallbackBlock(raw) {
-  const lines = String(raw || '')
-    .replace(/```[a-z]*|```/gi, '')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-
-  const parsed = {
-    tipo_documento: null,
-    banco: null,
+  return finalizeParsedStatement({
+    tipo_documento: tipoDocumento,
+    banco: bankName,
     identificador: null,
     ultimos_digitos: null,
-    mes_referencia: null,
+    mes_referencia: mesReferencia,
     titular: null,
-    total_fatura: 0,
-    total_gastos_periodo: 0,
-    transacoes: []
+    total_fatura: tipoDocumento === 'fatura_cartao' ? gastos : 0,
+    total_gastos_periodo: gastos,
+    transacoes
+  }, {
+    bank: bankName,
+    tipo_documento: tipoDocumento,
+    identificador: null,
+    ultimos_digitos: null,
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: tipoDocumento === 'fatura_cartao' ? gastos : 0,
+    total_gastos_periodo: gastos
+  })
+}
+
+function detectCsvSchema(header) {
+  const joined = header.join(' | ')
+  if (joined === 'DATE | TITLE | AMOUNT') {
+    return 'nubank_card_simple'
+  }
+  if (joined.includes('IDENTIFICADOR') && joined.includes('DESCRICAO') && joined.includes('VALOR')) {
+    return 'nubank'
+  }
+  if (joined.includes('MOVEMENT AMOUNT') || joined.includes('MOVEMENT DESCRIPTION') || joined.includes('TRANSACTION CREATED AT')) {
+    return 'movement_template'
+  }
+  return 'generic'
+}
+
+function getCsvDocumentType(schema, fileName) {
+  if (schema === 'nubank_card_simple') return 'fatura_cartao'
+  if (/NUBANK_\d{4}-\d{2}-\d{2}\.CSV$/i.test(String(fileName || ''))) return 'fatura_cartao'
+  return 'extrato_conta'
+}
+
+function detectCsvBank(schema, content, fileName) {
+  if (schema === 'nubank' || schema === 'nubank_card_simple' || /NUBANK/i.test(String(fileName || ''))) {
+    return 'Nubank'
+  }
+  return detectBankName(normalizeDocText(content), fileName)
+}
+
+function parseOfxDocument(content, fileName) {
+  const blocks = String(content || '').match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || []
+  if (!blocks.length) {
+    throw new Error('Nao consegui identificar transacoes neste OFX')
   }
 
-  lines.forEach(line => {
-    const parts = line.split('|').map(part => part.trim())
-    if (!parts.length) return
+  const transacoes = blocks.map(block => parseOfxTransaction(block)).filter(Boolean)
+  if (!transacoes.length) {
+    throw new Error('Nao consegui converter as transacoes deste OFX')
+  }
 
-    if (parts[0] === 'META') {
-      parsed.tipo_documento = normalizeNullable(parts[1])
-      parsed.banco = normalizeNullable(parts[2])
-      parsed.identificador = normalizeNullable(parts[3])
-      parsed.ultimos_digitos = normalizeNullable(parts[4])
-      parsed.mes_referencia = normalizeNullable(parts[5])
-      parsed.titular = normalizeNullable(parts[6])
-      parsed.total_fatura = parseMoneyNumber(parts[7])
-      parsed.total_gastos_periodo = parseMoneyNumber(parts[8])
+  const accountId = extractOfxTag(content, 'ACCTID')
+  const bankId = extractOfxTag(content, 'BANKID')
+  const mesReferencia = inferReferenceMonthFromTransactions(transacoes)
+  const gastos = transacoes.filter(tx => tx.natureza === 'gasto').reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+  const bankName = detectBankName(`${normalizeDocText(content)} ${normalizeDocText(fileName)} ${normalizeDocText(bankId)}`, fileName)
+
+  return finalizeParsedStatement({
+    tipo_documento: 'extrato_conta',
+    banco: bankName,
+    identificador: accountId || bankId || null,
+    ultimos_digitos: extractLast4(accountId || ''),
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: 0,
+    total_gastos_periodo: gastos,
+    transacoes
+  }, {
+    bank: bankName,
+    tipo_documento: 'extrato_conta',
+    identificador: accountId || bankId || null,
+    ultimos_digitos: extractLast4(accountId || ''),
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: 0,
+    total_gastos_periodo: gastos
+  })
+}
+
+function sortPageItems(items) {
+  return (items || [])
+    .map(item => ({
+      str: normalizeSpace(item.str || ''),
+      x: Number(item.transform && item.transform[4]) || 0,
+      y: Number(item.transform && item.transform[5]) || 0,
+      width: Number(item.width) || 0,
+      height: Number(item.height) || 0
+    }))
+    .filter(item => item.str)
+    .sort((a, b) => {
+      if (Math.abs(a.y - b.y) <= 2.5) return a.x - b.x
+      return b.y - a.y
+    })
+}
+
+function buildPageLines(items) {
+  const groups = []
+  ;(items || []).forEach(item => {
+    const current = groups[groups.length - 1]
+    if (current && Math.abs(current.y - item.y) <= 2.5) {
+      current.items.push(item)
+      return
+    }
+    groups.push({ y: item.y, items: [item] })
+  })
+
+  return groups
+    .map(group => {
+      const lineItems = group.items.sort((a, b) => a.x - b.x)
+      return {
+        y: group.y,
+        text: joinLineItems(lineItems)
+      }
+    })
+    .filter(line => line.text)
+}
+
+function joinLineItems(items) {
+  let text = ''
+  let previousEnd = null
+
+  items.forEach(item => {
+    const token = normalizeSpace(item.str)
+    if (!token) return
+
+    if (text) {
+      const gap = previousEnd == null ? 0 : item.x - previousEnd
+      if (gap > 6) text += ' '
+    }
+
+    text += token
+    previousEnd = item.x + item.width
+  })
+
+  return normalizeSpace(text)
+}
+
+function parseStatementDocument(document) {
+  const profile = detectDocumentProfile(document)
+  const parsed = profile.bank === 'Nubank'
+    ? parseNubankStatement(document, profile)
+    : parseGenericStatement(document, profile)
+
+  return finalizeParsedStatement(parsed, profile)
+}
+
+function detectDocumentProfile(document) {
+  const fullText = normalizeDocText(document.text)
+  const lines = getDocumentLines(document)
+  const bank = detectBankName(fullText, document.fileName)
+  const tipoDocumento = detectDocumentType(fullText)
+  const period = extractDateRange(fullText)
+  const mesReferencia = period
+    ? `${String(period.end.month).padStart(2, '0')}/${period.end.year}`
+    : extractReferenceMonth(fullText)
+  const identifier = extractIdentifier(lines, fullText, tipoDocumento)
+  const titular = extractHolderName(lines)
+  const totalSaidas = extractLabeledMoney(fullText, ['TOTAL DE SAIDAS', 'TOTAL SAIDAS', 'TOTAL DE DEBITOS'])
+  const totalEntradas = extractLabeledMoney(fullText, ['TOTAL DE ENTRADAS', 'TOTAL ENTRADAS', 'TOTAL DE CREDITOS'])
+  const totalFatura = extractLabeledMoney(fullText, ['TOTAL DA FATURA', 'VALOR DA FATURA', 'FATURA ATUAL', 'TOTAL'])
+
+  return {
+    bank,
+    tipo_documento: tipoDocumento,
+    identificador: identifier,
+    ultimos_digitos: extractLast4(identifier),
+    mes_referencia: mesReferencia,
+    titular,
+    total_fatura: tipoDocumento === 'fatura_cartao' ? totalFatura : 0,
+    total_gastos_periodo: tipoDocumento === 'extrato_conta' ? Math.abs(totalSaidas) : Math.abs(totalFatura),
+    period
+  }
+}
+
+function parseNubankStatement(document, profile) {
+  let transacoes = profile.tipo_documento === 'extrato_conta'
+    ? parseNubankAccountStatement(document, profile)
+    : parseTransactionLines(document, profile, { preferExplicitSignal: false })
+
+  if (!transacoes.length && document.rawItemLines && document.rawItemLines.length) {
+    transacoes = profile.tipo_documento === 'extrato_conta'
+        ? parseNubankAccountStatement(createFallbackLineDocument(document, document.rawItemLines), profile)
+        : parseTransactionLines(createFallbackLineDocument(document, document.rawItemLines), profile, { preferExplicitSignal: false })
+  }
+
+  if (profile.tipo_documento === 'extrato_conta') {
+    const dailyTotals = extractNubankDailyExpenseTotals(document.rawItemLines && document.rawItemLines.length ? document.rawItemLines : getDocumentLines(document), profile)
+    transacoes = reconcileTransactionsWithDailyTotals(transacoes, dailyTotals)
+    profile.daily_expense_totals = dailyTotals
+  }
+
+  return {
+    ...profile,
+    transacoes
+  }
+}
+
+function parseNubankAccountStatement(document, profile) {
+  const lines = (document.rawItemLines && document.rawItemLines.length ? document.rawItemLines : getDocumentLines(document))
+    .map(normalizeSpace)
+    .filter(Boolean)
+
+  const txs = []
+  let currentDate = null
+  let pending = null
+  let skipNextSectionAmount = null
+
+  const flushPending = () => {
+    if (!pending) return
+
+    const normalizedOperation = normalizeDocText(pending.operation || '')
+    const hasMerchant = pending.merchantParts.length > 0
+    const canUseStandalone = isStandaloneOperation(normalizedOperation)
+
+    if (!pending.amountRaw || (!hasMerchant && !canUseStandalone)) {
+      pending = null
       return
     }
 
-    if (parts[0] === 'TX') {
-      parsed.transacoes.push({
-        data: normalizeNullable(parts[1]) || '',
-        estabelecimento: normalizeNullable(parts[2]) || 'Estabelecimento nao identificado',
-        valor: parseMoneyNumber(parts[3]),
-        natureza: normalizeNullable(parts[4]),
-        categoria: normalizeNullable(parts[5]) || 'Outros',
-        parcelado: String(parts[6]).toLowerCase() === 'true',
-        parcela_atual: parseNullableInteger(parts[7]),
-        total_parcelas: parseNullableInteger(parts[8])
+    const merchant = hasMerchant
+      ? cleanMerchantName(pending.merchantParts.join(' '))
+      : cleanMerchantName(pending.operation)
+
+    if (!merchant) {
+      pending = null
+      return
+    }
+
+    const description = `${pending.operation || ''} ${merchant}`.trim()
+    const natureza = inferNatureza(description, pending.amountRaw, profile.tipo_documento, { preferExplicitSignal: true })
+    const valor = applyAmountSignal(pending.amountRaw, natureza, profile.tipo_documento)
+
+    if (Number.isFinite(valor) && Math.abs(valor) > 0) {
+      txs.push({
+        data: pending.date || currentDate,
+        estabelecimento: merchant,
+        valor,
+        natureza,
+        categoria: 'Outros',
+        parcelado: false,
+        parcela_atual: null,
+        total_parcelas: null
       })
     }
-  })
 
-  if (!parsed.transacoes.length) {
-    throw new Error('Nao consegui interpretar o retorno estruturado da analise')
+    pending = null
   }
 
-  return parsed
-}
+  for (const line of lines) {
+    const normalized = normalizeDocText(line)
+    const dateInfo = parseLeadingDate(line, profile)
 
-function splitStatementText(text, maxChunkSize, overlapSize) {
-  const source = String(text || '').trim()
-  if (source.length <= maxChunkSize) return [source]
-
-  const chunks = []
-  let start = 0
-
-  while (start < source.length) {
-    let end = Math.min(source.length, start + maxChunkSize)
-    if (end < source.length) {
-      const breakIdx = source.lastIndexOf('\n', end)
-      if (breakIdx > start + Math.floor(maxChunkSize * 0.6)) {
-        end = breakIdx
+    if (dateInfo && isDateHeadingLine(normalized)) {
+      currentDate = dateInfo.date
+      if (pending && !pending.merchantParts.length && !pending.amountRaw) {
+        pending.date = currentDate
       }
+      continue
     }
 
-    chunks.push(source.slice(start, end).trim())
-    if (end >= source.length) break
-    start = Math.max(end - overlapSize, start + 1)
+    if (shouldIgnoreNubankMetaLine(normalized)) continue
+
+    if (isSectionTotalLabel(normalized)) {
+      skipNextSectionAmount = normalized
+      continue
+    }
+
+    if (isNubankOperationLine(normalized)) {
+      flushPending()
+      pending = {
+        date: currentDate,
+        operation: line,
+        merchantParts: [],
+        amountRaw: null
+      }
+      continue
+    }
+
+    const amountOnly = parseStandaloneAmountLine(line)
+    if (amountOnly) {
+      if (skipNextSectionAmount) {
+        const shouldSkip = skipNextSectionAmount === 'TOTAL DE SAIDAS' ? /[-−]/.test(amountOnly) : /\+/.test(amountOnly)
+        if (shouldSkip) {
+          skipNextSectionAmount = null
+          continue
+        }
+        skipNextSectionAmount = null
+      }
+
+      if (!pending) continue
+
+      if (pending.merchantParts.length || isStandaloneOperation(normalizeDocText(pending.operation || ''))) {
+        pending.amountRaw = amountOnly
+        flushPending()
+      }
+
+      continue
+    }
+
+    if (!pending) continue
+    if (shouldIgnoreCounterpartyDetailLine(normalized)) continue
+    if (!isLikelyMerchantLine(normalized)) continue
+
+    if (!pending.merchantParts.length) {
+      pending.merchantParts.push(line)
+      continue
+    }
+
+    if (shouldAppendMerchantLine(normalized, pending.merchantParts)) {
+      pending.merchantParts.push(line)
+    }
   }
 
-  return chunks.filter(Boolean)
+  flushPending()
+  return dedupeTransactions(txs)
 }
 
-function combineParsedStatements(items) {
-  const combined = {
-    tipo_documento: null,
-    banco: null,
-    identificador: null,
-    ultimos_digitos: null,
-    mes_referencia: null,
-    titular: null,
-    total_fatura: 0,
-    total_gastos_periodo: 0,
-    transacoes: []
+function parseGenericStatement(document, profile) {
+  const primary = {
+    ...profile,
+    transacoes: parseTransactionLines(document, profile, { preferExplicitSignal: profile.tipo_documento === 'extrato_conta' })
   }
 
-  const seen = new Set()
+  if (primary.transacoes.length || !document.rawItemLines || !document.rawItemLines.length) return primary
 
-  items.forEach(item => {
-    if (!item || typeof item !== 'object') return
+  return {
+    ...profile,
+    transacoes: parseTransactionLines(
+      createFallbackLineDocument(document, document.rawItemLines),
+      profile,
+      { preferExplicitSignal: profile.tipo_documento === 'extrato_conta' }
+    )
+  }
+}
 
-    combined.tipo_documento = combined.tipo_documento || item.tipo_documento || null
-    combined.banco = combined.banco || item.banco || null
-    combined.identificador = combined.identificador || item.identificador || item.ultimos_digitos || null
-    combined.ultimos_digitos = combined.ultimos_digitos || item.ultimos_digitos || null
-    combined.mes_referencia = combined.mes_referencia || item.mes_referencia || null
-    combined.titular = combined.titular || item.titular || null
-    combined.total_fatura = Math.max(Number(combined.total_fatura) || 0, Number(item.total_fatura) || 0)
-    combined.total_gastos_periodo = Math.max(Number(combined.total_gastos_periodo) || 0, Number(item.total_gastos_periodo) || 0)
+function createFallbackLineDocument(document, rawLines) {
+  return {
+    ...document,
+    text: String(document.rawText || document.text || ''),
+    pages: [{ pageNumber: 1, lines: (rawLines || []).map(text => ({ text })) }]
+  }
+}
 
-    ;(item.transacoes || []).forEach(tx => {
-      const normalized = normalizeTransaction(tx, item)
-      const key = `${normalized.data}|${normalized.estabelecimento}|${normalized.valor}|${normalized.parcela_atual || ''}|${normalized.total_parcelas || ''}`
-      if (seen.has(key)) return
-      seen.add(key)
-      combined.transacoes.push(normalized)
+function splitNubankSectionsByDate(lines, profile) {
+  const sections = []
+  let current = null
+
+  ;(lines || []).forEach(line => {
+    const normalized = normalizeDocText(line)
+    const dateInfo = parseLeadingDate(line, profile)
+
+    if (dateInfo && isDateHeadingLine(normalized)) {
+      if (current) sections.push(current)
+      current = { date: dateInfo.date, lines: [] }
+      return
+    }
+
+    if (!current) return
+    current.lines.push(line)
+  })
+
+  if (current) sections.push(current)
+  return sections
+}
+
+function parseNubankSectionTransactions(section, profile) {
+  const candidates = []
+  const amounts = []
+  let lastOperation = null
+  let skipNextSectionAmount = null
+
+  ;(section.lines || []).forEach(line => {
+    const normalized = normalizeDocText(line)
+
+    if (shouldIgnoreNubankMetaLine(normalized)) return
+
+    if (isSectionTotalLabel(normalized)) {
+      skipNextSectionAmount = normalized
+      return
+    }
+
+    if (isNubankOperationLine(normalized)) {
+      lastOperation = line
+      if (isStandaloneOperation(normalized)) {
+        candidates.push({
+          date: section.date,
+          operation: line,
+          merchant: line
+        })
+      }
+      return
+    }
+
+    const amountOnly = parseStandaloneAmountLine(line)
+    if (amountOnly) {
+      if (skipNextSectionAmount) {
+        const skipSigned = skipNextSectionAmount === 'TOTAL DE SAIDAS' ? /[-−]/.test(amountOnly) : /\+/.test(amountOnly)
+        if (skipSigned) {
+          skipNextSectionAmount = null
+          return
+        }
+      }
+      skipNextSectionAmount = null
+      amounts.push(amountOnly)
+      return
+    }
+
+    if (shouldIgnoreCounterpartyDetailLine(normalized)) return
+    if (!isLikelyMerchantLine(normalized)) return
+
+    candidates.push({
+      date: section.date,
+      operation: lastOperation,
+      merchant: line
     })
   })
 
-  return combined
+  return pairNubankCandidatesWithAmounts(candidates, amounts, profile)
+}
+
+function pairNubankCandidatesWithAmounts(candidates, amounts, profile) {
+  const txs = []
+  const queue = [...candidates]
+
+  ;(amounts || []).forEach(amountRaw => {
+    const candidate = queue.shift()
+    if (!candidate) return
+
+    const merchant = cleanMerchantName(candidate.merchant)
+    if (!merchant) return
+
+    const description = `${candidate.operation || ''} ${merchant}`.trim()
+    const natureza = inferNatureza(description, amountRaw, profile.tipo_documento, { preferExplicitSignal: true })
+    const valor = applyAmountSignal(amountRaw, natureza, profile.tipo_documento)
+    if (!Number.isFinite(valor) || Math.abs(valor) === 0) return
+
+    txs.push({
+      data: candidate.date,
+      estabelecimento: merchant,
+      valor,
+      natureza,
+      categoria: 'Outros',
+      parcelado: false,
+      parcela_atual: null,
+      total_parcelas: null
+    })
+  })
+
+  return txs
+}
+
+function extractNubankDailyExpenseTotals(lines, profile) {
+  const totals = {}
+  let currentDate = null
+  let awaitingTotal = false
+
+  ;(lines || []).forEach(rawLine => {
+    const line = normalizeSpace(rawLine)
+    const normalized = normalizeDocText(line)
+    const dateInfo = parseLeadingDate(line, profile)
+
+    if (dateInfo && isDateHeadingLine(normalized)) {
+      currentDate = dateInfo.date
+      awaitingTotal = false
+      return
+    }
+
+    if (normalized === 'TOTAL DE SAIDAS') {
+      awaitingTotal = true
+      return
+    }
+
+    if (!awaitingTotal || !currentDate) return
+
+    const amount = parseStandaloneAmountLine(line)
+    if (!amount || !/[-−]/.test(amount)) return
+
+    totals[currentDate] = Math.abs(parseMoneyNumber(amount))
+    awaitingTotal = false
+  })
+
+  return totals
+}
+
+function reconcileTransactionsWithDailyTotals(transacoes, dailyTotals) {
+  const txs = Array.isArray(transacoes) ? [...transacoes] : []
+  const byDay = {}
+
+  txs.forEach(tx => {
+    if (!isExpenseTransaction(tx)) return
+    byDay[tx.data] = (byDay[tx.data] || 0) + Math.abs(Number(tx.valor) || 0)
+  })
+
+  Object.entries(dailyTotals || {}).forEach(([date, officialTotal]) => {
+    const parsedTotal = byDay[date] || 0
+    const delta = roundMoney(officialTotal - parsedTotal)
+    if (delta <= 0.01) return
+
+    txs.push({
+      data: date,
+      estabelecimento: 'Outras saídas do dia',
+      valor: -delta,
+      natureza: 'gasto',
+      categoria: 'Outros',
+      parcelado: false,
+      parcela_atual: null,
+      total_parcelas: null,
+      _synthetic: true
+    })
+  })
+
+  return dedupeTransactions(txs)
+}
+
+function parseTransactionLines(document, profile, options) {
+  const lines = getDocumentLines(document)
+  const txs = []
+
+  for (let i = 0; i < lines.length; i++) {
+    const current = normalizeSpace(lines[i])
+    if (!current) continue
+
+    let parsed = parseTransactionCandidate(current, profile, options)
+    if (!parsed && hasLeadingDate(current) && i + 1 < lines.length) {
+      const combined = normalizeSpace(`${current} ${lines[i + 1]}`)
+      const combinedParsed = parseTransactionCandidate(combined, profile, options)
+      if (combinedParsed) {
+        parsed = combinedParsed
+        i += 1
+      }
+    }
+
+    if (parsed) txs.push(parsed)
+  }
+
+  return dedupeTransactions(txs)
+}
+
+function parseTransactionCandidate(line, profile, options) {
+  if (!line) return null
+
+  const normalizedLine = normalizeDocText(line)
+  if (shouldIgnoreTransactionLine(normalizedLine)) return null
+
+  const amountMatch = line.match(/([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/i)
+  if (!amountMatch) return null
+
+  const dateInfo = parseLeadingDate(line, profile)
+  if (!dateInfo) return null
+
+  const description = normalizeSpace(line.slice(dateInfo.endIndex, amountMatch.index))
+    .replace(/^[-–—:|]+/, '')
+    .trim()
+
+  if (!description) return null
+  if (shouldIgnoreTransactionLine(normalizeDocText(description))) return null
+
+  const installment = extractInstallmentInfo(description)
+  const merchant = cleanMerchantName(installment.cleanDescription)
+  if (!merchant) return null
+
+  const natureza = inferNatureza(description, amountMatch[1], profile.tipo_documento, options)
+  const valor = applyAmountSignal(amountMatch[1], natureza, profile.tipo_documento)
+  if (!Number.isFinite(valor) || Math.abs(valor) === 0) return null
+
+  return {
+    data: dateInfo.date,
+    estabelecimento: merchant,
+    valor,
+    natureza,
+    categoria: 'Outros',
+    parcelado: installment.parcelado,
+    parcela_atual: installment.parcela_atual,
+    total_parcelas: installment.total_parcelas
+  }
+}
+
+function finalizeParsedStatement(parsed, profile) {
+  const normalizedTransactions = dedupeTransactions((parsed.transacoes || []).map(tx => normalizeTransaction(tx, parsed)))
+  if (!normalizedTransactions.length) {
+    throw new Error('Nao consegui identificar transacoes suficientes neste PDF. Tente um PDF digital do banco com a lista detalhada de movimentacoes.')
+  }
+
+  const result = {
+    tipo_documento: parsed.tipo_documento || profile.tipo_documento,
+    banco: parsed.banco || profile.bank,
+    identificador: parsed.identificador || profile.identificador || 'principal',
+    ultimos_digitos: parsed.ultimos_digitos || profile.ultimos_digitos,
+    mes_referencia: parsed.mes_referencia || profile.mes_referencia,
+    titular: parsed.titular || profile.titular,
+    total_fatura: Math.abs(Number(parsed.total_fatura) || Number(profile.total_fatura) || 0),
+    total_gastos_periodo: Math.abs(Number(parsed.total_gastos_periodo) || Number(profile.total_gastos_periodo) || 0),
+    daily_expense_totals: parsed.daily_expense_totals || profile.daily_expense_totals || {},
+    transacoes: normalizedTransactions
+  }
+
+  const expenseTxs = getExpenseTransactions(result.transacoes)
+  const derivedTotal = expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+
+  if (!result.total_gastos_periodo) result.total_gastos_periodo = derivedTotal
+  if (result.tipo_documento === 'fatura_cartao' && !result.total_fatura) result.total_fatura = derivedTotal
+
+  return result
 }
 
 function normalizeTransaction(tx, item) {
@@ -1092,7 +1441,9 @@ function normalizeTransaction(tx, item) {
     banco: item && item.banco ? item.banco : null,
     identificador: item && (item.identificador || item.ultimos_digitos) ? (item.identificador || item.ultimos_digitos) : null,
     ultimos_digitos: item && item.ultimos_digitos ? item.ultimos_digitos : null,
-    mes_referencia: item && item.mes_referencia ? item.mes_referencia : null
+    mes_referencia: item && item.mes_referencia ? item.mes_referencia : null,
+    _source_row_index: tx && tx._source_row_index != null ? tx._source_row_index : null,
+    _raw_description: tx && tx._raw_description ? tx._raw_description : ''
   }
 }
 
@@ -1117,7 +1468,564 @@ function parseNullableInteger(value) {
   return Number.isFinite(num) ? num : null
 }
 
+function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100
+}
+
+function parseDelimitedRows(content) {
+  const source = String(content || '').replace(/^\uFEFF/, '')
+  const lines = source.split(/\r?\n/).filter(line => line.trim())
+  if (!lines.length) return []
+
+  const delimiters = [';', ',', '\t']
+  const delimiter = delimiters
+    .map(char => ({ char, score: (lines[0].match(new RegExp(`\\${char}`, 'g')) || []).length }))
+    .sort((a, b) => b.score - a.score)[0].char
+
+  return lines.map(line => splitDelimitedLine(line, delimiter))
+}
+
+function splitDelimitedLine(line, delimiter) {
+  const cells = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (char === delimiter && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  cells.push(current.trim())
+  return cells
+}
+
+function findHeaderIndex(header, aliases) {
+  const normalizedAliases = aliases.map(normalizeDocText)
+  return header.findIndex(column => normalizedAliases.some(alias => column.includes(alias)))
+}
+
+function parseCsvRow(row, indexes) {
+  const rawDate = row[indexes.dateIdx]
+  const rawDescription = row[indexes.descIdx]
+  if (!rawDate || !rawDescription) return null
+
+  let amount = 0
+  if (indexes.amountIdx !== -1) {
+    amount = parseMoneyNumber(row[indexes.amountIdx])
+  } else {
+    const debit = indexes.debitIdx !== -1 ? Math.abs(parseMoneyNumber(row[indexes.debitIdx])) : 0
+    const credit = indexes.creditIdx !== -1 ? Math.abs(parseMoneyNumber(row[indexes.creditIdx])) : 0
+    amount = credit > 0 ? credit : -debit
+  }
+
+  if (!amount) return null
+
+  const date = normalizeImportedDate(rawDate)
+  if (!date) return null
+
+  const natureza = inferCsvNatureza(indexes.schema, rawDescription, amount, indexes.tipoDocumento)
+  const cleaned = cleanImportedDescription(rawDescription, indexes.schema, natureza)
+  const installments = extractInstallmentInfo(cleaned)
+
+  return {
+    data: date,
+    estabelecimento: installments.cleanDescription || cleaned,
+    valor: applyImportedAmountSignal(amount, natureza, indexes.tipoDocumento),
+    natureza,
+    categoria: 'Outros',
+    parcelado: installments.parcelado,
+    parcela_atual: installments.parcela_atual,
+    total_parcelas: installments.total_parcelas,
+    identificador: indexes.identifierIdx !== -1 ? normalizeSpace(row[indexes.identifierIdx]) || null : null,
+    _source_row_index: Number.isFinite(indexes.rowIndex) ? indexes.rowIndex : null,
+    _raw_description: normalizeSpace(rawDescription)
+  }
+}
+
+function inferCsvNatureza(schema, rawDescription, amount, tipoDocumento) {
+  const source = normalizeDocText(rawDescription)
+
+  if (tipoDocumento === 'fatura_cartao') {
+    if (/PAGAMENTO RECEBIDO|ESTORNO|CANCELAMENTO|CREDITO/i.test(source)) {
+      return 'estorno'
+    }
+    return amount < 0 ? 'estorno' : 'gasto'
+  }
+
+  if (schema === 'nubank' || schema === 'movement_template' || schema === 'generic') {
+    return amount > 0 ? 'entrada' : 'gasto'
+  }
+
+  return amount > 0 ? 'entrada' : 'gasto'
+}
+
+function applyImportedAmountSignal(amount, natureza, tipoDocumento) {
+  const absolute = Math.abs(Number(amount) || 0)
+  if (tipoDocumento === 'fatura_cartao') {
+    return natureza === 'gasto' ? absolute : -absolute
+  }
+  return natureza === 'entrada' ? absolute : -absolute
+}
+
+function cleanImportedDescription(rawDescription, schema, natureza) {
+  const source = normalizeSpace(rawDescription)
+  if (!source) return 'Movimentacao'
+
+  let cleaned = source
+    .replace(/\bPagamento recebido\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia recebida\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia enviada pelo Pix\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia enviada\b\s*-\s*/i, '')
+    .replace(/\bPagamento de boleto efetuado\b\s*-\s*/i, '')
+    .replace(/\bCompra no d[eé]bito\b\s*-\s*/i, '')
+    .replace(/\bCompra no cr[eé]dito\b\s*-\s*/i, '')
+    .replace(/\bPagamento de fatura\b\s*-\s*/i, '')
+    .replace(/\bRecebimento via Pix\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia entre contas\b\s*-\s*/i, '')
+    .replace(/\s+-\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}.*$/i, '')
+    .replace(/\s+-\s+.*?\((?:\d{4}|\d{3,4})\)\s+Ag[eê]ncia:.*$/i, '')
+    .replace(/\s+Ag[eê]ncia:\s*.+$/i, '')
+    .replace(/\s+Conta:\s*.+$/i, '')
+    .replace(/\s+-\s+NU PAGAMENTOS.*$/i, '')
+    .replace(/\s+-\s+ITA[ÚU].*$/i, '')
+    .replace(/\s+-\s+BCO .*$/i, '')
+    .replace(/\s+-\s+BANCO .*$/i, '')
+    .replace(/\*+/g, ' ')
+
+  if (schema === 'movement_template') {
+    cleaned = cleaned
+      .replace(/\bpayment\b\s*-\s*/i, '')
+      .replace(/\btransfer\b\s*-\s*/i, '')
+  }
+
+  cleaned = cleanMerchantName(cleaned)
+
+  if (!cleaned || cleaned === 'Pagamento de fatura' || /PAGAMENTO RECEBIDO/i.test(source)) {
+    return natureza === 'entrada' ? 'Recebimento' : 'Movimentacao'
+  }
+
+  return cleaned
+}
+
+function normalizeImportedDate(raw) {
+  const value = normalizeSpace(raw)
+  if (!value) return null
+
+  let match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) return formatDateParts(Number(match[3]), Number(match[2]), Number(match[1]))
+
+  match = value.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/)
+  if (match) {
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3])
+    return formatDateParts(Number(match[1]), Number(match[2]), year)
+  }
+
+  match = value.match(/^(\d{2})-(\d{2})-(\d{2,4})$/)
+  if (match) {
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3])
+    return formatDateParts(Number(match[1]), Number(match[2]), year)
+  }
+
+  return null
+}
+
+function parseOfxTransaction(block) {
+  const rawDate = extractOfxTag(block, 'DTPOSTED')
+  const rawAmount = extractOfxTag(block, 'TRNAMT')
+  const rawName = extractOfxTag(block, 'NAME')
+  const rawMemo = extractOfxTag(block, 'MEMO')
+  const rawType = normalizeDocText(extractOfxTag(block, 'TRNTYPE'))
+  if (!rawDate || !rawAmount) return null
+
+  const amount = Number(String(rawAmount).replace(',', '.'))
+  if (!Number.isFinite(amount) || amount === 0) return null
+
+  const date = normalizeOfxDate(rawDate)
+  if (!date) return null
+
+  const description = cleanMerchantName(rawName || rawMemo || rawType || 'Movimentacao OFX')
+  const natureza = amount > 0 ? 'entrada' : 'gasto'
+
+  return {
+    data: date,
+    estabelecimento: description,
+    valor: amount,
+    natureza,
+    categoria: 'Outros',
+    parcelado: false,
+    parcela_atual: null,
+    total_parcelas: null
+  }
+}
+
+function extractOfxTag(source, tag) {
+  const match = String(source || '').match(new RegExp(`<${tag}>([^<\\r\\n]+)`, 'i'))
+  return match ? normalizeSpace(match[1]) : ''
+}
+
+function normalizeOfxDate(raw) {
+  const match = String(raw || '').match(/^(\d{4})(\d{2})(\d{2})/)
+  if (!match) return null
+  return formatDateParts(Number(match[3]), Number(match[2]), Number(match[1]))
+}
+
+function inferReferenceMonthFromTransactions(transacoes) {
+  const first = [...(transacoes || [])]
+    .sort((a, b) => getTransactionDateValue(a) - getTransactionDateValue(b))[0]
+  if (!first || !first.data) return null
+  const parts = String(first.data).split('/')
+  if (parts.length !== 3) return null
+  return `${parts[1]}/${parts[2]}`
+}
+
+function normalizeSpace(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim()
+}
+
+function stripAccents(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function normalizeDocText(value) {
+  return stripAccents(normalizeSpace(value)).toUpperCase()
+}
+
+function getDocumentLines(document) {
+  return (document.pages || []).flatMap(page => (page.lines || []).map(line => line.text))
+}
+
+function detectBankName(fullText, fileName) {
+  const source = `${fullText} ${normalizeDocText(fileName)}`
+  if (/\bNUBANK\b|\bNU_\b|\bNU\b/.test(source)) return 'Nubank'
+  if (/\bITAU\b|\bUNIBANCO\b/.test(source)) return 'Itau'
+  if (/\bBRADESCO\b/.test(source)) return 'Bradesco'
+  if (/\bINTER\b/.test(source)) return 'Inter'
+  if (/\bSANTANDER\b/.test(source)) return 'Santander'
+  if (/\bC6\b/.test(source)) return 'C6'
+  if (/\bXP\b/.test(source)) return 'XP'
+  return 'Banco nao identificado'
+}
+
+function detectDocumentType(fullText) {
+  if (/TOTAL DE ENTRADAS|TOTAL DE SAIDAS|SALDO FINAL DO PERIODO|RENDIMENTO LIQUIDO|AGENCIA .* CONTA/.test(fullText)) {
+    return 'extrato_conta'
+  }
+  return 'fatura_cartao'
+}
+
+function extractDateRange(fullText) {
+  const match = fullText.match(/(\d{1,2})\s+DE\s+([A-Z]+)\s+DE\s+(\d{4})\s+A\s+(\d{1,2})\s+DE\s+([A-Z]+)\s+DE\s+(\d{4})/)
+  if (!match) return null
+
+  const startMonth = MONTH_MAP[match[2]]
+  const endMonth = MONTH_MAP[match[5]]
+  if (!startMonth || !endMonth) return null
+
+  return {
+    start: { day: Number(match[1]), month: startMonth, year: Number(match[3]) },
+    end: { day: Number(match[4]), month: endMonth, year: Number(match[6]) }
+  }
+}
+
+function extractReferenceMonth(fullText) {
+  const match = fullText.match(/\b(0[1-9]|1[0-2])\/(\d{4})\b/)
+  return match ? `${match[1]}/${match[2]}` : null
+}
+
+function extractIdentifier(lines, fullText, tipoDocumento) {
+  const source = lines.join(' \n ')
+  const accountMatch = source.match(/CONTA\s+([\d.\-]+)/i)
+  if (accountMatch) return accountMatch[1]
+
+  const cardMatch = source.match(/FINAL\s+(\d{4})/i) || source.match(/CARTAO\s+.*?(\d{4})/i)
+  if (cardMatch) return cardMatch[1]
+
+  if (tipoDocumento === 'extrato_conta') {
+    const fallbackAccount = fullText.match(/CONTA\s+([\d.\-]+)/)
+    if (fallbackAccount) return fallbackAccount[1]
+  }
+
+  return null
+}
+
+function extractLast4(value) {
+  const match = String(value || '').match(/(\d{4})(?!.*\d)/)
+  return match ? match[1] : null
+}
+
+function extractHolderName(lines) {
+  const cpfIndex = lines.findIndex(line => /CPF/i.test(line))
+  if (cpfIndex === -1) return null
+
+  const currentLine = lines[cpfIndex] || ''
+  const beforeCpf = normalizeSpace(currentLine.split(/CPF/i)[0])
+  if (beforeCpf) return beforeCpf
+
+  const previous = normalizeSpace(lines[cpfIndex - 1] || '')
+  return previous || null
+}
+
+function extractLabeledMoney(fullText, labels) {
+  for (const label of labels) {
+    const match = fullText.match(new RegExp(`${label}\\s*([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
+    if (match) return parseMoneyNumber(match[1])
+  }
+  return 0
+}
+
+function hasLeadingDate(line) {
+  return Boolean(parseLeadingDate(line, { period: null, mes_referencia: null }))
+}
+
+function isDateHeadingLine(normalizedLine) {
+  return /^\d{1,2}\s+[A-Z]{3,9}\s+\d{4}$/.test(normalizedLine) || /^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/.test(normalizedLine)
+}
+
+function parseLeadingDate(line, profile) {
+  const source = normalizeSpace(line)
+  let match = source.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)
+  if (match) {
+    const year = inferYear(match[3], Number(match[2]), profile)
+    return {
+      date: formatDateParts(Number(match[1]), Number(match[2]), year),
+      endIndex: match[0].length
+    }
+  }
+
+  match = source.match(/^(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{2,4}))?\b/)
+  if (!match) return null
+
+  const month = MONTH_MAP[normalizeDocText(match[2])]
+  if (!month) return null
+
+  const year = inferYear(match[3], month, profile)
+  return {
+    date: formatDateParts(Number(match[1]), month, year),
+    endIndex: match[0].length
+  }
+}
+
+function inferYear(rawYear, month, profile) {
+  if (rawYear) {
+    const num = Number(rawYear)
+    if (num < 100) return 2000 + num
+    return num
+  }
+
+  if (profile && profile.period) {
+    const startYear = profile.period.start.year
+    const endYear = profile.period.end.year
+    const endMonth = profile.period.end.month
+    return month > endMonth ? startYear : endYear
+  }
+
+  if (profile && profile.mes_referencia) {
+    return Number(String(profile.mes_referencia).split('/')[1]) || new Date().getFullYear()
+  }
+
+  return new Date().getFullYear()
+}
+
+function formatDateParts(day, month, year) {
+  return [
+    String(day).padStart(2, '0'),
+    String(month).padStart(2, '0'),
+    String(year).padStart(4, '0')
+  ].join('/')
+}
+
+function shouldIgnoreTransactionLine(normalizedLine) {
+  if (!normalizedLine) return true
+  return [
+    'SALDO INICIAL',
+    'SALDO FINAL',
+    'SALDO FINAL DO PERIODO',
+    'TOTAL DE ENTRADAS',
+    'TOTAL DE SAIDAS',
+    'RENDIMENTO LIQUIDO',
+    'VALORES EM',
+    'CPF',
+    'AGENCIA',
+    'CONTA',
+    'COMO FUNCIONA',
+    'PAGINA ',
+    'DIAGNOSTICO',
+    'COMPROMETIMENTO'
+  ].some(marker => normalizedLine.includes(marker))
+}
+
+function isSectionTotalLabel(normalizedLine) {
+  return normalizedLine === 'TOTAL DE ENTRADAS' || normalizedLine === 'TOTAL DE SAIDAS'
+}
+
+function isNubankOperationLine(normalizedLine) {
+  return [
+    'TRANSFERENCIA RECEBIDA',
+    'TRANSFERENCIA ENVIADA PELO PIX',
+    'PAGAMENTO DE BOLETO EFETUADO',
+    'PAGAMENTO DE FATURA',
+    'COMPRA NO DEBITO',
+    'APLICACAO RDB',
+    'ESTORNO'
+  ].includes(normalizedLine)
+}
+
+function shouldIgnoreNubankMetaLine(normalizedLine) {
+  if (!normalizedLine) return true
+  if (shouldIgnoreTransactionLine(normalizedLine)) return true
+  return [
+    'MOVIMENTACOES',
+    'EXTRATO GERADO DIA',
+    'TEM ALGUMA DUVIDA',
+    'CASO A SOLUCAO FORNECIDA',
+    'METROPOLITANAS',
+    'ATENDIMENTO 24H',
+    'ATENDIMENTO DAS 8H AS 18H EM DIAS UTEIS',
+    'DISPONIVEIS EM NUBANK.COM.BR/CONTATOS#OUVIDORIA'
+  ].some(marker => normalizedLine.includes(marker))
+}
+
+function shouldIgnoreCounterpartyDetailLine(normalizedLine) {
+  return [
+    'AGENCIA:',
+    'CONTA:',
+    'BCO ',
+    'BANCO ',
+    ' ITAU ',
+    ' PICPAY ',
+    ' CIELO ',
+    ' MERCADO PAGO ',
+    ' NU PAGAMENTOS ',
+    ' LTDA.',
+    ' LTDA - ',
+    ' S.A.',
+    ' S/A',
+    ' IP ',
+    'CNPJ',
+    'CPF'
+  ].some(marker => normalizedLine.includes(marker))
+}
+
+function isStandaloneOperation(normalizedLine) {
+  return normalizedLine === 'PAGAMENTO DE FATURA' || normalizedLine === 'APLICACAO RDB'
+}
+
+function parseStandaloneAmountLine(line) {
+  const source = normalizeSpace(line).replace(/\s+/g, ' ')
+  const match = source.match(/^([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})$/i)
+  return match ? match[1] : null
+}
+
+function isLikelyMerchantLine(normalizedLine) {
+  if (!normalizedLine) return false
+  if (isDateHeadingLine(normalizedLine)) return false
+  if (isNubankOperationLine(normalizedLine)) return false
+  if (isSectionTotalLabel(normalizedLine)) return false
+  if (parseStandaloneAmountLine(normalizedLine)) return false
+  if (shouldIgnoreNubankMetaLine(normalizedLine)) return false
+  if (shouldIgnoreCounterpartyDetailLine(normalizedLine)) return false
+  return true
+}
+
+function shouldAppendMerchantLine(normalizedLine, merchantParts) {
+  if (!normalizedLine || merchantParts.length >= 2) return false
+  if (isNubankOperationLine(normalizedLine)) return false
+  if (isSectionTotalLabel(normalizedLine)) return false
+  if (shouldIgnoreNubankMetaLine(normalizedLine)) return false
+  if (shouldIgnoreCounterpartyDetailLine(normalizedLine)) return false
+  return true
+}
+
+function extractInstallmentInfo(description) {
+  const match = String(description || '').match(/\b(\d{1,2})\/(\d{1,2})\b/)
+  return {
+    parcelado: Boolean(match),
+    parcela_atual: match ? parseInt(match[1], 10) : null,
+    total_parcelas: match ? parseInt(match[2], 10) : null,
+    cleanDescription: normalizeSpace(String(description || '').replace(/\b\d{1,2}\/\d{1,2}\b/, ' '))
+  }
+}
+
+function cleanMerchantName(value) {
+  return normalizeSpace(String(value || '')
+    .replace(/\bR\$\b/gi, '')
+    .replace(/\b(?:PIX|TED|DOC)\b\s*(?:ENVIADO|RECEBIDO)?/gi, '')
+    .replace(/\s{2,}/g, ' '))
+}
+
+function inferNatureza(description, rawAmount, tipoDocumento, options) {
+  const source = normalizeDocText(description)
+  const hasMinus = /[-−]/.test(rawAmount)
+  const hasPlus = /\+/.test(rawAmount)
+
+  if (/ESTORNO|CREDITO DE CONFIANCA|CANCELAMENTO/.test(source)) return 'estorno'
+
+  if (tipoDocumento === 'extrato_conta') {
+    if (hasPlus) return 'entrada'
+    if (hasMinus) return 'gasto'
+    if (/SALARIO|RECEBIDO|RENDIMENTO|DEPOSITO|CREDITO|TRANSFERENCIA RECEBIDA|PIX RECEB/.test(source)) return 'entrada'
+    if (/PAGAMENTO|COMPRA|TRANSFERENCIA|PIX ENVI|DEBITO|SAQUE|BOLETO|TARIFA/.test(source)) return 'gasto'
+    return options && options.preferExplicitSignal ? 'gasto' : 'entrada'
+  }
+
+  return hasMinus ? 'estorno' : 'gasto'
+}
+
+function applyAmountSignal(rawAmount, natureza, tipoDocumento) {
+  let value = Math.abs(parseMoneyNumber(rawAmount))
+  const hasMinus = /[-−]/.test(rawAmount)
+  const hasPlus = /\+/.test(rawAmount)
+
+  if (hasMinus) return -value
+  if (hasPlus) return value
+
+  if (tipoDocumento === 'extrato_conta') {
+    return natureza === 'entrada' ? value : -value
+  }
+
+  return natureza === 'estorno' ? -value : value
+}
+
+function dedupeTransactions(items) {
+  const seen = new Set()
+  return items.filter(item => {
+    const key = [
+      item.data,
+      normalizeDocText(item.estabelecimento),
+      Number(item.valor || 0).toFixed(2),
+      item.identificador || '',
+      item._source_row_index != null ? item._source_row_index : '',
+      item.parcela_atual || '',
+      item.total_parcelas || ''
+    ].join('|')
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 async function startParsing() {
+  const startedAt = Date.now()
   showScreen('loading')
   document.getElementById('parseBtn').disabled = true
   setPill(1, 'done')
@@ -1133,7 +2041,7 @@ async function startParsing() {
       f.progress = 0
       updateLoadingFiles()
 
-      f.text = await extractPdfText(f.file, p => {
+      f.parsed = await parseImportedFile(f.file, f.kind, p => {
         f.progress = p / 2
         updateLoadingFiles()
       })
@@ -1142,7 +2050,7 @@ async function startParsing() {
       f.progress = 50
       updateLoadingFiles()
 
-      const parsed = await parseWithClaude(f.text)
+      const parsed = f.parsed
       f.progress = 100
       updateLoadingFiles()
 
@@ -1171,6 +2079,11 @@ async function startParsing() {
     }
   }
 
+  const elapsed = Date.now() - startedAt
+  if (elapsed < 5000) {
+    await wait(5000 - elapsed)
+  }
+
   stopLoadingCycle()
   renderQueue()
   if (dedupPending) {
@@ -1183,6 +2096,7 @@ async function startParsing() {
 
 function mergeTransactions(parsed) {
   const identifier = parsed.identificador || parsed.ultimos_digitos || 'principal'
+  const statementKey = `${parsed.banco}|${identifier}|${parsed.mes_referencia || 'sem-mes'}|${parsed.tipo_documento}`
   const txs = (parsed.transacoes || []).map(tx => ({
     ...tx,
     tipo_documento: parsed.tipo_documento,
@@ -1190,7 +2104,12 @@ function mergeTransactions(parsed) {
     identificador: identifier,
     ultimos_digitos: parsed.ultimos_digitos,
     mes_referencia: parsed.mes_referencia,
-    _key: `${tx.data}|${tx.estabelecimento}|${tx.valor}|${identifier}`
+    _statement_key: statementKey,
+    _official_day_total: parsed.daily_expense_totals && tx.data ? parsed.daily_expense_totals[tx.data] || null : null,
+    _statement_total_gastos_periodo: parsed.total_gastos_periodo || null,
+    _key: tx._source_row_index != null
+      ? `${statementKey}|row:${tx._source_row_index}`
+      : `${statementKey}|${tx.data}|${tx.estabelecimento}|${tx.valor}|${tx.identificador || ''}|${tx.parcela_atual || ''}|${tx.total_parcelas || ''}`
   }))
 
   const existingKeys = new Set(allTransactions.map(t => t._key))
@@ -1253,9 +2172,7 @@ function renderResults() {
   const txs = getFilteredTxs()
   if (!txs.length) return
 
-  const months = [...new Set(allTransactions.map(t => t.mes_referencia).filter(Boolean))]
-  document.getElementById('resultSub').textContent =
-    `${allTransactions.length} transacoes · ${months.join(', ')}`
+  document.getElementById('resultSub').textContent = getDateRangeLabel(txs)
 
   const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}`))]
   const chips = document.getElementById('cardChips')
@@ -1270,7 +2187,8 @@ function renderResults() {
   }).join('')
 
   const expenseTxs = getExpenseTransactions(txs)
-  const total = expenseTxs.reduce((s, t) => s + Math.abs(Number(t.valor) || 0), 0)
+  const effectiveDailyTotals = getEffectiveDailyTotals(expenseTxs)
+  const total = getEffectiveExpenseTotal(txs, effectiveDailyTotals)
   const purchaseCount = expenseTxs.length
   const avgTicket = purchaseCount ? total / purchaseCount : 0
   const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
@@ -1301,8 +2219,8 @@ function renderResults() {
   document.getElementById('ipct').style.color = pctColor
 
   renderDiagnosisOverview({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
-  renderHeatmap(expenseTxs)
-  renderInsights({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
+  renderHeatmap(expenseTxs, effectiveDailyTotals)
+  renderInsights({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct, dailyTotals: effectiveDailyTotals })
 
   const bycat = {}
   expenseTxs.forEach(t => {
@@ -1392,13 +2310,9 @@ function fmt(n) {
 function renderDiagnosisOverview(data) {
   const score = getHealthScore(data.pct)
   const headline = score >= 8 ? 'Saude em dia' : score >= 6 ? 'Atencao necessaria' : score >= 4 ? 'Pede ajustes' : 'Ajuste urgente'
-  const concentration = getTopCategoryShare(data.txs, data.total)
-  const extra = concentration.name
-    ? `Concentracao maior em ${concentration.name.toLowerCase()} (${concentration.pct}% do total).`
-    : 'Distribuicao ainda sem categoria dominante.'
   const text = data.monthsCount > 1
-    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, comprometendo ${data.pct}% da renda declarada. ${extra}`
-    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, comprometendo ${data.pct}% da renda declarada. ${extra}`
+    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, comprometendo ${data.pct}% da renda declarada.`
+    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, comprometendo ${data.pct}% da renda declarada.`
   const meterColor = score >= 8 ? 'var(--green)' : score >= 6 ? 'var(--amber)' : 'var(--red)'
 
   document.getElementById('diagnosisHeadline').textContent = headline
@@ -1409,10 +2323,10 @@ function renderDiagnosisOverview(data) {
   meter.style.setProperty('--meter-color', meterColor)
 }
 
-function renderHeatmap(txs) {
+function renderHeatmap(txs, providedDailyTotals) {
   const grid = document.getElementById('heatmapGrid')
   const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
-  const dailyTotals = getDailyTotals(txs)
+  const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
   const dates = Object.keys(dailyTotals).sort()
 
   let startDate
@@ -1442,10 +2356,11 @@ function renderHeatmap(txs) {
     const alpha = value ? (0.15 + intensity * 0.75).toFixed(2) : '0.06'
     const label = value ? shortMoney(value) : 'R$ 0'
     const title = `${formatDate(cursor)} · ${fmt(value)}`
+    const dayLabel = formatShortDayMonth(cursor)
 
     cells.push(`
       <div class="heatmap-cell" style="background:rgba(200,245,100,${alpha});border-color:${value ? 'rgba(200,245,100,.22)' : 'rgba(255,255,255,.04)'}" title="${title}">
-        <div class="heatmap-day">${String(cursor.getDate()).padStart(2, '0')}</div>
+        <div class="heatmap-day">${dayLabel}</div>
         <div class="heatmap-value">${label}</div>
       </div>
     `)
@@ -1458,8 +2373,8 @@ function renderHeatmap(txs) {
 
 function renderInsights(data) {
   const insightGrid = document.getElementById('insightGrid')
-  const topDay = getTopSpendingDay(data.txs)
-  const topWeekdays = getTopAverageWeekdays(data.txs)
+  const topDay = getTopSpendingDay(data.txs, data.dailyTotals)
+  const topWeekdays = getTopAverageWeekdays(data.txs, data.dailyTotals)
   const topCategories = getTopCategories(data.txs, data.total)
 
   const cards = [
@@ -1521,8 +2436,12 @@ function getTopCategoryShare(txs, total) {
 }
 
 function getDailyTotals(txs) {
+  return buildDailyTotalsFromTransactions(txs)
+}
+
+function buildDailyTotalsFromTransactions(txs) {
   const totals = {}
-  txs.forEach(tx => {
+  ;(txs || []).forEach(tx => {
     const date = getTransactionDate(tx)
     if (Number.isNaN(date.getTime())) return
     const key = toIsoDate(date)
@@ -1531,8 +2450,79 @@ function getDailyTotals(txs) {
   return totals
 }
 
-function getTopSpendingDay(txs) {
-  const dailyTotals = getDailyTotals(txs)
+function getEffectiveDailyTotals(txs) {
+  const totals = {}
+  const groupedByStatement = {}
+
+  ;(txs || []).forEach(tx => {
+    const statementKey = tx && tx._statement_key ? tx._statement_key : 'default'
+    if (!groupedByStatement[statementKey]) groupedByStatement[statementKey] = []
+    groupedByStatement[statementKey].push(tx)
+  })
+
+  Object.values(groupedByStatement).forEach(statementTxs => {
+    const officialDailyTotals = {}
+    let hasOfficialTotals = false
+
+    statementTxs.forEach(tx => {
+      if (!tx || !tx.data) return
+      const date = getTransactionDate(tx)
+      if (Number.isNaN(date.getTime())) return
+      const isoDate = toIsoDate(date)
+
+      if (tx._official_day_total != null) {
+        officialDailyTotals[isoDate] = Number(tx._official_day_total) || 0
+        hasOfficialTotals = true
+      }
+    })
+
+    if (hasOfficialTotals) {
+      Object.entries(officialDailyTotals).forEach(([date, value]) => {
+        totals[date] = (totals[date] || 0) + (Number(value) || 0)
+      })
+      return
+    }
+
+    statementTxs.forEach(tx => {
+      if (!tx || !tx.data) return
+      const date = getTransactionDate(tx)
+      if (Number.isNaN(date.getTime())) return
+      const isoDate = toIsoDate(date)
+      totals[isoDate] = (totals[isoDate] || 0) + Math.abs(Number(tx.valor) || 0)
+    })
+  })
+
+  return totals
+}
+
+function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
+  const source = txs || []
+  const expenseTxs = getExpenseTransactions(source)
+  const dailyTotals = effectiveDailyTotals || getEffectiveDailyTotals(expenseTxs)
+  const baseTotal = Object.keys(dailyTotals).length
+    ? Object.values(dailyTotals).reduce((sum, value) => sum + (Number(value) || 0), 0)
+    : expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+
+  const statementAdjustments = source.reduce((sum, tx) => {
+    if (!tx) return sum
+    if (tx.tipo_documento !== 'fatura_cartao') return sum
+    if (tx.natureza !== 'estorno' && tx.natureza !== 'ajuste') return sum
+    if (isCardPaymentEntry(tx)) return sum
+    return sum + Math.abs(Number(tx.valor) || 0)
+  }, 0)
+
+  return Math.max(0, roundMoney(baseTotal - statementAdjustments))
+}
+
+function isCardPaymentEntry(tx) {
+  const description = normalizeDocText(tx && tx._raw_description ? tx._raw_description : tx && tx.estabelecimento ? tx.estabelecimento : '')
+  const amount = Math.abs(Number(tx && tx.valor) || 0)
+  if (!/PAGAMENTO RECEBIDO|PAGAMENTO DE FATURA/.test(description)) return false
+  return amount >= 50
+}
+
+function getTopSpendingDay(txs, providedDailyTotals) {
+  const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
   const topEntry = Object.entries(dailyTotals).sort((a, b) => b[1] - a[1])[0]
   if (!topEntry) return null
   return {
@@ -1542,16 +2532,17 @@ function getTopSpendingDay(txs) {
   }
 }
 
-function getTopAverageWeekdays(txs) {
+function getTopAverageWeekdays(txs, providedDailyTotals) {
   const labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
   const buckets = Array.from({ length: 7 }, () => ({ total: 0, dates: new Set() }))
+  const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
 
-  txs.forEach(tx => {
-    const date = getTransactionDate(tx)
+  Object.entries(dailyTotals).forEach(([key, total]) => {
+    const date = parseIsoDate(key)
     if (Number.isNaN(date.getTime())) return
     const day = date.getDay()
-    buckets[day].total += Math.abs(Number(tx.valor) || 0)
-    buckets[day].dates.add(toIsoDate(date))
+    buckets[day].total += Number(total) || 0
+    buckets[day].dates.add(key)
   })
 
   return buckets
@@ -1629,6 +2620,9 @@ function getExpenseTransactions(txs) {
 function isExpenseTransaction(tx) {
   if (!tx) return false
   if (tx.natureza === 'gasto') return true
+  if (tx.natureza === 'entrada') return false
+  if (tx.natureza === 'estorno') return false
+  if (tx.natureza === 'ajuste') return false
   if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) < 0
   return Number(tx.valor) > 0
 }
@@ -1716,6 +2710,24 @@ function parseIsoDate(value) {
 
 function formatDate(date) {
   return date.toLocaleDateString('pt-BR')
+}
+
+function formatShortDayMonth(date) {
+  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+  return `${String(date.getDate()).padStart(2, '0')}/${months[date.getMonth()] || ''}`
+}
+
+function getDateRangeLabel(txs) {
+  const validDates = (txs || [])
+    .map(getTransactionDate)
+    .filter(date => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime())
+
+  if (!validDates.length) return 'Periodo nao identificado'
+
+  const start = validDates[0]
+  const end = validDates[validDates.length - 1]
+  return `${formatShortDayMonth(start)} - ${formatShortDayMonth(end)}`
 }
 
 function getReportContext() {

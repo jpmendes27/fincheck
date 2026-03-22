@@ -384,10 +384,12 @@ fileInput.addEventListener('change', e => {
 function handleFiles(files) {
   console.log('handleFiles called', files)
   if (!files || files.length === 0) {
+    document.getElementById('logBox').classList.add('show')
     log('Nenhum arquivo selecionado.', 'err')
     return
   }
 
+  document.getElementById('logBox').classList.add('show')
   let added = 0
   for (const f of files) {
     if (!f.name.toLowerCase().endsWith('.pdf')) continue
@@ -568,132 +570,6 @@ function extractTransactions(text) {
       parcela_atual: null,
       total_parcelas: null
     })
-  }
-
-  return transactions
-}
-
-// ── main parse flow ───────────────────────────────────────────────────────────  const transactions = []
-  const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0)
-
-  // Common patterns for Brazilian credit card statements
-  const dateRegex = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/
-  const valueRegex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/
-  const negativeValueRegex = /-\s*(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/
-
-  const categorias = {
-    'mercado': 'Mercado', 'supermercado': 'Mercado', 'extra': 'Mercado', 'carrefour': 'Mercado',
-    'uber': 'Transporte', '99': 'Transporte', 'taxi': 'Transporte', 'onibus': 'Transporte',
-    'posto': 'Combustível', 'shell': 'Combustível', 'petrobras': 'Combustível', 'ipiranga': 'Combustível',
-    'netflix': 'Assinaturas', 'spotify': 'Assinaturas', 'amazon': 'Assinaturas', 'prime': 'Assinaturas',
-    'farmacia': 'Farmácia', 'drogasil': 'Farmácia', 'drogaria': 'Farmácia', 'pacheco': 'Farmácia',
-    'hospital': 'Saúde', 'clinica': 'Saúde', 'medico': 'Saúde', 'odontologico': 'Saúde',
-    'restaurante': 'Alimentação', 'mcdonalds': 'Alimentação', 'burger': 'Alimentação', 'pizzaria': 'Alimentação',
-    'shopping': 'Lazer', 'cinema': 'Lazer', 'teatro': 'Lazer', 'show': 'Lazer',
-    'hotel': 'Hospedagem', 'pousada': 'Hospedagem', 'airbnb': 'Hospedagem',
-    'escola': 'Educação', 'curso': 'Educação', 'faculdade': 'Educação', 'livraria': 'Educação'
-  }
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
-    const dateMatch = line.match(dateRegex)
-    const valueMatch = line.match(valueRegex) || line.match(negativeValueRegex)
-
-    if (dateMatch && valueMatch) {
-      // Extract date
-      let day = parseInt(dateMatch[1])
-      let month = parseInt(dateMatch[2])
-      let year = dateMatch[3] ? parseInt(dateMatch[3]) : new Date().getFullYear()
-      if (year < 100) year += 2000
-      const data = `${day.toString().padStart(2,'0')}/${month.toString().padStart(2,'0')}/${year}`
-
-      // Extract value
-      const isNegative = line.includes('-') || line.match(negativeValueRegex)
-      const valueStr = valueMatch[1].replace(/\./g, '') + '.' + valueMatch[2]
-      let valor = parseFloat(valueStr)
-      if (isNegative) valor = -valor
-
-      // Extract establishment (text between date and value)
-      const dateEnd = dateMatch.index + dateMatch[0].length
-      const valueStart = valueMatch.index
-      let estabelecimento = line.substring(dateEnd, valueStart).trim()
-
-      // Clean establishment name
-      estabelecimento = estabelecimento
-        .replace(/\s+/g, ' ')
-        .replace(/[^\w\s]/g, '')
-        .trim()
-
-      if (estabelecimento.length < 3) {
-        // Try next line for establishment
-        if (i + 1 < lines.length) {
-          estabelecimento = lines[i + 1].trim()
-          i++ // Skip next line
-        }
-      }
-
-      // Determine category
-      const lowerEstab = estabelecimento.toLowerCase()
-      let categoria = 'Outros'
-      for (const [keyword, cat] of Object.entries(categorias)) {
-        if (lowerEstab.includes(keyword)) {
-          categoria = cat
-          break
-        }
-      }
-
-      // Skip if value is too small or establishment too short
-      if (Math.abs(valor) < 1 || estabelecimento.length < 2) continue
-
-      transactions.push({
-        data,
-        estabelecimento,
-        valor,
-        categoria,
-        parcelado: false,
-        parcela_atual: null,
-        total_parcelas: null
-      })
-    }
-  }
-
-  // If no transactions found, try a simpler approach
-  if (transactions.length === 0) {
-    // Look for any lines with values
-    for (const line of lines) {
-      const valueMatch = line.match(valueRegex) || line.match(negativeValueRegex)
-      if (valueMatch) {
-        const isNegative = line.includes('-') || line.match(negativeValueRegex)
-        const valueStr = valueMatch[1].replace(/\./g, '') + '.' + valueMatch[2]
-        let valor = parseFloat(valueStr)
-        if (isNegative) valor = -valor
-
-        // Use line as establishment, remove value
-        let estabelecimento = line.replace(valueMatch[0], '').trim()
-        estabelecimento = estabelecimento.replace(/^\d{1,2}\/\d{1,2}/, '').trim() // Remove date if present
-
-        if (estabelecimento.length > 0 && Math.abs(valor) >= 1) {
-          const lowerEstab = estabelecimento.toLowerCase()
-          let categoria = 'Outros'
-          for (const [keyword, cat] of Object.entries(categorias)) {
-            if (lowerEstab.includes(keyword)) {
-              categoria = cat
-              break
-            }
-          }
-
-          transactions.push({
-            data: new Date().toLocaleDateString('pt-BR'),
-            estabelecimento,
-            valor,
-            categoria,
-            parcelado: false,
-            parcela_atual: null,
-            total_parcelas: null
-          })
-        }
-      }
-    }
   }
 
   return transactions

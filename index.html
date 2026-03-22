@@ -382,17 +382,31 @@ fileInput.addEventListener('change', e => {
 })
 
 function handleFiles(files) {
-  if (!files || files.length === 0) return
+  console.log('handleFiles called', files)
+  if (!files || files.length === 0) {
+    log('Nenhum arquivo selecionado.', 'err')
+    return
+  }
 
+  let added = 0
   for (const f of files) {
     if (!f.name.toLowerCase().endsWith('.pdf')) continue
     const id = Date.now() + Math.random()
     fileQueue.push({ id, file: f, name: f.name, size: f.size, status: 'pending', text: '' })
+    added++
+  }
+
+  if (added === 0) {
+    log('Apenas arquivos .pdf são aceitos. Selecione um PDF.', 'err')
+  } else {
+    log(`${added} arquivo(s) carregado(s).`, 'ok')
   }
 
   renderQueue()
-  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+  const btn = document.getElementById('parseBtn')
+  if (btn) btn.disabled = fileQueue.length === 0
 }
+
 
 function removeFile(id) {
   fileQueue = fileQueue.filter(f => f.id !== id)
@@ -687,6 +701,10 @@ function extractTransactions(text) {
 
 // ── main parse flow ───────────────────────────────────────────────────────────
 async function startParsing() {
+  if (fileQueue.length === 0) {
+    log('Nenhum arquivo para processar. Faça o upload de uma fatura PDF.', 'err')
+    return
+  }
   document.getElementById('parseBtn').disabled = true
   document.getElementById('logBox').classList.add('show')
   setPill(1, 'done'); setPill(2, 'active')

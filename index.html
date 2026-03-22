@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fincheck · diagnóstico de faturas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Cabinet+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- ── UPLOAD SCREEN ── -->
+    <section id="screen-upload" class="screen screen--upload">
+
+      <header class="upload-header">
+        <span class="logo">fincheck<em>.</em></span>
+        <p class="logo-sub">diagnóstico de gastos via fatura PDF</p>
+      </header>
+
+      <!-- API key -->
+      <div class="card api-card">
+        <label class="field-label" for="apiKey">Anthropic API Key</label>
+        <div class="api-row">
+          <input
+            id="apiKey"
+            type="password"
+            class="text-input"
+            placeholder="sk-ant-api03-..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+        <p class="field-hint">
+          Usada localmente — nunca enviada a terceiros. Obtenha em
+          <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
+        </p>
+      </div>
+
+      <!-- Drop zone -->
+      <div
+        id="dropZone"
+        class="drop-zone"
+        role="button"
+        tabindex="0"
+        aria-label="Área de upload de PDFs de fatura"
+      >
+        <input
+          id="fileInput"
+          type="file"
+          accept=".pdf"
+          multiple
+          aria-hidden="true"
+        />
+        <div class="drop-zone__inner">
+          <div class="drop-zone__icon">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+              <rect x="8" y="4" width="24" height="32" rx="3" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M24 4v8h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              <path d="M13 20h14M13 25h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <p class="drop-zone__title">Arraste PDFs de fatura aqui</p>
+          <p class="drop-zone__sub">
+            Suporte a <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco, Santander e outros
+          </p>
+          <span class="drop-zone__btn">Selecionar arquivos</span>
+        </div>
+      </div>
+
+      <!-- File queue -->
+      <ul id="fileQueue" class="file-queue" aria-live="polite"></ul>
+
+      <!-- Process button -->
+      <button id="processBtn" class="process-btn" disabled>
+        Extrair e diagnosticar
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+
+      <!-- Log -->
+      <div id="logBox" class="log-box" role="log" aria-live="polite" aria-label="Log de processamento"></div>
+
+    </section>
+
+    <!-- ── DIAGNOSIS SCREEN ── -->
+    <section id="screen-diagnosis" class="screen screen--diagnosis hidden">
+
+      <header class="diag-header">
+        <div class="diag-header__left">
+          <span class="logo">fincheck<em>.</em></span>
+          <div id="diagMeta" class="diag-meta"></div>
+        </div>
+        <button id="resetBtn" class="reset-btn" aria-label="Novo upload">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M1 7a6 6 0 1 0 1.5-3.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M1 3v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Novo upload
+        </button>
+      </header>
+
+      <!-- Dedup banner -->
+      <div id="dedupBanner" class="dedup-banner hidden" role="alert">
+        <div class="dedup-banner__icon">⚠</div>
+        <div class="dedup-banner__body">
+          <p id="dedupMessage" class="dedup-banner__text"></p>
+          <div class="dedup-banner__actions">
+            <button id="btnMerge"   class="dbtn dbtn--primary">Mesclar (recomendado)</button>
+            <button id="btnReplace" class="dbtn">Substituir existente</button>
+            <button id="btnIgnore"  class="dbtn">Ignorar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card filter chips -->
+      <div id="cardChips" class="chip-row" role="group" aria-label="Filtrar por cartão"></div>
+
+      <!-- Summary metrics -->
+      <div id="summaryGrid" class="summary-grid"></div>
+
+      <!-- Income commitment -->
+      <div class="card income-card">
+        <div class="income-top">
+          <div>
+            <span class="field-label">Comprometimento de renda</span>
+            <div class="income-values">
+              <span id="incomeTotal" class="income-total">—</span>
+              <span id="incomePct"   class="income-pct">— %</span>
+            </div>
+          </div>
+          <div class="income-slider-wrap">
+            <label class="field-label" for="rendaSlider">Renda mensal líquida</label>
+            <div class="slider-row">
+              <input id="rendaSlider" type="range" min="1000" max="50000" step="500" value="12500" />
+              <span id="rendaDisplay" class="renda-display">R$ 12.500</span>
+            </div>
+          </div>
+        </div>
+        <div class="income-bar-wrap">
+          <div class="income-bar-bg">
+            <div id="incomeBar" class="income-bar-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="income-legend">
+          <span class="legend-item legend-item--green">Até 30% — saudável</span>
+          <span class="legend-item legend-item--amber">30–60% — atenção</span>
+          <span class="legend-item legend-item--red">Acima 60% — crítico</span>
+        </div>
+      </div>
+
+      <!-- Categories + top merchants -->
+      <div class="two-col">
+        <div class="card">
+          <h2 class="card-title">Categorias</h2>
+          <div id="catList" class="bar-list"></div>
+        </div>
+        <div class="card">
+          <h2 class="card-title">Estabelecimentos</h2>
+          <div id="merchantList" class="bar-list"></div>
+        </div>
+      </div>
+
+      <!-- Transactions -->
+      <div class="card">
+        <div class="tx-card-header">
+          <h2 class="card-title">Transações</h2>
+          <div class="tx-filters">
+            <input id="txSearch" type="search" class="text-input text-input--sm" placeholder="Buscar..." aria-label="Buscar transações" />
+            <select id="txCatFilter" class="select-input" aria-label="Filtrar por categoria">
+              <option value="">Todas as categorias</option>
+            </select>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="tx-table" aria-label="Tabela de transações">
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Estabelecimento</th>
+                <th>Categoria</th>
+                <th>Cartão</th>
+                <th class="col-right">Valor</th>
+              </tr>
+            </thead>
+            <tbody id="txBody"></tbody>
+          </table>
+        </div>
+        <p id="txCount" class="tx-count"></p>
+      </div>
+
+    </section>
+
+  </div><!-- .app -->
+
+  <!-- pdfjs from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+  <!-- app modules (order matters) -->
+  <script src="js/pdf.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/dedup.js"></script>
+  <script src="js/diagnosis.js"></script>
+  <script src="js/ui.js"></script>
+
+</body>
+</html>

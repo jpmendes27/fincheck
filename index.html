@@ -1,1844 +1,834 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fincheck · controle seus gastos com cartão de crédito</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<style>
-:root {
-  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2026;
-  --border:#2a2d35; --text:#e8e9ec; --muted:#6b7080;
-  --accent:#c8f564; --accent-dim:rgba(200,245,100,0.1);
-  --red:#ff5c5c; --blue:#5c9eff; --green:#4dcc8f;
-  --amber:#f5a623; --purple:#a78bfa; --radius:16px;
-  --ease-smooth:cubic-bezier(.22,1,.36,1);
-  --t-fast:.24s;
-  --t-med:.42s;
-  --t-slow:.62s;
-}
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{
-  background:var(--bg);color:var(--text);
-  font-family:'Syne',sans-serif;min-height:100vh;
-  padding:2rem 1.5rem 4rem;overflow-x:hidden;
-  transition:background var(--t-slow) var(--ease-smooth), color var(--t-med) var(--ease-smooth);
-}
-body::before{
-  content:'';position:fixed;inset:0;
-  background-image:radial-gradient(circle,#2a2d35 1px,transparent 1px);
-  background-size:32px 32px;opacity:0.35;pointer-events:none;z-index:0;
-}
-.wrap{max-width:860px;margin:0 auto;position:relative;z-index:1;min-height:calc(100vh - 6rem);display:flex;flex-direction:column}
-.screen{display:none}
-.screen.active{display:block}
-.screen.active{flex:1}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>fincheck · controle seus gastos com cartão de crédito</title>
+  <meta name="description" content="Entenda para onde vai seu dinheiro. Importe sua fatura, veja o diagnóstico completo dos seus gastos em segundos." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── TOKENS ── */
+    :root {
+      --bg:       #0c0d0f;
+      --s1:       #141517;
+      --s2:       #1c1e22;
+      --s3:       #242629;
+      --border:   #2c2f38;
+      --border2:  #3a3d48;
+      --text:     #e9eaed;
+      --text2:    #9499a6;
+      --text3:    #5c6170;
+      --accent:   #b8f55a;
+      --adim:     rgba(184,245,90,.1);
+      --amid:     rgba(184,245,90,.18);
+      --green:    #3ecf8e;
+      --amber:    #f0a030;
+      --red:      #f05060;
+      --blue:     #4a8fff;
+    }
 
-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
-.logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--accent)}
-.logo span{color:var(--muted);font-style:italic}
-.step-pills{display:flex;gap:.4rem}
-.step-pill{
-  padding:.3rem .9rem;border-radius:999px;font-size:.68rem;
-  font-family:'DM Mono',monospace;letter-spacing:.06em;
-  border:1px solid var(--border);color:var(--muted);background:var(--surface);
-  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
-}
-.step-pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
-.step-pill.done{border-color:#2a3a20;color:#4dcc8f;background:rgba(77,204,143,.07)}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; font-size: 16px; }
 
-.drop-zone{
-  border:1.5px dashed var(--border);border-radius:var(--radius);
-  padding:3rem 2rem;text-align:center;cursor:pointer;
-  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);background:var(--surface);margin-bottom:1rem;
-  position:relative;
-}
-.drop-zone:hover,.drop-zone.drag-over{
-  border-color:var(--accent);background:var(--accent-dim);
-  transform:translateY(-2px);
-  box-shadow:0 16px 30px rgba(0,0,0,.18);
-}
-.drop-zone input[type=file]{
-  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
-}
-.drop-icon{font-size:2.5rem;margin-bottom:.75rem;display:block}
-.drop-title{font-size:1rem;font-weight:600;margin-bottom:.4rem}
-.drop-sub{font-size:.78rem;color:var(--muted)}
-.drop-sub strong{color:var(--text)}
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Cabinet Grotesk', system-ui, sans-serif;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
 
-.file-queue{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
-.file-item{
-  background:var(--surface);border:1px solid var(--border);
-  border-radius:12px;padding:.85rem 1rem;
-  display:flex;align-items:center;gap:.75rem;
-  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
-}
-.file-icon{font-size:1.1rem;flex-shrink:0}
-.file-info{flex:1;min-width:0}
-.file-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.file-meta{font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:.15rem}
-.file-status{
-  font-size:.65rem;padding:3px 8px;border-radius:999px;font-family:'DM Mono',monospace;
-  font-weight:600;flex-shrink:0;
-}
-.file-remove{
-  width:24px;height:24px;border-radius:6px;border:none;
-  background:transparent;color:var(--muted);cursor:pointer;
-  font-size:.9rem;display:flex;align-items:center;justify-content:center;
-  transition:background var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);flex-shrink:0;
-}
-.file-remove:hover{background:var(--surface2);color:var(--red);transform:scale(1.06)}
+    /* dot grid */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image: radial-gradient(circle, #1e2028 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+    }
 
-.progress-wrap{height:3px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:.5rem;display:none}
-.progress-wrap.show{display:block}
-.progress-bar{height:100%;background:var(--accent);border-radius:999px;transition:width var(--t-med) var(--ease-smooth);width:0%}
+    a { color: inherit; text-decoration: none; }
+    img { display: block; max-width: 100%; }
 
-.parse-btn{
-  width:100%;padding:.9rem;border-radius:12px;
-  background:var(--accent-dim);border:1px solid var(--accent);
-  color:var(--accent);font-family:'Syne',sans-serif;
-  font-size:.88rem;font-weight:700;cursor:pointer;
-  transition:background var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);letter-spacing:.03em;margin-bottom:1rem;
-}
-.parse-btn:hover{background:rgba(200,245,100,.18);transform:translateY(-2px);box-shadow:0 14px 24px rgba(0,0,0,.18)}
-.parse-btn:disabled{opacity:.4;cursor:not-allowed}
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 1.5rem;
+      position: relative; z-index: 1;
+    }
 
-.loading-screen{
-  min-height:62vh;display:grid;place-items:center;
-}
-.loading-card{
-  width:min(100%, 720px);background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(200,245,100,.03));
-  border:1px solid rgba(200,245,100,.12);border-radius:28px;padding:2.2rem 2rem;
-  min-height:520px;
-  transition:border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
-}
-.loading-card:hover{box-shadow:0 22px 38px rgba(0,0,0,.18)}
-.loading-kicker{
-  font-size:.68rem;font-family:'DM Mono',monospace;letter-spacing:.16em;color:#7f8595;text-transform:uppercase;
-}
-.loading-title{
-  font-family:'DM Serif Display',serif;font-size:2.3rem;line-height:1.02;margin:.75rem 0 1rem;min-height:2.5em;
-  transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
-}
-.loading-copy{font-size:1rem;line-height:1.7;color:#8f94a3;max-width:560px;min-height:3.5em;transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth)}
-.loading-text.swap .loading-title,.loading-text.swap .loading-copy{
-  opacity:.2;transform:translateY(8px);
-}
-.loading-orbit{
-  width:112px;height:112px;border-radius:50%;margin:2rem 0 1.5rem;position:relative;
-  background:conic-gradient(var(--accent) 0 25%, rgba(200,245,100,.12) 25% 100%);
-  animation:spin 1.15s linear infinite;
-}
-.loading-orbit::before{
-  content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg);
-}
-.loading-orbit::after{
-  content:'';position:absolute;top:8px;left:50%;width:16px;height:16px;border-radius:50%;
-  background:var(--accent);transform:translateX(-50%);box-shadow:0 0 18px rgba(200,245,100,.5);
-}
-.loading-phase-list{display:grid;gap:.65rem;margin-top:1rem}
-.loading-phase{
-  display:flex;align-items:center;justify-content:space-between;gap:1rem;
-  padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);
-  color:#8f94a3;font-size:.9rem;
-  transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
-}
-.loading-phase.active{color:var(--text);transform:translateX(4px);box-shadow:inset 3px 0 0 var(--accent)}
-.loading-phase.done{opacity:.72}
-.loading-dot{
-  width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.85;flex-shrink:0;
-  transition:transform var(--t-med) var(--ease-smooth), opacity var(--t-med) var(--ease-smooth), background var(--t-med) var(--ease-smooth);
-}
-.loading-phase.active .loading-dot{transform:scale(1.35);opacity:1;background:var(--accent)}
-.loading-phase.done .loading-dot{background:var(--green)}
-.loading-files{
-  margin-top:1rem;font-size:.72rem;font-family:'DM Mono',monospace;color:#7f8595;
-  min-height:1.4em;
-  transition:opacity var(--t-med) var(--ease-smooth);
-}
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      border-bottom: 1px solid var(--border);
+      background: rgba(12,13,15,.88);
+      backdrop-filter: blur(14px);
+    }
+    .nav-inner {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      padding: .9rem 1.5rem;
+      max-width: 1080px; margin: 0 auto;
+    }
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.4rem;
+      color: var(--accent);
+      letter-spacing: -.02em;
+    }
+    .nav-logo em { color: var(--text3); font-style: normal; }
+    .nav-badge {
+      font-size: .65rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: .08em;
+      padding: .25rem .65rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      color: var(--text3);
+    }
+    .nav-cta {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .5rem 1.1rem;
+      border-radius: 999px;
+      background: var(--adim);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      font-size: .82rem;
+      font-weight: 700;
+      transition: background .15s;
+      cursor: pointer;
+    }
+    .nav-cta:hover { background: var(--amid); }
 
-.result-header{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;
-}
-.result-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem}
-.result-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem}
-.reset-btn{
-  padding:.45rem 1.1rem;border-radius:999px;border:1px solid var(--border);
-  background:transparent;color:var(--muted);font-size:.72rem;
-  font-family:'DM Mono',monospace;cursor:pointer;transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
-}
-.reset-btn:hover{border-color:var(--red);color:var(--red);transform:translateY(-1px)}
-.pdf-btn{
-  padding:.45rem 1.1rem;border-radius:999px;border:1px solid rgba(200,245,100,.28);
-  background:rgba(200,245,100,.08);color:var(--accent);font-size:.72rem;
-  font-family:'DM Mono',monospace;cursor:pointer;
-  transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), background var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
-}
-.pdf-btn:hover{background:rgba(200,245,100,.16);transform:translateY(-1px)}
-.pdf-btn:disabled{opacity:.55;cursor:progress;transform:none}
+    /* ── HERO ── */
+    .hero {
+      padding: 6rem 0 5rem;
+      text-align: center;
+      position: relative; z-index: 1;
+    }
+    .hero-tag {
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-size: .7rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: var(--adim);
+      border: 1px solid rgba(184,245,90,.25);
+      border-radius: 999px;
+      padding: .35rem .9rem;
+      margin-bottom: 1.75rem;
+    }
+    .hero-tag::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; } 50% { opacity: .4; }
+    }
 
-.card-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem}
-.chip{
-  display:flex;align-items:center;gap:.4rem;padding:.4rem .9rem;
-  border-radius:999px;border:1px solid var(--border);background:var(--surface);
-  font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
-}
-.chip:hover{transform:translateY(-1px)}
-.chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);box-shadow:0 10px 22px rgba(0,0,0,.14)}
-.chip .cdot{width:7px;height:7px;border-radius:50%}
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      line-height: 1.1;
+      letter-spacing: -.03em;
+      margin-bottom: 1.5rem;
+      max-width: 720px;
+      margin-left: auto; margin-right: auto;
+    }
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+    .hero-sub {
+      font-size: clamp(1rem, 2.2vw, 1.15rem);
+      color: var(--text2);
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.7;
+    }
+    .hero-actions {
+      display: flex; align-items: center;
+      justify-content: center; gap: .75rem;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 1.75rem;
+      border-radius: 999px;
+      background: var(--accent);
+      color: #0c0d0f;
+      font-weight: 800;
+      font-size: .95rem;
+      border: none; cursor: pointer;
+      transition: transform .15s, box-shadow .15s;
+      box-shadow: 0 0 32px rgba(184,245,90,.2);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 0 48px rgba(184,245,90,.35);
+    }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .85rem 1.5rem;
+      border-radius: 999px;
+      background: transparent;
+      border: 1px solid var(--border2);
+      color: var(--text2);
+      font-size: .9rem;
+      cursor: pointer;
+      transition: border-color .15s, color .15s;
+    }
+    .btn-ghost:hover { border-color: var(--text2); color: var(--text); }
 
-.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem}
-.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
-.sum-card:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.15)}
-.sum-label{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:.4rem}
-.sum-val{font-size:1.3rem;font-weight:700;font-family:'DM Mono',monospace}
-.sum-sub{font-size:.65rem;color:var(--muted);margin-top:.2rem}
+    /* ── HERO MOCKUP ── */
+    .hero-mockup {
+      margin: 4rem auto 0;
+      max-width: 820px;
+      position: relative;
+    }
+    .mockup-glow {
+      position: absolute;
+      top: -40px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 200px;
+      background: radial-gradient(ellipse, rgba(184,245,90,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .mockup-frame {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .mockup-topbar {
+      display: flex; align-items: center; gap: .5rem;
+      margin-bottom: 1.1rem;
+    }
+    .mockup-dot {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    /* Mockup cards row */
+    .mockup-cards {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: .6rem; margin-bottom: .9rem;
+    }
+    .mcard {
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .75rem;
+    }
+    .mcard-label {
+      font-size: .55rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: .4rem;
+    }
+    .mcard-value {
+      font-size: .95rem;
+      font-weight: 700;
+      font-family: 'DM Mono', monospace;
+      line-height: 1;
+    }
+    /* Mockup bars */
+    .mockup-bars { display: flex; flex-direction: column; gap: .55rem; }
+    .mbar-row { display: flex; align-items: center; gap: .6rem; }
+    .mbar-label { font-size: .62rem; color: var(--text2); min-width: 80px; }
+    .mbar-track {
+      flex: 1; height: 5px;
+      background: var(--s3);
+      border-radius: 99px; overflow: hidden;
+    }
+    .mbar-fill { height: 100%; border-radius: 99px; }
+    .mbar-val {
+      font-size: .6rem;
+      font-family: 'DM Mono', monospace;
+      color: var(--text3);
+      min-width: 42px; text-align: right;
+    }
+    /* Mockup income bar */
+    .mockup-income {
+      background: var(--s2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: .75rem 1rem;
+      margin-bottom: .9rem;
+      display: flex; align-items: center; gap: 1rem;
+    }
+    .mi-label { font-size: .6rem; color: var(--text3); font-family: 'DM Mono', monospace; min-width: 70px; }
+    .mi-bar { flex: 1; height: 7px; background: var(--s3); border-radius: 99px; overflow: hidden; }
+    .mi-fill { height: 100%; border-radius: 99px; background: var(--red); width: 67%; }
+    .mi-pct { font-size: .75rem; font-weight: 700; font-family: 'DM Mono', monospace; color: var(--red); }
 
-.income-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
-.income-row{display:flex;align-items:center;gap:.75rem}
-.income-label-col{min-width:160px}
-.ilabel{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
-.ivalue{font-size:.85rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:.15rem}
-.ibar-bg{flex:1;height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}
-.ibar-fill{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth),background var(--t-med) var(--ease-smooth)}
-.ipct{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:600;min-width:44px;text-align:right}
-.income-edit-row{display:flex;align-items:center;gap:.75rem;margin-top:.75rem}
-.income-edit-row label{font-size:.7rem;color:var(--muted);white-space:nowrap}
-.income-edit-row input[type=range]{flex:1;accent-color:var(--accent)}
-.income-edit-row span{font-size:.7rem;font-family:'DM Mono',monospace;min-width:80px}
+    /* ── SOCIAL PROOF ── */
+    .social-proof {
+      text-align: center;
+      padding: 2rem 0 4.5rem;
+      position: relative; z-index: 1;
+    }
+    .social-proof p {
+      font-size: .8rem;
+      color: var(--text3);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: .05em;
+      margin-bottom: 1rem;
+    }
+    .bank-logos {
+      display: flex; align-items: center;
+      justify-content: center; gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .bank-pill {
+      display: flex; align-items: center; gap: .4rem;
+      padding: .4rem .9rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--s1);
+      font-size: .72rem;
+      font-weight: 700;
+      color: var(--text2);
+    }
+    .bank-dot { width: 7px; height: 7px; border-radius: 50%; }
 
-.two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
-.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
-.panel:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
-.ptitle{font-size:.65rem;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1.1rem}
-.cat-row{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.75rem}
-.cat-head{display:flex;justify-content:space-between}
-.cat-name{font-size:.78rem;font-weight:600}
-.cat-pct{font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted)}
-.cbar-bg{height:4px;background:var(--surface2);border-radius:999px;overflow:hidden}
-.cbar{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth)}
+    /* ── DIVIDER ── */
+    .section-divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 auto;
+      max-width: 600px;
+    }
 
-.tx-table{width:100%;border-collapse:collapse;font-size:.78rem}
-.tx-table th{font-size:.6rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:.5rem .75rem;border-bottom:1px solid var(--border);text-align:left}
-.tx-table th:last-child{text-align:right}
-.tx-table td{padding:.55rem .75rem;border-bottom:1px solid rgba(42,45,53,.4);vertical-align:middle}
-.tx-table td:last-child{text-align:right;font-family:'DM Mono',monospace}
-.tx-table tr td{transition:background var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth)}
-.tx-table tr:hover td{background:var(--surface2)}
-.tx-table-wrap{max-height:320px;overflow-y:auto}
-.tx-table-wrap::-webkit-scrollbar{width:3px}
-.tx-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
-.ttag{font-size:.58rem;padding:2px 7px;border-radius:999px;font-weight:600}
-.tcard{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace}
+    /* ── HOW IT WORKS ── */
+    .how { padding: 5rem 0; position: relative; z-index: 1; }
+    .section-eyebrow {
+      font-size: .65rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: .85rem;
+    }
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.15;
+      letter-spacing: -.025em;
+      margin-bottom: 1rem;
+    }
+    .section-sub {
+      font-size: 1rem;
+      color: var(--text2);
+      max-width: 480px;
+      line-height: 1.7;
+    }
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.25rem;
+      margin-top: 3.5rem;
+    }
+    .step {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem 1.5rem;
+      position: relative;
+      transition: border-color .2s;
+    }
+    .step:hover { border-color: var(--border2); }
+    .step-num {
+      font-family: 'DM Mono', monospace;
+      font-size: .65rem;
+      letter-spacing: .1em;
+      color: var(--text3);
+      margin-bottom: 1.1rem;
+    }
+    .step-icon {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      background: var(--adim);
+      border: 1px solid rgba(184,245,90,.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      margin-bottom: 1.1rem;
+    }
+    .step h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: .5rem;
+    }
+    .step p { font-size: .85rem; color: var(--text2); line-height: 1.6; }
+    .step-connector {
+      position: absolute;
+      right: -1.9rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--border2);
+      font-size: 1.2rem;
+      z-index: 2;
+    }
 
-.diagnosis-hero{
-  background:linear-gradient(90deg, rgba(255,255,255,.02), rgba(200,245,100,.04));
-  border:1px solid rgba(200,245,100,.12);border-radius:22px;padding:1.4rem 1.5rem;
-  margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;
-}
-.diagnosis-eyebrow,.heatmap-title,.insight-kicker{
-  font-size:.66rem;font-family:'DM Mono',monospace;letter-spacing:.14em;color:#7f8595;text-transform:uppercase;
-}
-.diagnosis-headline{
-  font-family:'DM Serif Display',serif;font-size:2rem;line-height:1.05;margin:.45rem 0 .6rem;
-}
-.diagnosis-copy{font-size:.95rem;color:#8f94a3;line-height:1.7;max-width:620px}
-.diagnosis-meter{
-  width:118px;height:118px;border-radius:50%;
-  display:grid;place-items:center;flex-shrink:0;position:relative;
-  background:conic-gradient(var(--meter-color, var(--green)) calc(var(--pct, 0) * 1%), #262934 0);
-  transition:background var(--t-slow) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
-}
-.diagnosis-meter::before{
-  content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg);
-}
-.diagnosis-meter-inner{position:relative;text-align:center;z-index:1}
-.diagnosis-meter-val{font-family:'DM Mono',monospace;font-size:2rem;font-weight:700;line-height:1}
-.diagnosis-meter-sub{font-size:.62rem;font-family:'DM Mono',monospace;color:#7f8595;letter-spacing:.12em;text-transform:uppercase}
+    /* ── FEATURES ── */
+    .features { padding: 2rem 0 5rem; position: relative; z-index: 1; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1rem;
+      margin-top: 3.5rem;
+    }
+    .feat-card {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.75rem;
+      transition: border-color .2s, transform .2s;
+    }
+    .feat-card:hover { border-color: var(--border2); transform: translateY(-2px); }
+    .feat-card.highlight {
+      border-color: rgba(184,245,90,.25);
+      background: linear-gradient(135deg, var(--adim), transparent);
+    }
+    .feat-icon {
+      font-size: 1.4rem;
+      margin-bottom: .9rem;
+    }
+    .feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .45rem; }
+    .feat-card p { font-size: .85rem; color: var(--text2); line-height: 1.65; }
+    .feat-tag {
+      display: inline-block;
+      font-size: .6rem;
+      font-family: 'DM Mono', monospace;
+      letter-spacing: .06em;
+      padding: .2rem .6rem;
+      border-radius: 999px;
+      background: var(--adim);
+      color: var(--accent);
+      border: 1px solid rgba(184,245,90,.2);
+      margin-top: .85rem;
+    }
 
-.heatmap-panel{margin-bottom:1rem}
-.heatmap-grid{
-  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch;
-}
-.heatmap-cell{
-  min-height:92px;border-radius:12px;background:#263126;position:relative;overflow:hidden;padding:.8rem .7rem;
-  border:1px solid rgba(255,255,255,.04);
-  display:flex;flex-direction:column;justify-content:space-between;
-  transition:transform var(--t-fast) var(--ease-smooth), filter var(--t-fast) var(--ease-smooth), background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth);
-}
-.heatmap-cell:hover{transform:translateY(-1px);filter:brightness(1.06)}
-.heatmap-col-head{
-  font-size:.68rem;color:#7f8595;font-family:'DM Mono',monospace;display:grid;place-items:center;padding-bottom:.25rem;
-}
-.heatmap-empty{
-  min-height:92px;border-radius:12px;border:1px dashed rgba(255,255,255,.03);background:rgba(255,255,255,.015);
-}
-.heatmap-day{
-  font-size:.72rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.92);
-}
-.heatmap-value{
-  font-size:.72rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.84);line-height:1.35;
-}
+    /* ── FOR WHO ── */
+    .forwho { padding: 2rem 0 5rem; position: relative; z-index: 1; }
+    .forwho-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-top: 3rem;
+    }
+    .persona {
+      background: var(--s1);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: border-color .2s;
+    }
+    .persona:hover { border-color: var(--border2); }
+    .persona-emoji { font-size: 1.8rem; margin-bottom: .75rem; }
+    .persona h3 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+    .persona p { font-size: .82rem; color: var(--text2); line-height: 1.6; }
 
-.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
-.insight-card{
-  background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.15rem 1.2rem;
-  min-height:140px;
-  transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
-}
-.insight-card:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
-.insight-icon{
-  width:28px;height:28px;border-radius:8px;display:grid;place-items:center;margin-bottom:.9rem;
-  background:rgba(255,255,255,.06);font-size:1rem;
-}
-.insight-text{font-size:.95rem;line-height:1.7;color:#8f94a3}
-.insight-text strong{color:var(--text);font-weight:700}
+    /* ── CTA SECTION ── */
+    .cta-section {
+      padding: 3rem 0 6rem;
+      position: relative; z-index: 1;
+    }
+    .cta-box {
+      background: var(--s1);
+      border: 1px solid rgba(184,245,90,.2);
+      border-radius: 24px;
+      padding: 4rem 2rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta-box::before {
+      content: '';
+      position: absolute; top: -60px; left: 50%;
+      transform: translateX(-50%);
+      width: 400px; height: 200px;
+      background: radial-gradient(ellipse, rgba(184,245,90,.1) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-box h2 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: -.03em;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+    }
+    .cta-box h2 em { font-style: italic; color: var(--accent); }
+    .cta-box p {
+      font-size: 1rem;
+      color: var(--text2);
+      margin-bottom: 2rem;
+      max-width: 400px;
+      margin-left: auto; margin-right: auto;
+    }
+    .cta-disclaimer {
+      font-size: .72rem;
+      color: var(--text3);
+      font-family: 'DM Mono', monospace;
+      margin-top: 1rem;
+      display: flex; align-items: center; justify-content: center;
+      gap: .5rem; flex-wrap: wrap;
+    }
+    .cta-disclaimer span { display: flex; align-items: center; gap: .3rem; }
 
-.site-footer{
-  margin-top:auto;padding-top:1.2rem;border-top:1px solid rgba(42,45,53,.8);
-  display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;
-  text-align:center;
-}
-.footer-brand{
-  display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;
-  font-size:.72rem;color:#7f8595;font-family:'DM Mono',monospace;letter-spacing:.04em;
-  justify-content:center;
-}
-.footer-brand strong{
-  color:var(--text);font-family:'Syne',sans-serif;font-size:.82rem;letter-spacing:0;
-}
-.footer-meta{
-  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
-  font-size:.68rem;color:#6f7483;font-family:'DM Mono',monospace;
-  justify-content:center;
-}
-.footer-meta span{
-  position:relative;padding-left:.9rem;
-}
-.footer-meta span::before{
-  content:'';position:absolute;left:0;top:50%;width:4px;height:4px;border-radius:50%;
-  background:rgba(200,245,100,.45);transform:translateY(-50%);
-}
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      position: relative; z-index: 1;
+    }
+    .footer-inner {
+      max-width: 1080px; margin: 0 auto;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem;
+    }
+    .footer-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.2rem;
+      color: var(--accent);
+    }
+    .footer-logo em { color: var(--text3); font-style: normal; }
+    .footer-copy {
+      font-size: .72rem;
+      color: var(--text3);
+      font-family: 'DM Mono', monospace;
+    }
+    .footer-tagline {
+      font-size: .72rem;
+      color: var(--text3);
+      font-family: 'DM Mono', monospace;
+      font-style: italic;
+    }
 
-.dedup-banner{
-  display:none;align-items:flex-start;gap:.75rem;
-  background:rgba(92,158,255,.08);border:1px solid rgba(92,158,255,.25);
-  border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem;
-}
-.dedup-banner.show{display:flex}
-.dedup-banner-body{flex:1;font-size:.78rem;line-height:1.6;color:var(--muted)}
-.dedup-banner-body strong{color:var(--text)}
-.dedup-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap}
-.dbtn{
-  padding:.35rem .85rem;border-radius:999px;border:1px solid var(--border);
-  font-size:.68rem;font-family:'DM Mono',monospace;cursor:pointer;
-  background:transparent;color:var(--muted);transition:all .15s;
-}
-.dbtn:hover{color:var(--text);border-color:#3a3d45}
-.dbtn.primary{background:rgba(92,158,255,.12);color:var(--blue);border-color:rgba(92,158,255,.4)}
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .6s ease both; }
+    .delay-1 { animation-delay: .1s; }
+    .delay-2 { animation-delay: .2s; }
+    .delay-3 { animation-delay: .3s; }
+    .delay-4 { animation-delay: .4s; }
 
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.fu{animation:fadeUp .35s ease both}
-@keyframes spin{to{transform:rotate(360deg)}}
-.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
+    /* intersection observer targets */
+    .reveal { opacity: 0; transform: translateY(24px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
 
-@media(max-width:620px){
-  .loading-title{font-size:1.8rem}
-  .diagnosis-hero{flex-direction:column;align-items:flex-start}
-  .site-footer{justify-content:center}
-  .footer-meta{gap:.6rem}
-  .summary-grid{grid-template-columns:1fr 1fr}
-  .insight-grid{grid-template-columns:1fr}
-  .two-col{grid-template-columns:1fr}
-  .heatmap-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
-  .heatmap-cell,.heatmap-empty{min-height:68px;padding:.55rem .45rem}
-  .heatmap-day,.heatmap-value{font-size:.6rem}
-}
-
-@media print{
-  @page{
-    size:A4;
-    margin:10mm;
-  }
-
-  html,body{
-    background:var(--bg) !important;
-    color:var(--text) !important;
-    padding:0 !important;
-    overflow:visible !important;
-    -webkit-print-color-adjust:exact;
-    print-color-adjust:exact;
-  }
-
-  body::before,
-  #screenUpload,
-  #screenLoading,
-  .step-pills,
-  .site-footer,
-  .dedup-banner{
-    display:none !important;
-  }
-
-  .wrap{
-    max-width:none !important;
-    min-height:auto !important;
-    display:block !important;
-  }
-
-  #screenReport{
-    display:block !important;
-  }
-
-  header{
-    margin-bottom:8mm !important;
-  }
-
-  .logo{
-    color:var(--accent) !important;
-  }
-
-  .logo span,
-  .result-sub,
-  .sum-sub,
-  .cat-pct,
-  .tcard,
-  .diagnosis-copy,
-  .heatmap-title,
-  .ptitle,
-  .ilabel,
-  .footer-brand,
-  .footer-meta{
-    color:var(--muted) !important;
-  }
-
-  .sum-card,
-  .income-block,
-  .panel,
-  .diagnosis-hero{
-    background:var(--surface) !important;
-    color:var(--text) !important;
-    border:1px solid var(--border) !important;
-    box-shadow:none !important;
-    break-inside:avoid;
-    page-break-inside:avoid;
-  }
-
-  .chip{
-    background:var(--surface) !important;
-    border-color:var(--border) !important;
-    color:var(--muted) !important;
-    box-shadow:none !important;
-  }
-
-  .chip.active{
-    background:var(--accent-dim) !important;
-    border-color:var(--accent) !important;
-    color:var(--accent) !important;
-  }
-
-  .tx-table-wrap{
-    max-height:none !important;
-    overflow:visible !important;
-  }
-
-  .tx-table th,
-  .tx-table td{
-    color:var(--text) !important;
-    border-bottom:1px solid rgba(42,45,53,.65) !important;
-  }
-
-  .tx-table tr:hover td{
-    background:transparent !important;
-  }
-
-  .result-actions{
-    display:flex !important;
-  }
-
-  .pdf-btn,
-  .reset-btn{
-    display:none !important;
-  }
-}
-</style>
+    /* ── RESPONSIVE ── */
+    @media (max-width: 768px) {
+      .nav-badge { display: none; }
+      .hero { padding: 4rem 0 3rem; }
+      .mockup-cards { grid-template-columns: repeat(2, 1fr); }
+      .steps { grid-template-columns: 1fr; }
+      .step-connector { display: none; }
+      .features-grid { grid-template-columns: 1fr; }
+      .forwho-grid { grid-template-columns: 1fr; }
+      .cta-box { padding: 2.5rem 1.25rem; }
+      .footer-inner { flex-direction: column; align-items: flex-start; gap: .5rem; }
+    }
+    @media (max-width: 480px) {
+      .mockup-bars { display: none; }
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
 
-  <header>
-    <div class="logo">fincheck®<span> • controle seus gastos com cartão de crédito</span></div>
-    <div class="step-pills">
-      <div class="step-pill active" id="pill1">1 · Upload</div>
-      <div class="step-pill" id="pill2">2 · Processando</div>
-      <div class="step-pill" id="pill3">3 · Relatório</div>
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <span class="nav-logo">fincheck<sup style="font-size:.5em;vertical-align:super;font-family:'DM Mono',monospace;color:var(--text3)">®</sup><em>.</em></span>
+      <span class="nav-badge">BETA GRATUITO</span>
+      <a href="app/index.html" class="nav-cta">
+        Começar agora
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </a>
     </div>
-  </header>
+  </nav>
 
-  <div id="screenUpload" class="screen active">
-    <div class="drop-zone fu" id="dropZone">
-      <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
-      <span class="drop-icon">📄</span>
-      <div class="drop-title">Arraste PDFs de fatura aqui</div>
-      <div class="drop-sub">Suporta <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
-    </div>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-tag fade-up">Diagnóstico financeiro inteligente</div>
 
-    <div class="file-queue" id="fileQueue"></div>
+      <h1 class="fade-up delay-1">
+        Descubra para onde<br/>vai o seu <em>dinheiro.</em>
+      </h1>
 
-    <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
-      Analisar faturas →
-    </button>
-  </div>
+      <p class="hero-sub fade-up delay-2">
+        Importe a fatura do seu cartão e receba em segundos um diagnóstico completo dos seus gastos — sem app, sem cadastro, sem complicação.
+      </p>
 
-  <div id="screenLoading" class="screen">
-    <div class="loading-screen">
-      <div class="loading-card fu">
-      <div class="loading-kicker">Processando seu upload</div>
-      <div class="loading-text" id="loadingText">
-        <div class="loading-title" id="loadingTitle">Analisando seus gastos</div>
-        <div class="loading-copy" id="loadingCopy">Estamos lendo seus PDFs, estruturando as transações e preparando um diagnóstico completo para você.</div>
+      <div class="hero-actions fade-up delay-3">
+        <a href="app/index.html" class="btn-primary">
+          Analisar minha fatura grátis
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <a href="#como-funciona" class="btn-ghost">Ver como funciona</a>
       </div>
-      <div class="loading-orbit" aria-hidden="true"></div>
-        <div class="loading-phase-list" id="loadingPhaseList"></div>
-        <div class="loading-files" id="loadingFiles">0 arquivo(s) na fila</div>
-      </div>
-    </div>
-  </div>
 
-  <div id="screenReport" class="screen">
-    <div class="result-header fu">
-      <div>
-        <div class="result-title">Diagnóstico de gastos</div>
-        <div class="result-sub" id="resultSub">Carregando...</div>
-      </div>
-      <div class="result-actions">
-        <button class="pdf-btn" onclick="downloadReportPdf()">↓ Baixar PDF</button>
-        <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
-      </div>
-    </div>
+      <!-- Mockup -->
+      <div class="hero-mockup fade-up delay-4">
+        <div class="mockup-glow"></div>
+        <div class="mockup-frame">
+          <div class="mockup-topbar">
+            <div class="mockup-dot" style="background:#f05060"></div>
+            <div class="mockup-dot" style="background:#f0a030"></div>
+            <div class="mockup-dot" style="background:#3ecf8e"></div>
+            <span style="margin-left:.5rem;font-size:.65rem;color:var(--text3);font-family:'DM Mono',monospace">fincheck · diagnóstico de gastos</span>
+          </div>
 
-    <div class="dedup-banner" id="dedupBanner">
-      <span style="font-size:1.1rem;flex-shrink:0">🔄</span>
-      <div class="dedup-banner-body">
-        <span id="dedupText"></span>
-        <div class="dedup-actions">
-          <button class="dbtn primary" onclick="applyMerge()">Mesclar (recomendado)</button>
-          <button class="dbtn" onclick="applyReplace()">Substituir existente</button>
-          <button class="dbtn" onclick="closeDedupBanner()">Ignorar por ora</button>
+          <!-- Income bar mockup -->
+          <div class="mockup-income">
+            <span class="mi-label">Comprometimento</span>
+            <div class="mi-bar"><div class="mi-fill"></div></div>
+            <span class="mi-pct">67%</span>
+          </div>
+
+          <!-- Metric cards -->
+          <div class="mockup-cards">
+            <div class="mcard">
+              <div class="mcard-label">Total gasto</div>
+              <div class="mcard-value" style="color:var(--text)">R$ 8.340</div>
+            </div>
+            <div class="mcard">
+              <div class="mcard-label">Transações</div>
+              <div class="mcard-value" style="color:var(--text)">143</div>
+            </div>
+            <div class="mcard">
+              <div class="mcard-label">Ticket médio</div>
+              <div class="mcard-value" style="color:var(--text)">R$ 58</div>
+            </div>
+            <div class="mcard">
+              <div class="mcard-label">Comprometimento</div>
+              <div class="mcard-value" style="color:var(--amber)">67%</div>
+            </div>
+          </div>
+
+          <!-- Category bars -->
+          <div class="mockup-bars">
+            <div class="mbar-row">
+              <span class="mbar-label">Alimentação</span>
+              <div class="mbar-track"><div class="mbar-fill" style="width:82%;background:#f0a030"></div></div>
+              <span class="mbar-val">R$ 2.150 · 26%</span>
+            </div>
+            <div class="mbar-row">
+              <span class="mbar-label">Assinaturas</span>
+              <div class="mbar-track"><div class="mbar-fill" style="width:68%;background:#9b7ff4"></div></div>
+              <span class="mbar-val">R$ 1.840 · 22%</span>
+            </div>
+            <div class="mbar-row">
+              <span class="mbar-label">Mercado</span>
+              <div class="mbar-track"><div class="mbar-fill" style="width:50%;background:#4a8fff"></div></div>
+              <span class="mbar-val">R$ 1.320 · 16%</span>
+            </div>
+            <div class="mbar-row">
+              <span class="mbar-label">Transporte</span>
+              <div class="mbar-track"><div class="mbar-fill" style="width:37%;background:#3ecf8e"></div></div>
+              <span class="mbar-val">R$ 980 · 12%</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  </section>
 
-    <div class="card-chips" id="cardChips"></div>
-    <div class="summary-grid fu" id="summaryGrid"></div>
-
-    <div class="income-block fu" style="animation-delay:.05s">
-      <div class="income-row">
-        <div class="income-label-col">
-          <div class="ilabel">renda mensal</div>
-          <div class="ivalue" id="incomeDisplay">R$ 14.500</div>
-        </div>
-        <div class="ibar-bg"><div class="ibar-fill" id="ibarFill" style="width:0%;background:var(--green)"></div></div>
-        <div class="ipct" id="ipct" style="color:var(--green)">0%</div>
-      </div>
-      <div class="income-edit-row">
-        <label>Ajustar renda:</label>
-        <input type="range" min="2000" max="30000" step="500" value="14500" id="rendaSlider" oninput="updateRenda(this.value)">
-        <span id="rendaVal">R$ 14.500</span>
-      </div>
-    </div>
-
-    <div class="diagnosis-hero fu" style="animation-delay:.08s">
-      <div>
-        <div class="diagnosis-eyebrow">Diagnóstico geral</div>
-        <div class="diagnosis-headline" id="diagnosisHeadline">Carregando...</div>
-        <div class="diagnosis-copy" id="diagnosisCopy">Aguardando transações para montar o panorama.</div>
-      </div>
-      <div class="diagnosis-meter" id="diagnosisMeter">
-        <div class="diagnosis-meter-inner">
-          <div class="diagnosis-meter-val" id="diagnosisMeterVal">0</div>
-          <div class="diagnosis-meter-sub">/ nota</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="panel heatmap-panel fu" style="animation-delay:.11s">
-      <div class="heatmap-title">dias de maior gasto</div>
-      <div class="heatmap-grid" id="heatmapGrid"></div>
-    </div>
-
-    <div class="insight-grid fu" id="insightGrid" style="animation-delay:.14s"></div>
-
-    <div class="two-col">
-      <div class="panel fu" style="animation-delay:.1s">
-        <div class="ptitle">categorias</div>
-        <div id="catList"></div>
-      </div>
-      <div class="panel fu" style="animation-delay:.15s">
-        <div class="ptitle">estabelecimentos frequentes</div>
-        <div id="merchantList"></div>
-      </div>
-    </div>
-
-    <div class="panel fu" style="animation-delay:.2s">
-      <div class="ptitle">todas as transações</div>
-      <div class="tx-table-wrap">
-        <table class="tx-table">
-          <thead><tr>
-            <th>Data</th><th>Estabelecimento</th>
-            <th>Categoria</th><th>Cartão</th><th>Valor</th>
-          </tr></thead>
-          <tbody id="txBody"></tbody>
-        </table>
+  <!-- SOCIAL PROOF -->
+  <div class="social-proof">
+    <div class="container">
+      <p>FUNCIONA COM OS PRINCIPAIS BANCOS DO BRASIL</p>
+      <div class="bank-logos">
+        <div class="bank-pill"><span class="bank-dot" style="background:#820AD1"></span>Nubank</div>
+        <div class="bank-pill"><span class="bank-dot" style="background:#21c25e"></span>PicPay</div>
+        <div class="bank-pill"><span class="bank-dot" style="background:#ec7000"></span>Itaú</div>
+        <div class="bank-pill"><span class="bank-dot" style="background:#7a7a7a"></span>XP</div>
+        <div class="bank-pill"><span class="bank-dot" style="background:#cc1818"></span>Bradesco</div>
+        <div class="bank-pill"><span class="bank-dot" style="background:#555e6e"></span>C6</div>
+        <div class="bank-pill"><span class="bank-dot" style="background:#ec0000"></span>Santander</div>
       </div>
     </div>
   </div>
 
-  <footer class="site-footer">
-    <div class="footer-brand">
-      <strong>Fincheck®</strong>
-      <span>Todos os direitos reservados.</span>
+  <div class="section-divider"></div>
+
+  <!-- HOW IT WORKS -->
+  <section class="how" id="como-funciona">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">Como funciona</div>
+        <h2 class="section-title">Três passos.<br/>Zero complicação.</h2>
+        <p class="section-sub">Sem instalar app, sem criar conta, sem conectar banco. Só você, seu PDF e o diagnóstico.</p>
+      </div>
+
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">01 —</div>
+          <div class="step-icon">📄</div>
+          <h3>Baixe sua fatura em PDF</h3>
+          <p>Acesse o app do seu banco e exporte a fatura do cartão em PDF. Funciona com qualquer banco do Brasil.</p>
+          <div class="step-connector">→</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">02 —</div>
+          <div class="step-icon">⚡</div>
+          <h3>Importe no fincheck</h3>
+          <p>Arraste o arquivo ou clique para selecionar. Pode importar faturas de múltiplos cartões de uma vez.</p>
+          <div class="step-connector">→</div>
+        </div>
+        <div class="step reveal">
+          <div class="step-num">03 —</div>
+          <div class="step-icon">📊</div>
+          <h3>Receba o diagnóstico</h3>
+          <p>Veja em segundos onde você gasta mais, quais dias pesam mais no bolso, e o quanto da sua renda está comprometido.</p>
+        </div>
+      </div>
     </div>
-    <div class="footer-meta">
-      <span>Designed for clearer financial conversations</span>
-      <span>Relatórios privados e compartilháveis</span>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- FEATURES -->
+  <section class="features" id="funcionalidades">
+    <div class="container">
+      <div class="reveal">
+        <div class="section-eyebrow">O que você recebe</div>
+        <h2 class="section-title">Tudo que você precisa<br/>para entender seus gastos.</h2>
+      </div>
+
+      <div class="features-grid">
+
+        <div class="feat-card highlight reveal">
+          <div class="feat-icon">🎯</div>
+          <h3>Diagnóstico de saúde financeira</h3>
+          <p>Veja exatamente quanto da sua renda mensal está comprometido com cartão — e receba um alerta claro quando passar do limite saudável.</p>
+          <span class="feat-tag">Comprometimento de renda</span>
+        </div>
+
+        <div class="feat-card reveal">
+          <div class="feat-icon">📂</div>
+          <h3>Gastos por categoria</h3>
+          <p>Alimentação, transporte, assinaturas, saúde — cada centavo classificado automaticamente para você enxergar onde o dinheiro vai de verdade.</p>
+        </div>
+
+        <div class="feat-card reveal">
+          <div class="feat-icon">📅</div>
+          <h3>Dias e semanas de pico</h3>
+          <p>Um heatmap mostra quais dias do mês você mais gasta. Ótimo para identificar padrões que você nunca tinha notado.</p>
+        </div>
+
+        <div class="feat-card reveal">
+          <div class="feat-icon">💳</div>
+          <h3>Múltiplos cartões, visão unificada</h3>
+          <p>Importe faturas de cartões diferentes e veja tudo junto ou separado por cartão — sem perder nenhum gasto de vista.</p>
+        </div>
+
+        <div class="feat-card reveal">
+          <div class="feat-icon">🏪</div>
+          <h3>Estabelecimentos frequentes</h3>
+          <p>Descubra onde você gasta com mais frequência e quanto cada lugar representa do seu orçamento total.</p>
+        </div>
+
+        <div class="feat-card reveal">
+          <div class="feat-icon">📥</div>
+          <h3>Exportar relatório em PDF</h3>
+          <p>Gere um relatório completo para guardar, compartilhar com seu contador ou usar no seu planejamento financeiro.</p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider"></div>
+
+  <!-- FOR WHO -->
+  <section class="forwho" id="para-quem">
+    <div class="container">
+      <div class="reveal" style="text-align:center;max-width:520px;margin:0 auto 1rem">
+        <div class="section-eyebrow">Para quem é</div>
+        <h2 class="section-title">Qualquer pessoa que usa cartão de crédito.</h2>
+      </div>
+
+      <div class="forwho-grid">
+        <div class="persona reveal">
+          <div class="persona-emoji">👨‍💼</div>
+          <h3>Quem quer controlar os gastos</h3>
+          <p>Você sente que o dinheiro some e não sabe muito bem para onde. O fincheck te mostra o retrato real.</p>
+        </div>
+        <div class="persona reveal">
+          <div class="persona-emoji">👩‍💻</div>
+          <h3>Quem tem mais de um cartão</h3>
+          <p>Vários cartões, várias faturas, nenhuma visão consolidada. Resolvemos isso em segundos.</p>
+        </div>
+        <div class="persona reveal">
+          <div class="persona-emoji">👨‍👩‍👧</div>
+          <h3>Quem quer planejar melhor</h3>
+          <p>Entender o padrão de gastos é o primeiro passo para mudar de vida. O fincheck é esse primeiro passo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="container">
+      <div class="cta-box reveal">
+        <h2>Pronto para saber a<br/><em>verdade</em> sobre seus gastos?</h2>
+        <p>Grátis, sem cadastro, sem conectar sua conta bancária. Só o PDF da fatura.</p>
+        <a href="app/index.html" class="btn-primary">
+          Analisar minha fatura agora
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
+        <div class="cta-disclaimer">
+          <span>🔒 Seus dados ficam só no seu dispositivo</span>
+          <span>·</span>
+          <span>📄 Só precisa do PDF da fatura</span>
+          <span>·</span>
+          <span>⚡ Resultado em segundos</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <span class="footer-logo">fincheck<sup style="font-size:.5em;vertical-align:super;font-family:'DM Mono',monospace;color:var(--text3)">®</sup><em>.</em></span>
+      <span class="footer-tagline">Designed for clearer financial conversations.</span>
+      <span class="footer-copy">© 2026 · Todos os direitos reservados</span>
     </div>
   </footer>
-</div>
 
-<script>
-pdfjsLib.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+  <script>
+    // Intersection Observer para animações de scroll
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          // stagger entre irmãos
+          const siblings = [...entry.target.parentElement.querySelectorAll('.reveal')];
+          const idx = siblings.indexOf(entry.target);
+          entry.target.style.transitionDelay = `${idx * 0.08}s`;
+          entry.target.classList.add('visible');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.12 });
+
+    reveals.forEach(el => observer.observe(el));
+  </script>
 
-const HARDCODED_API_KEY =
-  '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'
-
-const CAT_COLORS = {
-  'Alimentacao':'#f5a623','Delivery':'#f5a623','Mercado':'#5c9eff',
-  'Assinaturas':'#a78bfa','Transporte':'#4dcc8f','Combustivel':'#4dcc8f',
-  'Saude':'#ff5c5c','Farmacia':'#ff5c5c','Lazer':'#c8f564',
-  'Viagem':'#ff5c5c','Hospedagem':'#ff5c5c','Educacao':'#5c9eff',
-  'Moradia':'#5c9eff','Contas':'#4dcc8f','Seguros':'#a78bfa',
-  'Emprestimos':'#ff5c5c','Transferencias':'#6b7080','Impostos':'#f5a623',
-  'Doacoes':'#c8f564','Recebimentos':'#4dcc8f','Outros':'#6b7080',
-  'Alimentação':'#f5a623','Combustível':'#4dcc8f','Saúde':'#ff5c5c',
-  'Farmácia':'#ff5c5c','Educação':'#5c9eff'
-}
-const CARD_COLORS = ['#820AD1','#ec7000','#00b86b','#5c9eff','#f5a623','#ff5c5c','#a78bfa']
-
-let apiKey = HARDCODED_API_KEY
-let fileQueue = []
-let allTransactions = []
-let cardRegistry = {}
-let renda = 14500
-let activeCard = 'all'
-let dedupPending = null
-let loadingInterval = null
-let loadingPhaseIndex = 0
-
-const LOADING_PHASES = [
-  { title: 'Analisando seus gastos', copy: 'Estamos lendo as páginas dos PDFs e identificando cada movimentação do período.' },
-  { title: 'Preparando seu relatório', copy: 'Agora agrupamos categorias, estabelecimentos e padrões de consumo.' },
-  { title: 'Calculando tudo pra você', copy: 'Finalizando indicadores, alertas e insights para montar o relatório completo.' }
-]
-
-const dropZone = document.getElementById('dropZone')
-dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over') })
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
-dropZone.addEventListener('drop', e => {
-  e.preventDefault()
-  dropZone.classList.remove('drag-over')
-  handleFiles(e.dataTransfer.files)
-})
-
-function handleFiles(files) {
-  for (const f of files) {
-    if (!f.name.toLowerCase().endsWith('.pdf')) continue
-    const id = Date.now() + Math.random()
-    fileQueue.push({ id, file: f, name: f.name, size: f.size, status: 'pending', text: '' })
-  }
-  renderQueue()
-  document.getElementById('parseBtn').disabled = fileQueue.length === 0
-}
-
-function removeFile(id) {
-  fileQueue = fileQueue.filter(f => f.id !== id)
-  renderQueue()
-  document.getElementById('parseBtn').disabled = fileQueue.length === 0
-}
-
-function renderQueue() {
-  const el = document.getElementById('fileQueue')
-  el.innerHTML = fileQueue.map(f => {
-    const kb = (f.size / 1024).toFixed(0)
-    const statusMap = {
-      pending: ['#6b7080', 'var(--surface2)', 'aguardando'],
-      extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>extraindo texto...'],
-      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>analisando fatura...'],
-      done: ['#4dcc8f', 'rgba(77,204,143,.1)', '✓ processado'],
-      error: ['#ff5c5c', 'rgba(255,92,92,.1)', '✗ erro']
-    }
-    const [tc, bg, label] = statusMap[f.status] || statusMap.pending
-    return `<div class="file-item">
-      <span class="file-icon">📄</span>
-      <div class="file-info">
-        <div class="file-name">${escapeHtml(f.name)}</div>
-        <div class="file-meta">${kb} KB</div>
-        <div class="progress-wrap ${f.status === 'extracting' || f.status === 'parsing' ? 'show' : ''}">
-          <div class="progress-bar" style="width:${f.progress || 0}%"></div>
-        </div>
-      </div>
-      <span class="file-status" style="color:${tc};background:${bg}">${label}</span>
-      ${f.status === 'pending' ? `<button class="file-remove" onclick="removeFile(${f.id})">✕</button>` : ''}
-    </div>`
-  }).join('')
-}
-
-async function extractPdfText(file, onProgress) {
-  const buf = await file.arrayBuffer()
-  const pdf = await pdfjsLib.getDocument({ data: buf }).promise
-  let text = ''
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i)
-    const content = await page.getTextContent()
-    text += content.items.map(s => s.str).join(' ') + '\n'
-    onProgress(Math.round((i / pdf.numPages) * 100))
-  }
-  return text
-}
-
-async function parseWithClaude(text) {
-  const chunks = splitStatementText(text, 9000, 1200)
-  const parsedChunks = []
-
-  for (let i = 0; i < chunks.length; i++) {
-    parsedChunks.push(await parseChunkWithFallback(chunks[i], i + 1, chunks.length))
-  }
-
-  return combineParsedStatements(parsedChunks)
-}
-
-async function parseChunkWithFallback(textChunk, chunkIndex, chunkCount) {
-  try {
-    const prompt = buildStatementPrompt(textChunk, chunkIndex, chunkCount)
-    const raw = await requestClaudeMessage(prompt)
-    return await parseClaudeJson(raw)
-  } catch (error) {
-    const fallbackPrompt = buildFallbackPrompt(textChunk, chunkIndex, chunkCount)
-    const raw = await requestClaudeMessage(fallbackPrompt)
-    return parseFallbackBlock(raw)
-  }
-}
-
-function buildStatementPrompt(textChunk, chunkIndex, chunkCount) {
-  return `Voce e um especialista em analise de documentos financeiros brasileiros.
-
-Analise o trecho abaixo extraido de um PDF e identifique se ele e uma fatura de cartao de credito ou um extrato de conta corrente. Depois extraia as informacoes em JSON.
-
-TRECHO DO DOCUMENTO (${chunkIndex}/${chunkCount}):
----
-${textChunk}
----
-
-Retorne SOMENTE um JSON valido (sem markdown, sem explicacao) com este formato exato:
-{
-  "tipo_documento": "fatura_cartao ou extrato_conta",
-  "banco": "nome do banco (ex: Nubank, Itau, Bradesco, XP, Inter, C6, etc)",
-  "identificador": "ultimos 4 digitos do cartao, numero da conta ou outro identificador curto encontrado no documento",
-  "ultimos_digitos": "4 ultimos digitos do cartao (string) ou null se nao encontrar",
-  "mes_referencia": "MM/AAAA (ex: 03/2025) ou null se nao encontrar",
-  "titular": "nome do titular ou null",
-  "total_fatura": 0.00,
-  "total_gastos_periodo": 0.00,
-  "transacoes": [
-    {
-      "data": "DD/MM/AAAA",
-      "estabelecimento": "nome limpo do estabelecimento",
-      "valor": 0.00,
-      "natureza": "gasto, entrada, estorno ou ajuste",
-      "categoria": "uma de: Alimentacao, Delivery, Mercado, Assinaturas, Transporte, Combustivel, Saude, Farmacia, Lazer, Viagem, Hospedagem, Educacao, Outros",
-      "parcelado": false,
-      "parcela_atual": null,
-      "total_parcelas": null
-    }
-  ]
-}
-
-Regras importantes:
-- Inclua TODAS as transacoes encontradas, sem excecao
-- Se for fatura de cartao:
-  - compras devem vir como natureza "gasto" e valor positivo
-  - estornos/creditos devem vir como natureza "estorno" e valor negativo
-- Se for extrato de conta:
-  - saidas/debitos devem vir como natureza "gasto" e valor negativo
-  - entradas/creditos devem vir como natureza "entrada" e valor positivo
-- Limpe os nomes dos estabelecimentos (remova codigos, cidades, datas embutidas)
-- Categorize com base no nome do estabelecimento
-- Ignore linhas de saldo inicial/final e totais consolidados; capture apenas as movimentacoes/transacoes
-- Se algum campo de cabecalho nao aparecer neste trecho, use null
-- Nao invente transacoes ausentes neste trecho`
-}
-
-async function requestClaudeMessage(prompt) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.error && err.error.message ? err.error.message : `HTTP ${response.status}`)
-  }
-
-  const data = await response.json()
-  return data.content && data.content[0] ? data.content[0].text || '' : ''
-}
-
-async function repairJsonWithClaude(raw) {
-  const prompt = `Corrija o texto abaixo para virar um JSON valido.
-
-Regras:
-- Retorne SOMENTE o JSON corrigido
-- Nao invente campos novos
-- Preserve a estrutura original
-- Remova comentarios, virgulas sobrando e texto fora do JSON
-
-TEXTO:
----
-${raw.slice(0, 18000)}
----`
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
-      temperature: 0,
-      messages: [{ role: 'user', content: prompt }]
-    })
-  })
-
-  if (!response.ok) {
-    const err = await response.json().catch(() => ({}))
-    throw new Error(err.error && err.error.message ? err.error.message : `HTTP ${response.status}`)
-  }
-
-  const data = await response.json()
-  return data.content && data.content[0] ? data.content[0].text || '' : ''
-}
-
-async function parseClaudeJson(raw) {
-  const attempts = []
-  attempts.push(cleanClaudeJson(raw))
-  attempts.push(extractFirstJsonObject(cleanClaudeJson(raw)))
-  attempts.push(normalizeJsonString(extractFirstJsonObject(cleanClaudeJson(raw))))
-
-  for (const candidate of attempts) {
-    if (!candidate) continue
-    try {
-      return JSON.parse(candidate)
-    } catch (error) {
-      continue
-    }
-  }
-
-  const repairedRaw = await repairJsonWithClaude(raw)
-  const repairedAttempts = [
-    cleanClaudeJson(repairedRaw),
-    extractFirstJsonObject(cleanClaudeJson(repairedRaw)),
-    normalizeJsonString(extractFirstJsonObject(cleanClaudeJson(repairedRaw)))
-  ]
-
-  for (const candidate of repairedAttempts) {
-    if (!candidate) continue
-    try {
-      return JSON.parse(candidate)
-    } catch (error) {
-      continue
-    }
-  }
-
-  throw new Error('Nao consegui interpretar o JSON retornado pela analise da fatura')
-}
-
-function cleanClaudeJson(raw) {
-  return String(raw || '')
-    .replace(/```json|```/gi, '')
-    .replace(/^[^{[]*/, '')
-    .trim()
-}
-
-function extractFirstJsonObject(text) {
-  const source = String(text || '')
-  const start = source.search(/[\[{]/)
-  if (start === -1) return ''
-
-  let depth = 0
-  let inString = false
-  let escaped = false
-
-  for (let i = start; i < source.length; i++) {
-    const ch = source[i]
-
-    if (inString) {
-      if (escaped) {
-        escaped = false
-      } else if (ch === '\\') {
-        escaped = true
-      } else if (ch === '"') {
-        inString = false
-      }
-      continue
-    }
-
-    if (ch === '"') {
-      inString = true
-      continue
-    }
-
-    if (ch === '{' || ch === '[') depth += 1
-    if (ch === '}' || ch === ']') depth -= 1
-
-    if (depth === 0) {
-      return source.slice(start, i + 1)
-    }
-  }
-
-  return source.slice(start)
-}
-
-function normalizeJsonString(text) {
-  return String(text || '')
-    .replace(/[“”]/g, '"')
-    .replace(/[‘’]/g, "'")
-    .replace(/,\s*([}\]])/g, '$1')
-    .replace(/\u00a0/g, ' ')
-    .replace(/[\u0000-\u0019]+/g, ' ')
-    .trim()
-}
-
-function buildFallbackPrompt(textChunk, chunkIndex, chunkCount) {
-  return `Analise o trecho abaixo e retorne SOMENTE linhas estruturadas neste formato:
-
-META|tipo_documento|banco|identificador|ultimos_digitos|mes_referencia|titular|total_fatura|total_gastos_periodo
-TX|data|estabelecimento|valor|natureza|categoria|parcelado|parcela_atual|total_parcelas
-
-Regras:
-- tipo_documento deve ser fatura_cartao ou extrato_conta
-- natureza deve ser gasto, entrada, estorno ou ajuste
-- valor deve usar ponto decimal e sinal correto
-- parcelado deve ser true ou false
-- Se um campo nao existir, use null
-- Retorne uma linha META e depois uma linha TX por transacao
-- Nao escreva explicacoes
-
-TRECHO (${chunkIndex}/${chunkCount}):
----
-${textChunk}
----`
-}
-
-function parseFallbackBlock(raw) {
-  const lines = String(raw || '')
-    .replace(/```[a-z]*|```/gi, '')
-    .split('\n')
-    .map(line => line.trim())
-    .filter(Boolean)
-
-  const parsed = {
-    tipo_documento: null,
-    banco: null,
-    identificador: null,
-    ultimos_digitos: null,
-    mes_referencia: null,
-    titular: null,
-    total_fatura: 0,
-    total_gastos_periodo: 0,
-    transacoes: []
-  }
-
-  lines.forEach(line => {
-    const parts = line.split('|').map(part => part.trim())
-    if (!parts.length) return
-
-    if (parts[0] === 'META') {
-      parsed.tipo_documento = normalizeNullable(parts[1])
-      parsed.banco = normalizeNullable(parts[2])
-      parsed.identificador = normalizeNullable(parts[3])
-      parsed.ultimos_digitos = normalizeNullable(parts[4])
-      parsed.mes_referencia = normalizeNullable(parts[5])
-      parsed.titular = normalizeNullable(parts[6])
-      parsed.total_fatura = parseMoneyNumber(parts[7])
-      parsed.total_gastos_periodo = parseMoneyNumber(parts[8])
-      return
-    }
-
-    if (parts[0] === 'TX') {
-      parsed.transacoes.push({
-        data: normalizeNullable(parts[1]) || '',
-        estabelecimento: normalizeNullable(parts[2]) || 'Estabelecimento nao identificado',
-        valor: parseMoneyNumber(parts[3]),
-        natureza: normalizeNullable(parts[4]),
-        categoria: normalizeNullable(parts[5]) || 'Outros',
-        parcelado: String(parts[6]).toLowerCase() === 'true',
-        parcela_atual: parseNullableInteger(parts[7]),
-        total_parcelas: parseNullableInteger(parts[8])
-      })
-    }
-  })
-
-  if (!parsed.transacoes.length) {
-    throw new Error('Nao consegui interpretar o retorno estruturado da analise')
-  }
-
-  return parsed
-}
-
-function splitStatementText(text, maxChunkSize, overlapSize) {
-  const source = String(text || '').trim()
-  if (source.length <= maxChunkSize) return [source]
-
-  const chunks = []
-  let start = 0
-
-  while (start < source.length) {
-    let end = Math.min(source.length, start + maxChunkSize)
-    if (end < source.length) {
-      const breakIdx = source.lastIndexOf('\n', end)
-      if (breakIdx > start + Math.floor(maxChunkSize * 0.6)) {
-        end = breakIdx
-      }
-    }
-
-    chunks.push(source.slice(start, end).trim())
-    if (end >= source.length) break
-    start = Math.max(end - overlapSize, start + 1)
-  }
-
-  return chunks.filter(Boolean)
-}
-
-function combineParsedStatements(items) {
-  const combined = {
-    tipo_documento: null,
-    banco: null,
-    identificador: null,
-    ultimos_digitos: null,
-    mes_referencia: null,
-    titular: null,
-    total_fatura: 0,
-    total_gastos_periodo: 0,
-    transacoes: []
-  }
-
-  const seen = new Set()
-
-  items.forEach(item => {
-    if (!item || typeof item !== 'object') return
-
-    combined.tipo_documento = combined.tipo_documento || item.tipo_documento || null
-    combined.banco = combined.banco || item.banco || null
-    combined.identificador = combined.identificador || item.identificador || item.ultimos_digitos || null
-    combined.ultimos_digitos = combined.ultimos_digitos || item.ultimos_digitos || null
-    combined.mes_referencia = combined.mes_referencia || item.mes_referencia || null
-    combined.titular = combined.titular || item.titular || null
-    combined.total_fatura = Math.max(Number(combined.total_fatura) || 0, Number(item.total_fatura) || 0)
-    combined.total_gastos_periodo = Math.max(Number(combined.total_gastos_periodo) || 0, Number(item.total_gastos_periodo) || 0)
-
-    ;(item.transacoes || []).forEach(tx => {
-      const normalized = normalizeTransaction(tx, item)
-      const key = `${normalized.data}|${normalized.estabelecimento}|${normalized.valor}|${normalized.parcela_atual || ''}|${normalized.total_parcelas || ''}`
-      if (seen.has(key)) return
-      seen.add(key)
-      combined.transacoes.push(normalized)
-    })
-  })
-
-  return combined
-}
-
-function normalizeTransaction(tx, item) {
-  const estabelecimento = tx && tx.estabelecimento ? tx.estabelecimento : 'Estabelecimento nao identificado'
-  const natureza = normalizeNatureza(tx && tx.natureza, Number(tx && tx.valor) || 0, item && item.tipo_documento)
-  return {
-    data: tx && tx.data ? tx.data : '',
-    estabelecimento,
-    valor: Number(tx && tx.valor) || 0,
-    natureza,
-    categoria: categorizeTransaction(estabelecimento, natureza, Number(tx && tx.valor) || 0, tx && tx.categoria ? tx.categoria : 'Outros'),
-    parcelado: Boolean(tx && tx.parcelado),
-    parcela_atual: tx && tx.parcela_atual != null ? tx.parcela_atual : null,
-    total_parcelas: tx && tx.total_parcelas != null ? tx.total_parcelas : null,
-    tipo_documento: item && item.tipo_documento ? item.tipo_documento : null,
-    banco: item && item.banco ? item.banco : null,
-    identificador: item && (item.identificador || item.ultimos_digitos) ? (item.identificador || item.ultimos_digitos) : null,
-    ultimos_digitos: item && item.ultimos_digitos ? item.ultimos_digitos : null,
-    mes_referencia: item && item.mes_referencia ? item.mes_referencia : null
-  }
-}
-
-function normalizeNullable(value) {
-  const normalized = String(value == null ? '' : value).trim()
-  return !normalized || normalized.toLowerCase() === 'null' ? null : normalized
-}
-
-function parseMoneyNumber(value) {
-  const normalized = String(value == null ? '' : value)
-    .replace(/[^\d,.\-]/g, '')
-    .replace(/\.(?=\d{3}(\D|$))/g, '')
-    .replace(',', '.')
-  const num = Number(normalized)
-  return Number.isFinite(num) ? num : 0
-}
-
-function parseNullableInteger(value) {
-  const normalized = normalizeNullable(value)
-  if (normalized == null) return null
-  const num = parseInt(normalized, 10)
-  return Number.isFinite(num) ? num : null
-}
-
-async function startParsing() {
-  showScreen('loading')
-  document.getElementById('parseBtn').disabled = true
-  setPill(1, 'done')
-  setPill(2, 'active')
-  setPill(3, '')
-  startLoadingCycle()
-  updateLoadingFiles()
-
-  for (const f of fileQueue) {
-    if (f.status === 'done') continue
-    try {
-      f.status = 'extracting'
-      f.progress = 0
-      updateLoadingFiles()
-
-      f.text = await extractPdfText(f.file, p => {
-        f.progress = p / 2
-        updateLoadingFiles()
-      })
-
-      f.status = 'parsing'
-      f.progress = 50
-      updateLoadingFiles()
-
-      const parsed = await parseWithClaude(f.text)
-      f.progress = 100
-      updateLoadingFiles()
-
-      const key = `${parsed.banco}|${parsed.identificador || parsed.ultimos_digitos || 'principal'}|${parsed.mes_referencia}`
-      if (cardRegistry[key]) {
-        dedupPending = { key, incoming: parsed, existing: cardRegistry[key] }
-      } else {
-        cardRegistry[key] = parsed
-        mergeTransactions(parsed)
-      }
-
-      f.status = 'done'
-      updateLoadingFiles()
-    } catch (e) {
-      f.status = 'error'
-      stopLoadingCycle()
-      updateLoadingFiles(e.message)
-      showScreen('upload')
-      setPill(1, 'active')
-      setPill(2, '')
-      setPill(3, '')
-      renderQueue()
-      alert(`Erro ao processar ${f.name}: ${e.message}`)
-      document.getElementById('parseBtn').disabled = fileQueue.length === 0
-      return
-    }
-  }
-
-  stopLoadingCycle()
-  renderQueue()
-  if (dedupPending) {
-    cardRegistry[dedupPending.key] = dedupPending.incoming
-    mergeTransactions(dedupPending.incoming)
-    dedupPending = null
-  }
-  if (allTransactions.length > 0) showResults()
-}
-
-function mergeTransactions(parsed) {
-  const identifier = parsed.identificador || parsed.ultimos_digitos || 'principal'
-  const txs = (parsed.transacoes || []).map(tx => ({
-    ...tx,
-    tipo_documento: parsed.tipo_documento,
-    banco: parsed.banco,
-    identificador: identifier,
-    ultimos_digitos: parsed.ultimos_digitos,
-    mes_referencia: parsed.mes_referencia,
-    _key: `${tx.data}|${tx.estabelecimento}|${tx.valor}|${identifier}`
-  }))
-
-  const existingKeys = new Set(allTransactions.map(t => t._key))
-  const newTxs = txs.filter(t => !existingKeys.has(t._key))
-  allTransactions.push(...newTxs)
-  return newTxs.length
-}
-
-function showDedupBanner(parsed) {
-  const b = document.getElementById('dedupBanner')
-  const incomingCount = parsed.transacoes ? parsed.transacoes.length : 0
-  const existing = cardRegistry[`${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`]
-  const existingCount = existing && existing.transacoes ? existing.transacoes.length : 0
-  document.getElementById('dedupText').innerHTML =
-    `Ja existe uma fatura do <strong>${escapeHtml(parsed.banco)} ····${escapeHtml(parsed.ultimos_digitos || '????')}</strong> para <strong>${escapeHtml(parsed.mes_referencia || 'sem mes')}</strong> com ${existingCount} transacoes. A nova tem ${incomingCount}. Como deseja tratar?`
-  b.classList.add('show')
-}
-
-function applyMerge() {
-  if (!dedupPending) return
-  const added = mergeTransactions(dedupPending.incoming)
-  log(`✓ Mesclado: ${added} transacoes novas adicionadas`, 'ok')
-  closeDedupBanner()
-  showResults()
-}
-
-function applyReplace() {
-  if (!dedupPending) return
-  allTransactions = allTransactions.filter(t =>
-    !(t.banco === dedupPending.incoming.banco &&
-      t.ultimos_digitos === dedupPending.incoming.ultimos_digitos &&
-      t.mes_referencia === dedupPending.incoming.mes_referencia)
-  )
-  cardRegistry[dedupPending.key] = dedupPending.incoming
-  mergeTransactions(dedupPending.incoming)
-  log('✓ Fatura substituida', 'ok')
-  closeDedupBanner()
-  showResults()
-}
-
-function closeDedupBanner() {
-  document.getElementById('dedupBanner').classList.remove('show')
-  dedupPending = null
-}
-
-function showResults() {
-  showScreen('report')
-  setPill(1, 'done')
-  setPill(2, 'done')
-  setPill(3, 'active')
-  renderResults()
-}
-
-function getFilteredTxs() {
-  if (activeCard === 'all') return allTransactions
-  return allTransactions.filter(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}` === activeCard)
-}
-
-function renderResults() {
-  const txs = getFilteredTxs()
-  if (!txs.length) return
-
-  const months = [...new Set(allTransactions.map(t => t.mes_referencia).filter(Boolean))]
-  document.getElementById('resultSub').textContent =
-    `${allTransactions.length} transacoes · ${months.join(', ')}`
-
-  const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}`))]
-  const chips = document.getElementById('cardChips')
-  chips.innerHTML = `<div class="chip ${activeCard === 'all' ? 'active' : ''}" data-card="all" onclick="setCard('all')">
-    <span class="cdot" style="background:var(--accent)"></span> Todos
-  </div>` + cards.map((c, i) => {
-    const [banco, last4] = c.split('|')
-    const color = CARD_COLORS[i % CARD_COLORS.length]
-    return `<div class="chip ${activeCard === c ? 'active' : ''}" data-card="${escapeAttr(c)}" onclick="setCard('${escapeJs(c)}')">
-      <span class="cdot" style="background:${color}"></span> ${escapeHtml(banco)} ····${escapeHtml(last4 || 'principal')}
-    </div>`
-  }).join('')
-
-  const expenseTxs = getExpenseTransactions(txs)
-  const total = expenseTxs.reduce((s, t) => s + Math.abs(Number(t.valor) || 0), 0)
-  const purchaseCount = expenseTxs.length
-  const avgTicket = purchaseCount ? total / purchaseCount : 0
-  const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
-  const pct = Math.round((total / monthsCount / renda) * 100)
-  const pctColor = pct < 30 ? 'var(--green)' : pct < 60 ? 'var(--amber)' : 'var(--red)'
-  const monthlyTotal = total / monthsCount
-
-  document.getElementById('summaryGrid').innerHTML = `
-    <div class="sum-card"><div class="sum-label">Total gasto</div>
-      <div class="sum-val">${fmt(total)}</div>
-      <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : '1 mes'}</div></div>
-    <div class="sum-card"><div class="sum-label">Transacoes</div>
-      <div class="sum-val">${purchaseCount}</div>
-      <div class="sum-sub">gastos</div></div>
-    <div class="sum-card"><div class="sum-label">Ticket medio</div>
-      <div class="sum-val">${fmt(avgTicket)}</div>
-      <div class="sum-sub">por compra</div></div>
-    <div class="sum-card"><div class="sum-label">Comprometimento</div>
-      <div class="sum-val" style="color:${pctColor}">${pct}%</div>
-      <div class="sum-sub">da renda/mes</div></div>`
-
-  document.getElementById('incomeDisplay').textContent = fmt(renda)
-  document.getElementById('rendaVal').textContent = fmt(renda)
-  const barW = Math.min(pct, 100)
-  document.getElementById('ibarFill').style.width = barW + '%'
-  document.getElementById('ibarFill').style.background = pctColor
-  document.getElementById('ipct').textContent = pct + '%'
-  document.getElementById('ipct').style.color = pctColor
-
-  renderDiagnosisOverview({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
-  renderHeatmap(expenseTxs)
-  renderInsights({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
-
-  const bycat = {}
-  expenseTxs.forEach(t => {
-    bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
-  })
-  const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1])
-  document.getElementById('catList').innerHTML = sorted.slice(0, 7).map(([cat, val]) => {
-    const pctC = total ? Math.round((val / total) * 100) : 0
-    const color = CAT_COLORS[cat] || '#6b7080'
-    return `<div class="cat-row">
-      <div class="cat-head"><span class="cat-name">${escapeHtml(cat)}</span>
-        <span class="cat-pct">${fmt(val)} · ${pctC}%</span></div>
-      <div class="cbar-bg"><div class="cbar" style="width:${pctC}%;background:${color}"></div></div>
-    </div>`
-  }).join('')
-
-  const bymerch = {}
-  expenseTxs.forEach(t => {
-    bymerch[t.estabelecimento] = (bymerch[t.estabelecimento] || 0) + Math.abs(Number(t.valor) || 0)
-  })
-  const sortedM = Object.entries(bymerch).sort((a, b) => b[1] - a[1])
-  const maxM = sortedM[0] ? sortedM[0][1] : 1
-  document.getElementById('merchantList').innerHTML = sortedM.slice(0, 8).map(([name, val]) => {
-    const pctM = Math.round((val / maxM) * 100)
-    return `<div class="cat-row">
-      <div class="cat-head"><span class="cat-name" style="font-size:.75rem">${escapeHtml(name)}</span>
-        <span class="cat-pct">${fmt(val)}</span></div>
-      <div class="cbar-bg"><div class="cbar" style="width:${pctM}%;background:var(--blue)"></div></div>
-    </div>`
-  }).join('')
-
-  const txSorted = [...txs].sort((a, b) => getTransactionDateValue(b) - getTransactionDateValue(a))
-  document.getElementById('txBody').innerHTML = txSorted.map(tx => {
-    const color = CAT_COLORS[tx.categoria] || '#6b7080'
-    const isExpense = isExpenseTransaction(tx)
-    const isIncome = isIncomeTransaction(tx)
-    const valueColor = isIncome ? 'var(--green)' : isExpense ? 'var(--text)' : 'var(--muted)'
-    const signal = isIncome ? '+' : isExpense && tx.valor < 0 ? '−' : ''
-    return `<tr>
-      <td style="font-family:'DM Mono',monospace;font-size:.7rem;white-space:nowrap">${escapeHtml(tx.data || '')}</td>
-      <td>${escapeHtml(tx.estabelecimento || '')}${tx.parcelado ? ` <span style="font-size:.6rem;color:var(--muted)">${escapeHtml(String(tx.parcela_atual || '?'))}/${escapeHtml(String(tx.total_parcelas || '?'))}</span>` : ''}</td>
-      <td><span class="ttag" style="background:${color}22;color:${color}">${escapeHtml(tx.categoria || 'Outros')}</span></td>
-      <td><span class="tcard">${escapeHtml(tx.banco || '')} ····${escapeHtml(tx.identificador || tx.ultimos_digitos || 'principal')}</span></td>
-      <td style="color:${valueColor};font-size:.78rem">
-        ${signal}${Math.abs(tx.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-      </td>
-    </tr>`
-  }).join('')
-}
-
-function setCard(card) {
-  activeCard = card
-  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.card === card))
-  renderResults()
-}
-
-function updateRenda(v) {
-  renda = parseInt(v, 10)
-  document.getElementById('rendaVal').textContent = fmt(renda)
-  renderResults()
-}
-
-function resetAll() {
-  fileQueue = []
-  allTransactions = []
-  cardRegistry = {}
-  activeCard = 'all'
-  dedupPending = null
-  renda = 14500
-  document.getElementById('rendaSlider').value = '14500'
-  document.getElementById('fileQueue').innerHTML = ''
-  document.getElementById('parseBtn').disabled = true
-  document.getElementById('dedupBanner').classList.remove('show')
-  stopLoadingCycle()
-  setLoadingPhase(0)
-  showScreen('upload')
-  setPill(1, 'active')
-  setPill(2, '')
-  setPill(3, '')
-}
-
-function fmt(n) {
-  const num = Number(n) || 0
-  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-function renderDiagnosisOverview(data) {
-  const score = getHealthScore(data.pct)
-  const headline = score >= 8 ? 'Saude em dia' : score >= 6 ? 'Atencao necessaria' : score >= 4 ? 'Pede ajustes' : 'Ajuste urgente'
-  const concentration = getTopCategoryShare(data.txs, data.total)
-  const extra = concentration.name
-    ? `Concentracao maior em ${concentration.name.toLowerCase()} (${concentration.pct}% do total).`
-    : 'Distribuicao ainda sem categoria dominante.'
-  const text = data.monthsCount > 1
-    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, comprometendo ${data.pct}% da renda declarada. ${extra}`
-    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, comprometendo ${data.pct}% da renda declarada. ${extra}`
-  const meterColor = score >= 8 ? 'var(--green)' : score >= 6 ? 'var(--amber)' : 'var(--red)'
-
-  document.getElementById('diagnosisHeadline').textContent = headline
-  document.getElementById('diagnosisCopy').textContent = text
-  document.getElementById('diagnosisMeterVal').textContent = score.toFixed(1).replace('.', ',')
-  const meter = document.getElementById('diagnosisMeter')
-  meter.style.setProperty('--pct', String(score * 10))
-  meter.style.setProperty('--meter-color', meterColor)
-}
-
-function renderHeatmap(txs) {
-  const grid = document.getElementById('heatmapGrid')
-  const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
-  const dailyTotals = getDailyTotals(txs)
-  const dates = Object.keys(dailyTotals).sort()
-
-  let startDate
-  let endDate
-
-  if (dates.length) {
-    startDate = parseIsoDate(dates[0])
-    endDate = parseIsoDate(dates[dates.length - 1])
-  } else {
-    const now = new Date()
-    startDate = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0)
-    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12, 0, 0)
-  }
-
-  const periodStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0)
-  const periodEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0)
-  const offset = (periodStart.getDay() + 6) % 7
-  const max = Math.max(...Object.values(dailyTotals), 1)
-
-  const cells = []
-  for (let i = 0; i < offset; i++) cells.push('<div class="heatmap-empty"></div>')
-
-  for (let cursor = new Date(periodStart); cursor <= periodEnd; cursor.setDate(cursor.getDate() + 1)) {
-    const key = toIsoDate(cursor)
-    const value = dailyTotals[key] || 0
-    const intensity = value / max
-    const alpha = value ? (0.15 + intensity * 0.75).toFixed(2) : '0.06'
-    const label = value ? shortMoney(value) : 'R$ 0'
-    const title = `${formatDate(cursor)} · ${fmt(value)}`
-
-    cells.push(`
-      <div class="heatmap-cell" style="background:rgba(200,245,100,${alpha});border-color:${value ? 'rgba(200,245,100,.22)' : 'rgba(255,255,255,.04)'}" title="${title}">
-        <div class="heatmap-day">${String(cursor.getDate()).padStart(2, '0')}</div>
-        <div class="heatmap-value">${label}</div>
-      </div>
-    `)
-  }
-
-  while (cells.length % 7 !== 0) cells.push('<div class="heatmap-empty"></div>')
-
-  grid.innerHTML = weekdays.map(day => `<div class="heatmap-col-head">${day}</div>`).join('') + cells.join('')
-}
-
-function renderInsights(data) {
-  const insightGrid = document.getElementById('insightGrid')
-  const topDay = getTopSpendingDay(data.txs)
-  const topWeekdays = getTopAverageWeekdays(data.txs)
-  const topCategories = getTopCategories(data.txs, data.total)
-
-  const cards = [
-    {
-      icon: '01',
-      kicker: 'Pico do periodo',
-      text: topDay
-        ? `Seu maior gasto diario foi em <strong>${topDay.label}</strong>, com <strong>${fmt(topDay.total)}</strong> somados naquele dia.`
-        : 'Ainda nao foi possivel identificar um dia com gastos no periodo analisado.'
-    },
-    {
-      icon: '02',
-      kicker: 'Media por dia da semana',
-      text: topWeekdays.length
-        ? `Em media, seus gastos se concentram em <strong>${topWeekdays.map(day => `${day.label} (${fmt(day.average)})`).join('</strong> e <strong>')}</strong>.`
-        : 'Ainda nao houve dados suficientes para comparar os dias da semana.'
-    },
-    {
-      icon: '03',
-      kicker: 'Categorias dominantes',
-      text: topCategories.length
-        ? `As maiores categorias foram <strong>${topCategories.map(cat => `${cat.name} (${cat.pct}%)`).join('</strong>, <strong>')}</strong> do total gasto.`
-        : 'Ainda nao houve volume suficiente para destacar categorias dominantes.'
-    }
-  ]
-
-  insightGrid.innerHTML = cards.map(card => `
-    <div class="insight-card">
-      <div class="insight-icon">${card.icon}</div>
-      <div class="insight-kicker">${card.kicker}</div>
-      <div class="insight-text">${card.text}</div>
-    </div>
-  `).join('')
-}
-
-function getHealthScore(pct) {
-  if (pct <= 10) return 10
-  if (pct <= 15) return 9
-  if (pct <= 20) return 8
-  if (pct <= 25) return 7
-  if (pct <= 30) return 6
-  if (pct <= 40) return 5
-  if (pct <= 50) return 4
-  if (pct <= 65) return 3
-  if (pct <= 80) return 2
-  if (pct <= 100) return 1
-  return 0
-}
-
-function getTopCategoryShare(txs, total) {
-  if (!total) return { name: '', pct: 0 }
-  const bycat = {}
-  txs.forEach(t => {
-    bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
-  })
-  const top = Object.entries(bycat).sort((a, b) => b[1] - a[1])[0]
-  if (!top) return { name: '', pct: 0 }
-  return { name: top[0], pct: Math.round((top[1] / total) * 100) }
-}
-
-function getDailyTotals(txs) {
-  const totals = {}
-  txs.forEach(tx => {
-    const date = getTransactionDate(tx)
-    if (Number.isNaN(date.getTime())) return
-    const key = toIsoDate(date)
-    totals[key] = (totals[key] || 0) + Math.abs(Number(tx.valor) || 0)
-  })
-  return totals
-}
-
-function getTopSpendingDay(txs) {
-  const dailyTotals = getDailyTotals(txs)
-  const topEntry = Object.entries(dailyTotals).sort((a, b) => b[1] - a[1])[0]
-  if (!topEntry) return null
-  return {
-    key: topEntry[0],
-    total: topEntry[1],
-    label: formatDate(parseIsoDate(topEntry[0]))
-  }
-}
-
-function getTopAverageWeekdays(txs) {
-  const labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
-  const buckets = Array.from({ length: 7 }, () => ({ total: 0, dates: new Set() }))
-
-  txs.forEach(tx => {
-    const date = getTransactionDate(tx)
-    if (Number.isNaN(date.getTime())) return
-    const day = date.getDay()
-    buckets[day].total += Math.abs(Number(tx.valor) || 0)
-    buckets[day].dates.add(toIsoDate(date))
-  })
-
-  return buckets
-    .map((bucket, day) => ({
-      label: labels[day],
-      average: bucket.dates.size ? bucket.total / bucket.dates.size : 0
-    }))
-    .filter(day => day.average > 0)
-    .sort((a, b) => b.average - a.average)
-    .slice(0, 2)
-}
-
-function getTopCategories(txs, total) {
-  if (!total) return []
-  const bycat = {}
-  txs.forEach(tx => {
-    const category = tx.categoria || 'Outros'
-    bycat[category] = (bycat[category] || 0) + Math.abs(Number(tx.valor) || 0)
-  })
-
-  return Object.entries(bycat)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([name, value]) => ({
-      name,
-      value,
-      pct: Math.round((value / total) * 100)
-    }))
-}
-
-function getTopMerchantShare(txs, total) {
-  if (!total) return { name: '', pct: 0 }
-  const byMerchant = {}
-  txs.forEach(tx => {
-    byMerchant[tx.estabelecimento] = (byMerchant[tx.estabelecimento] || 0) + Math.abs(Number(tx.valor) || 0)
-  })
-  const top = Object.entries(byMerchant).sort((a, b) => b[1] - a[1])[0]
-  if (!top) return { name: '', pct: 0 }
-  return { name: top[0], pct: Math.round((top[1] / total) * 100) }
-}
-
-function getWeekendShare(txs, total) {
-  if (!total) return 0
-  let weekendTotal = 0
-  txs.forEach(tx => {
-    const date = getTransactionDate(tx)
-    if (Number.isNaN(date.getTime())) return
-    const day = date.getDay()
-    if (day === 5 || day === 6) weekendTotal += Math.abs(Number(tx.valor) || 0)
-  })
-  return Math.round((weekendTotal / total) * 100)
-}
-
-function getCategoryMonthlyValue(txs, monthsCount, categories) {
-  const total = txs
-    .filter(t => categories.includes(t.categoria))
-    .reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
-  return total / (monthsCount || 1)
-}
-
-function getExpenseTransactions(txs) {
-  const source = txs || []
-  const explicit = source.filter(tx => tx.natureza === 'gasto')
-  if (explicit.length) return explicit
-
-  const negatives = source.filter(tx => Number(tx.valor) < 0)
-  const positives = source.filter(tx => Number(tx.valor) > 0)
-  const hasAccountStatement = source.some(tx => tx.tipo_documento === 'extrato_conta')
-
-  if (hasAccountStatement && negatives.length) return negatives
-  if (positives.length >= negatives.length) return positives
-  return negatives
-}
-
-function isExpenseTransaction(tx) {
-  if (!tx) return false
-  if (tx.natureza === 'gasto') return true
-  if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) < 0
-  return Number(tx.valor) > 0
-}
-
-function isIncomeTransaction(tx) {
-  if (!tx) return false
-  if (tx.natureza === 'entrada') return true
-  if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) > 0
-  return false
-}
-
-function normalizeNatureza(rawNatureza, valor, tipoDocumento) {
-  const normalized = String(rawNatureza || '').toLowerCase().trim()
-  if (normalized === 'gasto' || normalized === 'entrada' || normalized === 'estorno' || normalized === 'ajuste') {
-    return normalized
-  }
-  if (tipoDocumento === 'extrato_conta') return valor < 0 ? 'gasto' : 'entrada'
-  return valor < 0 ? 'estorno' : 'gasto'
-}
-
-function categorizeTransaction(name, natureza, valor, fallback) {
-  if (natureza === 'entrada') return 'Recebimentos'
-
-  const source = String(name || '').toUpperCase()
-  const rules = [
-    { category: 'Moradia', keywords: ['HABITACAO', 'ALUGUEL', 'CONDOMINIO', 'IMOB', 'QUINTOANDAR', 'LOCA', 'GCI CAIXA'] },
-    { category: 'Mercado', keywords: ['ATACADAO', 'ASSAI', 'CARREFOUR', 'EXTRA', 'PAO DE ACUCAR', 'SUPERMERC', 'MERCADO', 'COOP'] },
-    { category: 'Combustivel', keywords: ['POSTO', 'IPIRANGA', 'SHELL', 'COMBUST', 'PETROBRAS', 'ALE COMBUST'] },
-    { category: 'Transporte', keywords: ['UBER', '99', 'METRO', 'TREM', 'SEM PARAR', 'ESTACIONAMENTO', 'PEDAGIO'] },
-    { category: 'Delivery', keywords: ['IFOOD', 'RAPPI', 'DELIVERY', 'JAMES', 'UBER EATS'] },
-    { category: 'Alimentacao', keywords: ['RESTAURANTE', 'LANCH', 'PIZZARIA', 'BAR', 'CAFE', 'BURGER', 'A CASA DO', 'PADARIA'] },
-    { category: 'Assinaturas', keywords: ['NETFLIX', 'SPOTIFY', 'YOUTUBE', 'AMAZON PRIME', 'APPLE.COM', 'GOOGLE', 'MICROSOFT', 'ADOBE', 'TELECOM'] },
-    { category: 'Saude', keywords: ['FARM', 'DROGA', 'HOSPITAL', 'CLINICA', 'LABORATORIO', 'ODONTO', 'UNIMED'] },
-    { category: 'Educacao', keywords: ['ESCOLA', 'CURSO', 'FACULDADE', 'UDMY', 'ALURA', 'HOTMART'] },
-    { category: 'Seguros', keywords: ['SEGURO', 'PROTECAO VEICULAR', 'GARANTIA', 'BV GARANTIA'] },
-    { category: 'Emprestimos', keywords: ['AFINZ', 'EMPRESTIMO', 'FINANCIAMENTO', 'CREDITO', 'PARCELA'] },
-    { category: 'Doacoes', keywords: ['IGREJA', 'DIZIMO', 'OFERTA', 'UNIVERSAL', 'DOACAO'] },
-    { category: 'Transferencias', keywords: ['PIX', 'TED', 'DOC', 'TRANSFERENCIA', 'ITAU UNIBANCO', 'BANCO ITAU', 'CAIXA ECONOMICA'] },
-    { category: 'Contas', keywords: ['ENERGIA', 'AGUA', 'SABESP', 'ENEL', 'CEG', 'NATURAL', 'VIVO', 'CLARO', 'TIM'] }
-  ]
-
-  for (const rule of rules) {
-    if (rule.keywords.some(keyword => source.includes(keyword))) return rule.category
-  }
-
-  if (natureza === 'entrada' && valor > 0) return 'Recebimentos'
-  return fallback && fallback !== 'Outros' ? fallback : 'Outros'
-}
-
-function getTransactionDate(tx) {
-  const raw = String(tx && tx.data ? tx.data : '').trim()
-  const parts = raw.split('/')
-  if (parts.length < 2) return new Date('invalid')
-
-  const day = Number(parts[0])
-  const month = Number(parts[1])
-  let year = parts.length >= 3 ? Number(parts[2]) : NaN
-
-  if (!Number.isFinite(year)) {
-    const ref = String(tx && tx.mes_referencia ? tx.mes_referencia : '')
-    const refParts = ref.split('/')
-    year = refParts.length === 2 ? Number(refParts[1]) : new Date().getFullYear()
-  }
-
-  return new Date(year, Math.max(0, month - 1), day, 12, 0, 0)
-}
-
-function getTransactionDateValue(tx) {
-  const date = getTransactionDate(tx)
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime()
-}
-
-function toIsoDate(date) {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, '0'),
-    String(date.getDate()).padStart(2, '0')
-  ].join('-')
-}
-
-function parseIsoDate(value) {
-  const [year, month, day] = String(value || '').split('-').map(Number)
-  return new Date(year, Math.max(0, (month || 1) - 1), day || 1, 12, 0, 0)
-}
-
-function formatDate(date) {
-  return date.toLocaleDateString('pt-BR')
-}
-
-function getReportContext() {
-  const txs = getFilteredTxs()
-  const expenseTxs = getExpenseTransactions(txs)
-  const total = expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
-  const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
-  const monthlyTotal = total / monthsCount
-  const pct = Math.round((total / monthsCount / renda) * 100)
-  const avgTicket = expenseTxs.length ? total / expenseTxs.length : 0
-  const score = getHealthScore(pct)
-  return { txs, expenseTxs, total, monthsCount, monthlyTotal, pct, avgTicket, score }
-}
-
-function downloadReportPdf() {
-  const button = document.querySelector('.pdf-btn')
-  const previousLabel = button ? button.textContent : ''
-  if (button) {
-    button.disabled = true
-    button.textContent = 'Abrindo impressão...'
-  }
-
-  setTimeout(() => {
-    window.print()
-    if (button) {
-      button.disabled = false
-      button.textContent = previousLabel || '↓ Baixar PDF'
-    }
-  }, 80)
-}
-
-function shortMoney(n) {
-  const num = Number(n) || 0
-  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
-}
-
-function showScreen(screen) {
-  document.getElementById('screenUpload').classList.toggle('active', screen === 'upload')
-  document.getElementById('screenLoading').classList.toggle('active', screen === 'loading')
-  document.getElementById('screenReport').classList.toggle('active', screen === 'report')
-}
-
-function startLoadingCycle() {
-  setLoadingPhase(0)
-  if (loadingInterval) clearInterval(loadingInterval)
-  loadingInterval = setInterval(() => {
-    loadingPhaseIndex = (loadingPhaseIndex + 1) % LOADING_PHASES.length
-    setLoadingPhase(loadingPhaseIndex)
-  }, 1800)
-}
-
-function stopLoadingCycle() {
-  if (loadingInterval) {
-    clearInterval(loadingInterval)
-    loadingInterval = null
-  }
-  document.querySelectorAll('.loading-phase').forEach((phase, index, phases) => {
-    phase.classList.toggle('done', index < phases.length - 1)
-    phase.classList.toggle('active', index === phases.length - 1)
-  })
-}
-
-function setLoadingPhase(index) {
-  loadingPhaseIndex = index
-  const phase = LOADING_PHASES[index]
-  const textWrap = document.getElementById('loadingText')
-  textWrap.classList.add('swap')
-  setTimeout(() => {
-    document.getElementById('loadingTitle').textContent = phase.title
-    document.getElementById('loadingCopy').textContent = phase.copy
-    textWrap.classList.remove('swap')
-  }, 170)
-  const list = document.getElementById('loadingPhaseList')
-  list.innerHTML = LOADING_PHASES.map((item, itemIndex) => {
-    const cls = itemIndex < index ? 'done' : itemIndex === index ? 'active' : ''
-    return `<div class="loading-phase ${cls}"><span>${item.title}</span><span class="loading-dot"></span></div>`
-  }).join('')
-}
-
-function updateLoadingFiles(errorMessage) {
-  const total = fileQueue.length
-  const processed = fileQueue.filter(file => file.status === 'done').length
-  const current = fileQueue.find(file => file.status === 'extracting' || file.status === 'parsing')
-  const suffix = errorMessage
-    ? ` · erro: ${errorMessage}`
-    : current
-      ? ` · agora: ${current.name}`
-      : processed === total && total > 0
-        ? ' · finalizando seu relatório'
-        : ''
-  document.getElementById('loadingFiles').textContent = `${processed}/${total} arquivo(s) processados${suffix}`
-}
-
-function setPill(n, state) {
-  const el = document.getElementById('pill' + n)
-  el.className = 'step-pill' + (state ? ' ' + state : '')
-}
-
-function toSortableDate(dateStr) {
-  if (!dateStr || !dateStr.includes('/')) return 0
-  const parts = dateStr.split('/')
-  if (parts.length !== 3) return 0
-  return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`).getTime() || 0
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-}
-
-function escapeAttr(value) {
-  return escapeHtml(value)
-}
-
-function escapeJs(value) {
-  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
-}
-
-setLoadingPhase(0)
-</script>
 </body>
 </html>

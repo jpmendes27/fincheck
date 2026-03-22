@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>fincheck · parser de fatura</title>
+<title>fincheck · controle seus gastos com cartão de crédito</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
@@ -30,9 +30,10 @@ body::before{
   background-image:radial-gradient(circle,#2a2d35 1px,transparent 1px);
   background-size:32px 32px;opacity:0.35;pointer-events:none;z-index:0;
 }
-.wrap{max-width:860px;margin:0 auto;position:relative;z-index:1}
+.wrap{max-width:860px;margin:0 auto;position:relative;z-index:1;min-height:calc(100vh - 6rem);display:flex;flex-direction:column}
 .screen{display:none}
 .screen.active{display:block}
+.screen.active{flex:1}
 
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
 .logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--accent)}
@@ -161,6 +162,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   display:flex;align-items:center;justify-content:space-between;
   margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;
 }
+.result-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
 .result-title{font-family:'DM Serif Display',serif;font-size:1.5rem}
 .result-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem}
 .reset-btn{
@@ -169,6 +171,14 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
   font-family:'DM Mono',monospace;cursor:pointer;transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
 }
 .reset-btn:hover{border-color:var(--red);color:var(--red);transform:translateY(-1px)}
+.pdf-btn{
+  padding:.45rem 1.1rem;border-radius:999px;border:1px solid rgba(200,245,100,.28);
+  background:rgba(200,245,100,.08);color:var(--accent);font-size:.72rem;
+  font-family:'DM Mono',monospace;cursor:pointer;
+  transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), background var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.pdf-btn:hover{background:rgba(200,245,100,.16);transform:translateY(-1px)}
+.pdf-btn:disabled{opacity:.55;cursor:progress;transform:none}
 
 .card-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem}
 .chip{
@@ -251,20 +261,26 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 
 .heatmap-panel{margin-bottom:1rem}
 .heatmap-grid{
-  display:grid;grid-template-columns:28px repeat(4,1fr);gap:4px;align-items:stretch;
+  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch;
 }
-.heatmap-col-head,.heatmap-row-head{
-  font-size:.68rem;color:#7f8595;font-family:'DM Mono',monospace;display:grid;place-items:center;
-}
-.heatmap-corner{height:24px}
 .heatmap-cell{
-  min-height:74px;border-radius:4px;background:#263126;position:relative;overflow:hidden;
-  transition:transform var(--t-fast) var(--ease-smooth), filter var(--t-fast) var(--ease-smooth), background var(--t-med) var(--ease-smooth);
+  min-height:92px;border-radius:12px;background:#263126;position:relative;overflow:hidden;padding:.8rem .7rem;
+  border:1px solid rgba(255,255,255,.04);
+  display:flex;flex-direction:column;justify-content:space-between;
+  transition:transform var(--t-fast) var(--ease-smooth), filter var(--t-fast) var(--ease-smooth), background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth);
 }
 .heatmap-cell:hover{transform:translateY(-1px);filter:brightness(1.06)}
-.heatmap-cell::after{
-  content:attr(data-tip);position:absolute;left:10px;bottom:8px;font-size:.62rem;
-  font-family:'DM Mono',monospace;color:rgba(255,255,255,.82);
+.heatmap-col-head{
+  font-size:.68rem;color:#7f8595;font-family:'DM Mono',monospace;display:grid;place-items:center;padding-bottom:.25rem;
+}
+.heatmap-empty{
+  min-height:92px;border-radius:12px;border:1px dashed rgba(255,255,255,.03);background:rgba(255,255,255,.015);
+}
+.heatmap-day{
+  font-size:.72rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.92);
+}
+.heatmap-value{
+  font-size:.72rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.84);line-height:1.35;
 }
 
 .insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
@@ -280,6 +296,32 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 }
 .insight-text{font-size:.95rem;line-height:1.7;color:#8f94a3}
 .insight-text strong{color:var(--text);font-weight:700}
+
+.site-footer{
+  margin-top:auto;padding-top:1.2rem;border-top:1px solid rgba(42,45,53,.8);
+  display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;
+  text-align:center;
+}
+.footer-brand{
+  display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;
+  font-size:.72rem;color:#7f8595;font-family:'DM Mono',monospace;letter-spacing:.04em;
+  justify-content:center;
+}
+.footer-brand strong{
+  color:var(--text);font-family:'Syne',sans-serif;font-size:.82rem;letter-spacing:0;
+}
+.footer-meta{
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  font-size:.68rem;color:#6f7483;font-family:'DM Mono',monospace;
+  justify-content:center;
+}
+.footer-meta span{
+  position:relative;padding-left:.9rem;
+}
+.footer-meta span::before{
+  content:'';position:absolute;left:0;top:50%;width:4px;height:4px;border-radius:50%;
+  background:rgba(200,245,100,.45);transform:translateY(-50%);
+}
 
 .dedup-banner{
   display:none;align-items:flex-start;gap:.75rem;
@@ -306,11 +348,120 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 @media(max-width:620px){
   .loading-title{font-size:1.8rem}
   .diagnosis-hero{flex-direction:column;align-items:flex-start}
+  .site-footer{justify-content:center}
+  .footer-meta{gap:.6rem}
   .summary-grid{grid-template-columns:1fr 1fr}
   .insight-grid{grid-template-columns:1fr}
   .two-col{grid-template-columns:1fr}
-  .heatmap-grid{grid-template-columns:22px repeat(4,1fr)}
-  .heatmap-cell{min-height:54px}
+  .heatmap-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .heatmap-cell,.heatmap-empty{min-height:68px;padding:.55rem .45rem}
+  .heatmap-day,.heatmap-value{font-size:.6rem}
+}
+
+@media print{
+  @page{
+    size:A4;
+    margin:10mm;
+  }
+
+  html,body{
+    background:var(--bg) !important;
+    color:var(--text) !important;
+    padding:0 !important;
+    overflow:visible !important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+
+  body::before,
+  #screenUpload,
+  #screenLoading,
+  .step-pills,
+  .site-footer,
+  .dedup-banner{
+    display:none !important;
+  }
+
+  .wrap{
+    max-width:none !important;
+    min-height:auto !important;
+    display:block !important;
+  }
+
+  #screenReport{
+    display:block !important;
+  }
+
+  header{
+    margin-bottom:8mm !important;
+  }
+
+  .logo{
+    color:var(--accent) !important;
+  }
+
+  .logo span,
+  .result-sub,
+  .sum-sub,
+  .cat-pct,
+  .tcard,
+  .diagnosis-copy,
+  .heatmap-title,
+  .ptitle,
+  .ilabel,
+  .footer-brand,
+  .footer-meta{
+    color:var(--muted) !important;
+  }
+
+  .sum-card,
+  .income-block,
+  .panel,
+  .diagnosis-hero{
+    background:var(--surface) !important;
+    color:var(--text) !important;
+    border:1px solid var(--border) !important;
+    box-shadow:none !important;
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  .chip{
+    background:var(--surface) !important;
+    border-color:var(--border) !important;
+    color:var(--muted) !important;
+    box-shadow:none !important;
+  }
+
+  .chip.active{
+    background:var(--accent-dim) !important;
+    border-color:var(--accent) !important;
+    color:var(--accent) !important;
+  }
+
+  .tx-table-wrap{
+    max-height:none !important;
+    overflow:visible !important;
+  }
+
+  .tx-table th,
+  .tx-table td{
+    color:var(--text) !important;
+    border-bottom:1px solid rgba(42,45,53,.65) !important;
+  }
+
+  .tx-table tr:hover td{
+    background:transparent !important;
+  }
+
+  .result-actions{
+    display:flex !important;
+  }
+
+  .pdf-btn,
+  .reset-btn{
+    display:none !important;
+  }
 }
 </style>
 </head>
@@ -318,7 +469,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 <div class="wrap">
 
   <header>
-    <div class="logo">fincheck®<span> · controle seus gastos com cartão de crédito</span></div>
+    <div class="logo">fincheck®<span> • controle seus gastos com cartão de crédito</span></div>
     <div class="step-pills">
       <div class="step-pill active" id="pill1">1 · Upload</div>
       <div class="step-pill" id="pill2">2 · Processando</div>
@@ -362,7 +513,10 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
         <div class="result-title">Diagnóstico de gastos</div>
         <div class="result-sub" id="resultSub">Carregando...</div>
       </div>
-      <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
+      <div class="result-actions">
+        <button class="pdf-btn" onclick="downloadReportPdf()">↓ Baixar PDF</button>
+        <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
+      </div>
     </div>
 
     <div class="dedup-banner" id="dedupBanner">
@@ -405,7 +559,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
       <div class="diagnosis-meter" id="diagnosisMeter">
         <div class="diagnosis-meter-inner">
           <div class="diagnosis-meter-val" id="diagnosisMeterVal">0</div>
-          <div class="diagnosis-meter-sub">/ saude</div>
+          <div class="diagnosis-meter-sub">/ nota</div>
         </div>
       </div>
     </div>
@@ -441,6 +595,17 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
       </div>
     </div>
   </div>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <strong>Fincheck®</strong>
+      <span>Todos os direitos reservados.</span>
+    </div>
+    <div class="footer-meta">
+      <span>Designed for clearer financial conversations</span>
+      <span>Relatórios privados e compartilháveis</span>
+    </div>
+  </footer>
 </div>
 
 <script>
@@ -455,7 +620,9 @@ const CAT_COLORS = {
   'Assinaturas':'#a78bfa','Transporte':'#4dcc8f','Combustivel':'#4dcc8f',
   'Saude':'#ff5c5c','Farmacia':'#ff5c5c','Lazer':'#c8f564',
   'Viagem':'#ff5c5c','Hospedagem':'#ff5c5c','Educacao':'#5c9eff',
-  'Outros':'#6b7080',
+  'Moradia':'#5c9eff','Contas':'#4dcc8f','Seguros':'#a78bfa',
+  'Emprestimos':'#ff5c5c','Transferencias':'#6b7080','Impostos':'#f5a623',
+  'Doacoes':'#c8f564','Recebimentos':'#4dcc8f','Outros':'#6b7080',
   'Alimentação':'#f5a623','Combustível':'#4dcc8f','Saúde':'#ff5c5c',
   'Farmácia':'#ff5c5c','Educação':'#5c9eff'
 }
@@ -543,27 +710,54 @@ async function extractPdfText(file, onProgress) {
 }
 
 async function parseWithClaude(text) {
-  const prompt = `Voce e um especialista em analise de faturas de cartao de credito brasileiros.
+  const chunks = splitStatementText(text, 9000, 1200)
+  const parsedChunks = []
 
-Analise o texto abaixo extraido de um PDF de fatura de cartao de credito e extraia as informacoes em JSON.
+  for (let i = 0; i < chunks.length; i++) {
+    parsedChunks.push(await parseChunkWithFallback(chunks[i], i + 1, chunks.length))
+  }
 
-TEXTO DA FATURA:
+  return combineParsedStatements(parsedChunks)
+}
+
+async function parseChunkWithFallback(textChunk, chunkIndex, chunkCount) {
+  try {
+    const prompt = buildStatementPrompt(textChunk, chunkIndex, chunkCount)
+    const raw = await requestClaudeMessage(prompt)
+    return await parseClaudeJson(raw)
+  } catch (error) {
+    const fallbackPrompt = buildFallbackPrompt(textChunk, chunkIndex, chunkCount)
+    const raw = await requestClaudeMessage(fallbackPrompt)
+    return parseFallbackBlock(raw)
+  }
+}
+
+function buildStatementPrompt(textChunk, chunkIndex, chunkCount) {
+  return `Voce e um especialista em analise de documentos financeiros brasileiros.
+
+Analise o trecho abaixo extraido de um PDF e identifique se ele e uma fatura de cartao de credito ou um extrato de conta corrente. Depois extraia as informacoes em JSON.
+
+TRECHO DO DOCUMENTO (${chunkIndex}/${chunkCount}):
 ---
-${text.slice(0, 12000)}
+${textChunk}
 ---
 
 Retorne SOMENTE um JSON valido (sem markdown, sem explicacao) com este formato exato:
 {
+  "tipo_documento": "fatura_cartao ou extrato_conta",
   "banco": "nome do banco (ex: Nubank, Itau, Bradesco, XP, Inter, C6, etc)",
+  "identificador": "ultimos 4 digitos do cartao, numero da conta ou outro identificador curto encontrado no documento",
   "ultimos_digitos": "4 ultimos digitos do cartao (string) ou null se nao encontrar",
   "mes_referencia": "MM/AAAA (ex: 03/2025) ou null se nao encontrar",
   "titular": "nome do titular ou null",
   "total_fatura": 0.00,
+  "total_gastos_periodo": 0.00,
   "transacoes": [
     {
       "data": "DD/MM/AAAA",
       "estabelecimento": "nome limpo do estabelecimento",
       "valor": 0.00,
+      "natureza": "gasto, entrada, estorno ou ajuste",
       "categoria": "uma de: Alimentacao, Delivery, Mercado, Assinaturas, Transporte, Combustivel, Saude, Farmacia, Lazer, Viagem, Hospedagem, Educacao, Outros",
       "parcelado": false,
       "parcela_atual": null,
@@ -574,10 +768,58 @@ Retorne SOMENTE um JSON valido (sem markdown, sem explicacao) com este formato e
 
 Regras importantes:
 - Inclua TODAS as transacoes encontradas, sem excecao
-- Para valores negativos (estornos/creditos), use valor negativo
+- Se for fatura de cartao:
+  - compras devem vir como natureza "gasto" e valor positivo
+  - estornos/creditos devem vir como natureza "estorno" e valor negativo
+- Se for extrato de conta:
+  - saidas/debitos devem vir como natureza "gasto" e valor negativo
+  - entradas/creditos devem vir como natureza "entrada" e valor positivo
 - Limpe os nomes dos estabelecimentos (remova codigos, cidades, datas embutidas)
 - Categorize com base no nome do estabelecimento
-- Ignore linhas de pagamento, fatura anterior, encargos e totais; apenas transacoes de compra/credito`
+- Ignore linhas de saldo inicial/final e totais consolidados; capture apenas as movimentacoes/transacoes
+- Se algum campo de cabecalho nao aparecer neste trecho, use null
+- Nao invente transacoes ausentes neste trecho`
+}
+
+async function requestClaudeMessage(prompt) {
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      temperature: 0,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error && err.error.message ? err.error.message : `HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+  return data.content && data.content[0] ? data.content[0].text || '' : ''
+}
+
+async function repairJsonWithClaude(raw) {
+  const prompt = `Corrija o texto abaixo para virar um JSON valido.
+
+Regras:
+- Retorne SOMENTE o JSON corrigido
+- Nao invente campos novos
+- Preserve a estrutura original
+- Remova comentarios, virgulas sobrando e texto fora do JSON
+
+TEXTO:
+---
+${raw.slice(0, 18000)}
+---`
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -590,6 +832,7 @@ Regras importantes:
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
+      temperature: 0,
       messages: [{ role: 'user', content: prompt }]
     })
   })
@@ -600,9 +843,278 @@ Regras importantes:
   }
 
   const data = await response.json()
-  const raw = data.content && data.content[0] ? data.content[0].text || '' : ''
-  const clean = raw.replace(/```json|```/g, '').trim()
-  return JSON.parse(clean)
+  return data.content && data.content[0] ? data.content[0].text || '' : ''
+}
+
+async function parseClaudeJson(raw) {
+  const attempts = []
+  attempts.push(cleanClaudeJson(raw))
+  attempts.push(extractFirstJsonObject(cleanClaudeJson(raw)))
+  attempts.push(normalizeJsonString(extractFirstJsonObject(cleanClaudeJson(raw))))
+
+  for (const candidate of attempts) {
+    if (!candidate) continue
+    try {
+      return JSON.parse(candidate)
+    } catch (error) {
+      continue
+    }
+  }
+
+  const repairedRaw = await repairJsonWithClaude(raw)
+  const repairedAttempts = [
+    cleanClaudeJson(repairedRaw),
+    extractFirstJsonObject(cleanClaudeJson(repairedRaw)),
+    normalizeJsonString(extractFirstJsonObject(cleanClaudeJson(repairedRaw)))
+  ]
+
+  for (const candidate of repairedAttempts) {
+    if (!candidate) continue
+    try {
+      return JSON.parse(candidate)
+    } catch (error) {
+      continue
+    }
+  }
+
+  throw new Error('Nao consegui interpretar o JSON retornado pela analise da fatura')
+}
+
+function cleanClaudeJson(raw) {
+  return String(raw || '')
+    .replace(/```json|```/gi, '')
+    .replace(/^[^{[]*/, '')
+    .trim()
+}
+
+function extractFirstJsonObject(text) {
+  const source = String(text || '')
+  const start = source.search(/[\[{]/)
+  if (start === -1) return ''
+
+  let depth = 0
+  let inString = false
+  let escaped = false
+
+  for (let i = start; i < source.length; i++) {
+    const ch = source[i]
+
+    if (inString) {
+      if (escaped) {
+        escaped = false
+      } else if (ch === '\\') {
+        escaped = true
+      } else if (ch === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (ch === '"') {
+      inString = true
+      continue
+    }
+
+    if (ch === '{' || ch === '[') depth += 1
+    if (ch === '}' || ch === ']') depth -= 1
+
+    if (depth === 0) {
+      return source.slice(start, i + 1)
+    }
+  }
+
+  return source.slice(start)
+}
+
+function normalizeJsonString(text) {
+  return String(text || '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/,\s*([}\]])/g, '$1')
+    .replace(/\u00a0/g, ' ')
+    .replace(/[\u0000-\u0019]+/g, ' ')
+    .trim()
+}
+
+function buildFallbackPrompt(textChunk, chunkIndex, chunkCount) {
+  return `Analise o trecho abaixo e retorne SOMENTE linhas estruturadas neste formato:
+
+META|tipo_documento|banco|identificador|ultimos_digitos|mes_referencia|titular|total_fatura|total_gastos_periodo
+TX|data|estabelecimento|valor|natureza|categoria|parcelado|parcela_atual|total_parcelas
+
+Regras:
+- tipo_documento deve ser fatura_cartao ou extrato_conta
+- natureza deve ser gasto, entrada, estorno ou ajuste
+- valor deve usar ponto decimal e sinal correto
+- parcelado deve ser true ou false
+- Se um campo nao existir, use null
+- Retorne uma linha META e depois uma linha TX por transacao
+- Nao escreva explicacoes
+
+TRECHO (${chunkIndex}/${chunkCount}):
+---
+${textChunk}
+---`
+}
+
+function parseFallbackBlock(raw) {
+  const lines = String(raw || '')
+    .replace(/```[a-z]*|```/gi, '')
+    .split('\n')
+    .map(line => line.trim())
+    .filter(Boolean)
+
+  const parsed = {
+    tipo_documento: null,
+    banco: null,
+    identificador: null,
+    ultimos_digitos: null,
+    mes_referencia: null,
+    titular: null,
+    total_fatura: 0,
+    total_gastos_periodo: 0,
+    transacoes: []
+  }
+
+  lines.forEach(line => {
+    const parts = line.split('|').map(part => part.trim())
+    if (!parts.length) return
+
+    if (parts[0] === 'META') {
+      parsed.tipo_documento = normalizeNullable(parts[1])
+      parsed.banco = normalizeNullable(parts[2])
+      parsed.identificador = normalizeNullable(parts[3])
+      parsed.ultimos_digitos = normalizeNullable(parts[4])
+      parsed.mes_referencia = normalizeNullable(parts[5])
+      parsed.titular = normalizeNullable(parts[6])
+      parsed.total_fatura = parseMoneyNumber(parts[7])
+      parsed.total_gastos_periodo = parseMoneyNumber(parts[8])
+      return
+    }
+
+    if (parts[0] === 'TX') {
+      parsed.transacoes.push({
+        data: normalizeNullable(parts[1]) || '',
+        estabelecimento: normalizeNullable(parts[2]) || 'Estabelecimento nao identificado',
+        valor: parseMoneyNumber(parts[3]),
+        natureza: normalizeNullable(parts[4]),
+        categoria: normalizeNullable(parts[5]) || 'Outros',
+        parcelado: String(parts[6]).toLowerCase() === 'true',
+        parcela_atual: parseNullableInteger(parts[7]),
+        total_parcelas: parseNullableInteger(parts[8])
+      })
+    }
+  })
+
+  if (!parsed.transacoes.length) {
+    throw new Error('Nao consegui interpretar o retorno estruturado da analise')
+  }
+
+  return parsed
+}
+
+function splitStatementText(text, maxChunkSize, overlapSize) {
+  const source = String(text || '').trim()
+  if (source.length <= maxChunkSize) return [source]
+
+  const chunks = []
+  let start = 0
+
+  while (start < source.length) {
+    let end = Math.min(source.length, start + maxChunkSize)
+    if (end < source.length) {
+      const breakIdx = source.lastIndexOf('\n', end)
+      if (breakIdx > start + Math.floor(maxChunkSize * 0.6)) {
+        end = breakIdx
+      }
+    }
+
+    chunks.push(source.slice(start, end).trim())
+    if (end >= source.length) break
+    start = Math.max(end - overlapSize, start + 1)
+  }
+
+  return chunks.filter(Boolean)
+}
+
+function combineParsedStatements(items) {
+  const combined = {
+    tipo_documento: null,
+    banco: null,
+    identificador: null,
+    ultimos_digitos: null,
+    mes_referencia: null,
+    titular: null,
+    total_fatura: 0,
+    total_gastos_periodo: 0,
+    transacoes: []
+  }
+
+  const seen = new Set()
+
+  items.forEach(item => {
+    if (!item || typeof item !== 'object') return
+
+    combined.tipo_documento = combined.tipo_documento || item.tipo_documento || null
+    combined.banco = combined.banco || item.banco || null
+    combined.identificador = combined.identificador || item.identificador || item.ultimos_digitos || null
+    combined.ultimos_digitos = combined.ultimos_digitos || item.ultimos_digitos || null
+    combined.mes_referencia = combined.mes_referencia || item.mes_referencia || null
+    combined.titular = combined.titular || item.titular || null
+    combined.total_fatura = Math.max(Number(combined.total_fatura) || 0, Number(item.total_fatura) || 0)
+    combined.total_gastos_periodo = Math.max(Number(combined.total_gastos_periodo) || 0, Number(item.total_gastos_periodo) || 0)
+
+    ;(item.transacoes || []).forEach(tx => {
+      const normalized = normalizeTransaction(tx, item)
+      const key = `${normalized.data}|${normalized.estabelecimento}|${normalized.valor}|${normalized.parcela_atual || ''}|${normalized.total_parcelas || ''}`
+      if (seen.has(key)) return
+      seen.add(key)
+      combined.transacoes.push(normalized)
+    })
+  })
+
+  return combined
+}
+
+function normalizeTransaction(tx, item) {
+  const estabelecimento = tx && tx.estabelecimento ? tx.estabelecimento : 'Estabelecimento nao identificado'
+  const natureza = normalizeNatureza(tx && tx.natureza, Number(tx && tx.valor) || 0, item && item.tipo_documento)
+  return {
+    data: tx && tx.data ? tx.data : '',
+    estabelecimento,
+    valor: Number(tx && tx.valor) || 0,
+    natureza,
+    categoria: categorizeTransaction(estabelecimento, natureza, Number(tx && tx.valor) || 0, tx && tx.categoria ? tx.categoria : 'Outros'),
+    parcelado: Boolean(tx && tx.parcelado),
+    parcela_atual: tx && tx.parcela_atual != null ? tx.parcela_atual : null,
+    total_parcelas: tx && tx.total_parcelas != null ? tx.total_parcelas : null,
+    tipo_documento: item && item.tipo_documento ? item.tipo_documento : null,
+    banco: item && item.banco ? item.banco : null,
+    identificador: item && (item.identificador || item.ultimos_digitos) ? (item.identificador || item.ultimos_digitos) : null,
+    ultimos_digitos: item && item.ultimos_digitos ? item.ultimos_digitos : null,
+    mes_referencia: item && item.mes_referencia ? item.mes_referencia : null
+  }
+}
+
+function normalizeNullable(value) {
+  const normalized = String(value == null ? '' : value).trim()
+  return !normalized || normalized.toLowerCase() === 'null' ? null : normalized
+}
+
+function parseMoneyNumber(value) {
+  const normalized = String(value == null ? '' : value)
+    .replace(/[^\d,.\-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '')
+    .replace(',', '.')
+  const num = Number(normalized)
+  return Number.isFinite(num) ? num : 0
+}
+
+function parseNullableInteger(value) {
+  const normalized = normalizeNullable(value)
+  if (normalized == null) return null
+  const num = parseInt(normalized, 10)
+  return Number.isFinite(num) ? num : null
 }
 
 async function startParsing() {
@@ -634,7 +1146,7 @@ async function startParsing() {
       f.progress = 100
       updateLoadingFiles()
 
-      const key = `${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`
+      const key = `${parsed.banco}|${parsed.identificador || parsed.ultimos_digitos || 'principal'}|${parsed.mes_referencia}`
       if (cardRegistry[key]) {
         dedupPending = { key, incoming: parsed, existing: cardRegistry[key] }
       } else {
@@ -670,12 +1182,15 @@ async function startParsing() {
 }
 
 function mergeTransactions(parsed) {
+  const identifier = parsed.identificador || parsed.ultimos_digitos || 'principal'
   const txs = (parsed.transacoes || []).map(tx => ({
     ...tx,
+    tipo_documento: parsed.tipo_documento,
     banco: parsed.banco,
+    identificador: identifier,
     ultimos_digitos: parsed.ultimos_digitos,
     mes_referencia: parsed.mes_referencia,
-    _key: `${tx.data}|${tx.estabelecimento}|${tx.valor}`
+    _key: `${tx.data}|${tx.estabelecimento}|${tx.valor}|${identifier}`
   }))
 
   const existingKeys = new Set(allTransactions.map(t => t._key))
@@ -731,7 +1246,7 @@ function showResults() {
 
 function getFilteredTxs() {
   if (activeCard === 'all') return allTransactions
-  return allTransactions.filter(t => `${t.banco}|${t.ultimos_digitos}` === activeCard)
+  return allTransactions.filter(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}` === activeCard)
 }
 
 function renderResults() {
@@ -742,7 +1257,7 @@ function renderResults() {
   document.getElementById('resultSub').textContent =
     `${allTransactions.length} transacoes · ${months.join(', ')}`
 
-  const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.ultimos_digitos}`))]
+  const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}`))]
   const chips = document.getElementById('cardChips')
   chips.innerHTML = `<div class="chip ${activeCard === 'all' ? 'active' : ''}" data-card="all" onclick="setCard('all')">
     <span class="cdot" style="background:var(--accent)"></span> Todos
@@ -750,12 +1265,13 @@ function renderResults() {
     const [banco, last4] = c.split('|')
     const color = CARD_COLORS[i % CARD_COLORS.length]
     return `<div class="chip ${activeCard === c ? 'active' : ''}" data-card="${escapeAttr(c)}" onclick="setCard('${escapeJs(c)}')">
-      <span class="cdot" style="background:${color}"></span> ${escapeHtml(banco)} ····${escapeHtml(last4 || '????')}
+      <span class="cdot" style="background:${color}"></span> ${escapeHtml(banco)} ····${escapeHtml(last4 || 'principal')}
     </div>`
   }).join('')
 
-  const total = txs.reduce((s, t) => s + (t.valor > 0 ? t.valor : 0), 0)
-  const purchaseCount = txs.filter(t => t.valor > 0).length
+  const expenseTxs = getExpenseTransactions(txs)
+  const total = expenseTxs.reduce((s, t) => s + Math.abs(Number(t.valor) || 0), 0)
+  const purchaseCount = expenseTxs.length
   const avgTicket = purchaseCount ? total / purchaseCount : 0
   const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
   const pct = Math.round((total / monthsCount / renda) * 100)
@@ -768,7 +1284,7 @@ function renderResults() {
       <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : '1 mes'}</div></div>
     <div class="sum-card"><div class="sum-label">Transacoes</div>
       <div class="sum-val">${purchaseCount}</div>
-      <div class="sum-sub">compras</div></div>
+      <div class="sum-sub">gastos</div></div>
     <div class="sum-card"><div class="sum-label">Ticket medio</div>
       <div class="sum-val">${fmt(avgTicket)}</div>
       <div class="sum-sub">por compra</div></div>
@@ -784,13 +1300,13 @@ function renderResults() {
   document.getElementById('ipct').textContent = pct + '%'
   document.getElementById('ipct').style.color = pctColor
 
-  renderDiagnosisOverview({ txs, total, monthsCount, monthlyTotal, pct })
-  renderHeatmap(txs)
-  renderInsights({ txs, total, monthsCount, monthlyTotal, pct })
+  renderDiagnosisOverview({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
+  renderHeatmap(expenseTxs)
+  renderInsights({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
 
   const bycat = {}
-  txs.filter(t => t.valor > 0).forEach(t => {
-    bycat[t.categoria] = (bycat[t.categoria] || 0) + t.valor
+  expenseTxs.forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
   })
   const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1])
   document.getElementById('catList').innerHTML = sorted.slice(0, 7).map(([cat, val]) => {
@@ -804,8 +1320,8 @@ function renderResults() {
   }).join('')
 
   const bymerch = {}
-  txs.filter(t => t.valor > 0).forEach(t => {
-    bymerch[t.estabelecimento] = (bymerch[t.estabelecimento] || 0) + t.valor
+  expenseTxs.forEach(t => {
+    bymerch[t.estabelecimento] = (bymerch[t.estabelecimento] || 0) + Math.abs(Number(t.valor) || 0)
   })
   const sortedM = Object.entries(bymerch).sort((a, b) => b[1] - a[1])
   const maxM = sortedM[0] ? sortedM[0][1] : 1
@@ -818,17 +1334,20 @@ function renderResults() {
     </div>`
   }).join('')
 
-  const txSorted = [...txs].sort((a, b) => toSortableDate(b.data) - toSortableDate(a.data))
+  const txSorted = [...txs].sort((a, b) => getTransactionDateValue(b) - getTransactionDateValue(a))
   document.getElementById('txBody').innerHTML = txSorted.map(tx => {
     const color = CAT_COLORS[tx.categoria] || '#6b7080'
-    const neg = tx.valor < 0
+    const isExpense = isExpenseTransaction(tx)
+    const isIncome = isIncomeTransaction(tx)
+    const valueColor = isIncome ? 'var(--green)' : isExpense ? 'var(--text)' : 'var(--muted)'
+    const signal = isIncome ? '+' : isExpense && tx.valor < 0 ? '−' : ''
     return `<tr>
       <td style="font-family:'DM Mono',monospace;font-size:.7rem;white-space:nowrap">${escapeHtml(tx.data || '')}</td>
       <td>${escapeHtml(tx.estabelecimento || '')}${tx.parcelado ? ` <span style="font-size:.6rem;color:var(--muted)">${escapeHtml(String(tx.parcela_atual || '?'))}/${escapeHtml(String(tx.total_parcelas || '?'))}</span>` : ''}</td>
       <td><span class="ttag" style="background:${color}22;color:${color}">${escapeHtml(tx.categoria || 'Outros')}</span></td>
-      <td><span class="tcard">${escapeHtml(tx.banco || '')} ····${escapeHtml(tx.ultimos_digitos || '????')}</span></td>
-      <td style="color:${neg ? 'var(--green)' : 'var(--text)'};font-size:.78rem">
-        ${neg ? '−' : ''}${Math.abs(tx.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+      <td><span class="tcard">${escapeHtml(tx.banco || '')} ····${escapeHtml(tx.identificador || tx.ultimos_digitos || 'principal')}</span></td>
+      <td style="color:${valueColor};font-size:.78rem">
+        ${signal}${Math.abs(tx.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
       </td>
     </tr>`
   }).join('')
@@ -872,76 +1391,98 @@ function fmt(n) {
 
 function renderDiagnosisOverview(data) {
   const score = getHealthScore(data.pct)
-  const headline = score >= 80 ? 'Saude em dia' : score >= 60 ? 'Atencao necessaria' : 'Ajuste urgente'
+  const headline = score >= 8 ? 'Saude em dia' : score >= 6 ? 'Atencao necessaria' : score >= 4 ? 'Pede ajustes' : 'Ajuste urgente'
   const concentration = getTopCategoryShare(data.txs, data.total)
   const extra = concentration.name
     ? `Concentracao maior em ${concentration.name.toLowerCase()} (${concentration.pct}% do total).`
     : 'Distribuicao ainda sem categoria dominante.'
-  const text = `Voce esta comprometendo ${data.pct}% da sua renda liquida com cartoes, com media de ${fmt(data.monthlyTotal)}/mes. ${extra}`
-  const meterColor = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--amber)' : 'var(--red)'
+  const text = data.monthsCount > 1
+    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, comprometendo ${data.pct}% da renda declarada. ${extra}`
+    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, comprometendo ${data.pct}% da renda declarada. ${extra}`
+  const meterColor = score >= 8 ? 'var(--green)' : score >= 6 ? 'var(--amber)' : 'var(--red)'
 
   document.getElementById('diagnosisHeadline').textContent = headline
   document.getElementById('diagnosisCopy').textContent = text
-  document.getElementById('diagnosisMeterVal').textContent = String(score)
+  document.getElementById('diagnosisMeterVal').textContent = score.toFixed(1).replace('.', ',')
   const meter = document.getElementById('diagnosisMeter')
-  meter.style.setProperty('--pct', String(score))
+  meter.style.setProperty('--pct', String(score * 10))
   meter.style.setProperty('--meter-color', meterColor)
 }
 
 function renderHeatmap(txs) {
   const grid = document.getElementById('heatmapGrid')
   const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
-  const weeks = ['S1', 'S2', 'S3', 'S4']
-  const matrix = Array.from({ length: 7 }, () => Array(4).fill(0))
+  const dailyTotals = getDailyTotals(txs)
+  const dates = Object.keys(dailyTotals).sort()
 
-  txs.filter(t => t.valor > 0).forEach(tx => {
-    const parts = (tx.data || '').split('/')
-    if (parts.length !== 3) return
-    const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`)
-    if (Number.isNaN(date.getTime())) return
-    const jsDay = date.getDay()
-    const row = jsDay === 0 ? 6 : jsDay - 1
-    const week = Math.min(3, Math.floor((date.getDate() - 1) / 7))
-    matrix[row][week] += Number(tx.valor) || 0
-  })
+  let startDate
+  let endDate
 
-  const max = Math.max(...matrix.flat(), 1)
-  let html = '<div class="heatmap-corner"></div>'
-  html += weeks.map(week => `<div class="heatmap-col-head">${week}</div>`).join('')
-  weekdays.forEach((day, row) => {
-    html += `<div class="heatmap-row-head">${day}</div>`
-    weeks.forEach((_, col) => {
-      const value = matrix[row][col]
-      const intensity = value / max
-      const light = 20 + Math.round(intensity * 42)
-      html += `<div class="heatmap-cell" style="background:hsl(94, 72%, ${light}%)" data-tip="${value ? shortMoney(value) : 'R$ 0'}" title="${day} · ${weeks[col]} · ${fmt(value)}"></div>`
-    })
-  })
-  grid.innerHTML = html
+  if (dates.length) {
+    startDate = parseIsoDate(dates[0])
+    endDate = parseIsoDate(dates[dates.length - 1])
+  } else {
+    const now = new Date()
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0)
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12, 0, 0)
+  }
+
+  const periodStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0)
+  const periodEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0)
+  const offset = (periodStart.getDay() + 6) % 7
+  const max = Math.max(...Object.values(dailyTotals), 1)
+
+  const cells = []
+  for (let i = 0; i < offset; i++) cells.push('<div class="heatmap-empty"></div>')
+
+  for (let cursor = new Date(periodStart); cursor <= periodEnd; cursor.setDate(cursor.getDate() + 1)) {
+    const key = toIsoDate(cursor)
+    const value = dailyTotals[key] || 0
+    const intensity = value / max
+    const alpha = value ? (0.15 + intensity * 0.75).toFixed(2) : '0.06'
+    const label = value ? shortMoney(value) : 'R$ 0'
+    const title = `${formatDate(cursor)} · ${fmt(value)}`
+
+    cells.push(`
+      <div class="heatmap-cell" style="background:rgba(200,245,100,${alpha});border-color:${value ? 'rgba(200,245,100,.22)' : 'rgba(255,255,255,.04)'}" title="${title}">
+        <div class="heatmap-day">${String(cursor.getDate()).padStart(2, '0')}</div>
+        <div class="heatmap-value">${label}</div>
+      </div>
+    `)
+  }
+
+  while (cells.length % 7 !== 0) cells.push('<div class="heatmap-empty"></div>')
+
+  grid.innerHTML = weekdays.map(day => `<div class="heatmap-col-head">${day}</div>`).join('') + cells.join('')
 }
 
 function renderInsights(data) {
   const insightGrid = document.getElementById('insightGrid')
-  const weekendShare = getWeekendShare(data.txs, data.total)
-  const subs = getCategoryMonthlyValue(data.txs, data.monthsCount, ['Assinaturas'])
-  const delivery = getCategoryMonthlyValue(data.txs, data.monthsCount, ['Delivery'])
-  const deliverySaving = delivery * 0.3
+  const topDay = getTopSpendingDay(data.txs)
+  const topWeekdays = getTopAverageWeekdays(data.txs)
+  const topCategories = getTopCategories(data.txs, data.total)
 
   const cards = [
     {
-      icon: '17',
-      kicker: 'Ritmo da semana',
-      text: `Suas sextas e sabados concentram <strong>${weekendShare}%</strong> dos gastos do periodo, puxados por lazer, delivery e saidas.`
+      icon: '01',
+      kicker: 'Pico do periodo',
+      text: topDay
+        ? `Seu maior gasto diario foi em <strong>${topDay.label}</strong>, com <strong>${fmt(topDay.total)}</strong> somados naquele dia.`
+        : 'Ainda nao foi possivel identificar um dia com gastos no periodo analisado.'
     },
     {
-      icon: '↻',
-      kicker: 'Assinaturas',
-      text: `Voce tem <strong>${fmt(subs)}/mes</strong> em assinaturas recorrentes. Vale revisar servicos pouco usados nos ultimos 60 dias.`
+      icon: '02',
+      kicker: 'Media por dia da semana',
+      text: topWeekdays.length
+        ? `Em media, seus gastos se concentram em <strong>${topWeekdays.map(day => `${day.label} (${fmt(day.average)})`).join('</strong> e <strong>')}</strong>.`
+        : 'Ainda nao houve dados suficientes para comparar os dias da semana.'
     },
     {
-      icon: '◎',
-      kicker: 'Oportunidade',
-      text: `Se reduzir delivery em 30%, voce libera <strong>${fmt(deliverySaving)}/mes</strong> para reforcar sua renda disponivel.`
+      icon: '03',
+      kicker: 'Categorias dominantes',
+      text: topCategories.length
+        ? `As maiores categorias foram <strong>${topCategories.map(cat => `${cat.name} (${cat.pct}%)`).join('</strong>, <strong>')}</strong> do total gasto.`
+        : 'Ainda nao houve volume suficiente para destacar categorias dominantes.'
     }
   ]
 
@@ -955,16 +1496,99 @@ function renderInsights(data) {
 }
 
 function getHealthScore(pct) {
-  return Math.max(8, Math.min(96, 100 - Math.round(pct * 0.9)))
+  if (pct <= 10) return 10
+  if (pct <= 15) return 9
+  if (pct <= 20) return 8
+  if (pct <= 25) return 7
+  if (pct <= 30) return 6
+  if (pct <= 40) return 5
+  if (pct <= 50) return 4
+  if (pct <= 65) return 3
+  if (pct <= 80) return 2
+  if (pct <= 100) return 1
+  return 0
 }
 
 function getTopCategoryShare(txs, total) {
   if (!total) return { name: '', pct: 0 }
   const bycat = {}
-  txs.filter(t => t.valor > 0).forEach(t => {
-    bycat[t.categoria] = (bycat[t.categoria] || 0) + t.valor
+  txs.forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
   })
   const top = Object.entries(bycat).sort((a, b) => b[1] - a[1])[0]
+  if (!top) return { name: '', pct: 0 }
+  return { name: top[0], pct: Math.round((top[1] / total) * 100) }
+}
+
+function getDailyTotals(txs) {
+  const totals = {}
+  txs.forEach(tx => {
+    const date = getTransactionDate(tx)
+    if (Number.isNaN(date.getTime())) return
+    const key = toIsoDate(date)
+    totals[key] = (totals[key] || 0) + Math.abs(Number(tx.valor) || 0)
+  })
+  return totals
+}
+
+function getTopSpendingDay(txs) {
+  const dailyTotals = getDailyTotals(txs)
+  const topEntry = Object.entries(dailyTotals).sort((a, b) => b[1] - a[1])[0]
+  if (!topEntry) return null
+  return {
+    key: topEntry[0],
+    total: topEntry[1],
+    label: formatDate(parseIsoDate(topEntry[0]))
+  }
+}
+
+function getTopAverageWeekdays(txs) {
+  const labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
+  const buckets = Array.from({ length: 7 }, () => ({ total: 0, dates: new Set() }))
+
+  txs.forEach(tx => {
+    const date = getTransactionDate(tx)
+    if (Number.isNaN(date.getTime())) return
+    const day = date.getDay()
+    buckets[day].total += Math.abs(Number(tx.valor) || 0)
+    buckets[day].dates.add(toIsoDate(date))
+  })
+
+  return buckets
+    .map((bucket, day) => ({
+      label: labels[day],
+      average: bucket.dates.size ? bucket.total / bucket.dates.size : 0
+    }))
+    .filter(day => day.average > 0)
+    .sort((a, b) => b.average - a.average)
+    .slice(0, 2)
+}
+
+function getTopCategories(txs, total) {
+  if (!total) return []
+  const bycat = {}
+  txs.forEach(tx => {
+    const category = tx.categoria || 'Outros'
+    bycat[category] = (bycat[category] || 0) + Math.abs(Number(tx.valor) || 0)
+  })
+
+  return Object.entries(bycat)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name, value]) => ({
+      name,
+      value,
+      pct: Math.round((value / total) * 100)
+    }))
+}
+
+function getTopMerchantShare(txs, total) {
+  if (!total) return { name: '', pct: 0 }
+  const byMerchant = {}
+  txs.forEach(tx => {
+    byMerchant[tx.estabelecimento] = (byMerchant[tx.estabelecimento] || 0) + Math.abs(Number(tx.valor) || 0)
+  })
+  const top = Object.entries(byMerchant).sort((a, b) => b[1] - a[1])[0]
   if (!top) return { name: '', pct: 0 }
   return { name: top[0], pct: Math.round((top[1] / total) * 100) }
 }
@@ -972,22 +1596,155 @@ function getTopCategoryShare(txs, total) {
 function getWeekendShare(txs, total) {
   if (!total) return 0
   let weekendTotal = 0
-  txs.filter(t => t.valor > 0).forEach(tx => {
-    const parts = (tx.data || '').split('/')
-    if (parts.length !== 3) return
-    const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`)
+  txs.forEach(tx => {
+    const date = getTransactionDate(tx)
     if (Number.isNaN(date.getTime())) return
     const day = date.getDay()
-    if (day === 5 || day === 6) weekendTotal += Number(tx.valor) || 0
+    if (day === 5 || day === 6) weekendTotal += Math.abs(Number(tx.valor) || 0)
   })
   return Math.round((weekendTotal / total) * 100)
 }
 
 function getCategoryMonthlyValue(txs, monthsCount, categories) {
   const total = txs
-    .filter(t => t.valor > 0 && categories.includes(t.categoria))
-    .reduce((sum, tx) => sum + tx.valor, 0)
+    .filter(t => categories.includes(t.categoria))
+    .reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
   return total / (monthsCount || 1)
+}
+
+function getExpenseTransactions(txs) {
+  const source = txs || []
+  const explicit = source.filter(tx => tx.natureza === 'gasto')
+  if (explicit.length) return explicit
+
+  const negatives = source.filter(tx => Number(tx.valor) < 0)
+  const positives = source.filter(tx => Number(tx.valor) > 0)
+  const hasAccountStatement = source.some(tx => tx.tipo_documento === 'extrato_conta')
+
+  if (hasAccountStatement && negatives.length) return negatives
+  if (positives.length >= negatives.length) return positives
+  return negatives
+}
+
+function isExpenseTransaction(tx) {
+  if (!tx) return false
+  if (tx.natureza === 'gasto') return true
+  if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) < 0
+  return Number(tx.valor) > 0
+}
+
+function isIncomeTransaction(tx) {
+  if (!tx) return false
+  if (tx.natureza === 'entrada') return true
+  if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) > 0
+  return false
+}
+
+function normalizeNatureza(rawNatureza, valor, tipoDocumento) {
+  const normalized = String(rawNatureza || '').toLowerCase().trim()
+  if (normalized === 'gasto' || normalized === 'entrada' || normalized === 'estorno' || normalized === 'ajuste') {
+    return normalized
+  }
+  if (tipoDocumento === 'extrato_conta') return valor < 0 ? 'gasto' : 'entrada'
+  return valor < 0 ? 'estorno' : 'gasto'
+}
+
+function categorizeTransaction(name, natureza, valor, fallback) {
+  if (natureza === 'entrada') return 'Recebimentos'
+
+  const source = String(name || '').toUpperCase()
+  const rules = [
+    { category: 'Moradia', keywords: ['HABITACAO', 'ALUGUEL', 'CONDOMINIO', 'IMOB', 'QUINTOANDAR', 'LOCA', 'GCI CAIXA'] },
+    { category: 'Mercado', keywords: ['ATACADAO', 'ASSAI', 'CARREFOUR', 'EXTRA', 'PAO DE ACUCAR', 'SUPERMERC', 'MERCADO', 'COOP'] },
+    { category: 'Combustivel', keywords: ['POSTO', 'IPIRANGA', 'SHELL', 'COMBUST', 'PETROBRAS', 'ALE COMBUST'] },
+    { category: 'Transporte', keywords: ['UBER', '99', 'METRO', 'TREM', 'SEM PARAR', 'ESTACIONAMENTO', 'PEDAGIO'] },
+    { category: 'Delivery', keywords: ['IFOOD', 'RAPPI', 'DELIVERY', 'JAMES', 'UBER EATS'] },
+    { category: 'Alimentacao', keywords: ['RESTAURANTE', 'LANCH', 'PIZZARIA', 'BAR', 'CAFE', 'BURGER', 'A CASA DO', 'PADARIA'] },
+    { category: 'Assinaturas', keywords: ['NETFLIX', 'SPOTIFY', 'YOUTUBE', 'AMAZON PRIME', 'APPLE.COM', 'GOOGLE', 'MICROSOFT', 'ADOBE', 'TELECOM'] },
+    { category: 'Saude', keywords: ['FARM', 'DROGA', 'HOSPITAL', 'CLINICA', 'LABORATORIO', 'ODONTO', 'UNIMED'] },
+    { category: 'Educacao', keywords: ['ESCOLA', 'CURSO', 'FACULDADE', 'UDMY', 'ALURA', 'HOTMART'] },
+    { category: 'Seguros', keywords: ['SEGURO', 'PROTECAO VEICULAR', 'GARANTIA', 'BV GARANTIA'] },
+    { category: 'Emprestimos', keywords: ['AFINZ', 'EMPRESTIMO', 'FINANCIAMENTO', 'CREDITO', 'PARCELA'] },
+    { category: 'Doacoes', keywords: ['IGREJA', 'DIZIMO', 'OFERTA', 'UNIVERSAL', 'DOACAO'] },
+    { category: 'Transferencias', keywords: ['PIX', 'TED', 'DOC', 'TRANSFERENCIA', 'ITAU UNIBANCO', 'BANCO ITAU', 'CAIXA ECONOMICA'] },
+    { category: 'Contas', keywords: ['ENERGIA', 'AGUA', 'SABESP', 'ENEL', 'CEG', 'NATURAL', 'VIVO', 'CLARO', 'TIM'] }
+  ]
+
+  for (const rule of rules) {
+    if (rule.keywords.some(keyword => source.includes(keyword))) return rule.category
+  }
+
+  if (natureza === 'entrada' && valor > 0) return 'Recebimentos'
+  return fallback && fallback !== 'Outros' ? fallback : 'Outros'
+}
+
+function getTransactionDate(tx) {
+  const raw = String(tx && tx.data ? tx.data : '').trim()
+  const parts = raw.split('/')
+  if (parts.length < 2) return new Date('invalid')
+
+  const day = Number(parts[0])
+  const month = Number(parts[1])
+  let year = parts.length >= 3 ? Number(parts[2]) : NaN
+
+  if (!Number.isFinite(year)) {
+    const ref = String(tx && tx.mes_referencia ? tx.mes_referencia : '')
+    const refParts = ref.split('/')
+    year = refParts.length === 2 ? Number(refParts[1]) : new Date().getFullYear()
+  }
+
+  return new Date(year, Math.max(0, month - 1), day, 12, 0, 0)
+}
+
+function getTransactionDateValue(tx) {
+  const date = getTransactionDate(tx)
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime()
+}
+
+function toIsoDate(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-')
+}
+
+function parseIsoDate(value) {
+  const [year, month, day] = String(value || '').split('-').map(Number)
+  return new Date(year, Math.max(0, (month || 1) - 1), day || 1, 12, 0, 0)
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString('pt-BR')
+}
+
+function getReportContext() {
+  const txs = getFilteredTxs()
+  const expenseTxs = getExpenseTransactions(txs)
+  const total = expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+  const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
+  const monthlyTotal = total / monthsCount
+  const pct = Math.round((total / monthsCount / renda) * 100)
+  const avgTicket = expenseTxs.length ? total / expenseTxs.length : 0
+  const score = getHealthScore(pct)
+  return { txs, expenseTxs, total, monthsCount, monthlyTotal, pct, avgTicket, score }
+}
+
+function downloadReportPdf() {
+  const button = document.querySelector('.pdf-btn')
+  const previousLabel = button ? button.textContent : ''
+  if (button) {
+    button.disabled = true
+    button.textContent = 'Abrindo impressão...'
+  }
+
+  setTimeout(() => {
+    window.print()
+    if (button) {
+      button.disabled = false
+      button.textContent = previousLabel || '↓ Baixar PDF'
+    }
+  }, 80)
 }
 
 function shortMoney(n) {

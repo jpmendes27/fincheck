@@ -1,7 +1,5 @@
 # fincheck
 
-# fincheck
-
 Um serviço para integração de dados de múltiplos cartões de crédito, fornecendo um diagnóstico completo dos gastos. Oferece visibilidade sobre onde você gasta mais, dias de maior uso, valores, e avalia a saúde do uso do cartão com base na sua renda.
 
 ## Funcionalidades

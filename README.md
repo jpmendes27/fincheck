@@ -6,21 +6,15 @@ Diagnóstico de gastos via fatura PDF com suporte a IA (Claude).
 1. Instale dependências: `npm install`
 2. Rode o servidor: `npm run dev`
 3. Abra `http://localhost:3000` no navegador.
-4. Insira sua API Key do Anthropic.
-5. Arraste ou selecione PDFs de fatura.
-6. Clique em "Extrair e diagnosticar".
-7. Veja o diagnóstico completo.
+4. Arraste ou selecione PDFs de fatura.
+5. Clique em `Analisar faturas com Claude`.
+6. Veja o diagnóstico completo.
 
 ## Estrutura
-- `index.html`: Interface principal.
-- `css/style.css`: Estilos.
-- `js/`: Módulos JavaScript (pdf.js, parser.js, dedup.js, diagnosis.js, ui.js).
-- `package.json`: Configuração do projeto.
-
-## Dependências
-- pdf.js para extração de texto.
-- Anthropic API para análise inteligente (opcional, mas recomendado para melhor precisão).
+- `index.html`: aplicação principal, com HTML, CSS e JavaScript embutidos.
+- `package.json`: configuração para subir o app localmente.
 
 ## Observações
-- Funciona offline para parsing básico, mas IA melhora a extração.
+- A versão principal atual está concentrada em `index.html`.
+- A chave da Anthropic está embutida no frontend nesta versão, então qualquer pessoa com acesso ao app no navegador consegue inspecioná-la.
 - Suporte a múltiplos bancos.

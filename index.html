@@ -1,210 +1,1087 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>fincheck · diagnóstico de faturas</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Cabinet+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/style.css" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>fincheck · parser de fatura</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2026;
+  --border:#2a2d35; --text:#e8e9ec; --muted:#6b7080;
+  --accent:#c8f564; --accent-dim:rgba(200,245,100,0.1);
+  --red:#ff5c5c; --blue:#5c9eff; --green:#4dcc8f;
+  --amber:#f5a623; --purple:#a78bfa; --radius:16px;
+  --ease-smooth:cubic-bezier(.22,1,.36,1);
+  --t-fast:.24s;
+  --t-med:.42s;
+  --t-slow:.62s;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Syne',sans-serif;min-height:100vh;
+  padding:2rem 1.5rem 4rem;overflow-x:hidden;
+  transition:background var(--t-slow) var(--ease-smooth), color var(--t-med) var(--ease-smooth);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#2a2d35 1px,transparent 1px);
+  background-size:32px 32px;opacity:0.35;pointer-events:none;z-index:0;
+}
+.wrap{max-width:860px;margin:0 auto;position:relative;z-index:1}
+.screen{display:none}
+.screen.active{display:block}
+
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:2.5rem;flex-wrap:wrap;gap:1rem}
+.logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--accent)}
+.logo span{color:var(--muted);font-style:italic}
+.step-pills{display:flex;gap:.4rem}
+.step-pill{
+  padding:.3rem .9rem;border-radius:999px;font-size:.68rem;
+  font-family:'DM Mono',monospace;letter-spacing:.06em;
+  border:1px solid var(--border);color:var(--muted);background:var(--surface);
+  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.step-pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.step-pill.done{border-color:#2a3a20;color:#4dcc8f;background:rgba(77,204,143,.07)}
+
+.drop-zone{
+  border:1.5px dashed var(--border);border-radius:var(--radius);
+  padding:3rem 2rem;text-align:center;cursor:pointer;
+  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);background:var(--surface);margin-bottom:1rem;
+  position:relative;
+}
+.drop-zone:hover,.drop-zone.drag-over{
+  border-color:var(--accent);background:var(--accent-dim);
+  transform:translateY(-2px);
+  box-shadow:0 16px 30px rgba(0,0,0,.18);
+}
+.drop-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.drop-icon{font-size:2.5rem;margin-bottom:.75rem;display:block}
+.drop-title{font-size:1rem;font-weight:600;margin-bottom:.4rem}
+.drop-sub{font-size:.78rem;color:var(--muted)}
+.drop-sub strong{color:var(--text)}
+
+.file-queue{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+.file-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:.85rem 1rem;
+  display:flex;align-items:center;gap:.75rem;
+  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.file-icon{font-size:1.1rem;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:.15rem}
+.file-status{
+  font-size:.65rem;padding:3px 8px;border-radius:999px;font-family:'DM Mono',monospace;
+  font-weight:600;flex-shrink:0;
+}
+.file-remove{
+  width:24px;height:24px;border-radius:6px;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;
+  font-size:.9rem;display:flex;align-items:center;justify-content:center;
+  transition:background var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);flex-shrink:0;
+}
+.file-remove:hover{background:var(--surface2);color:var(--red);transform:scale(1.06)}
+
+.progress-wrap{height:3px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:.5rem;display:none}
+.progress-wrap.show{display:block}
+.progress-bar{height:100%;background:var(--accent);border-radius:999px;transition:width var(--t-med) var(--ease-smooth);width:0%}
+
+.parse-btn{
+  width:100%;padding:.9rem;border-radius:12px;
+  background:var(--accent-dim);border:1px solid var(--accent);
+  color:var(--accent);font-family:'Syne',sans-serif;
+  font-size:.88rem;font-weight:700;cursor:pointer;
+  transition:background var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);letter-spacing:.03em;margin-bottom:1rem;
+}
+.parse-btn:hover{background:rgba(200,245,100,.18);transform:translateY(-2px);box-shadow:0 14px 24px rgba(0,0,0,.18)}
+.parse-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.loading-screen{
+  min-height:62vh;display:grid;place-items:center;
+}
+.loading-card{
+  width:min(100%, 720px);background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(200,245,100,.03));
+  border:1px solid rgba(200,245,100,.12);border-radius:28px;padding:2.2rem 2rem;
+  min-height:520px;
+  transition:border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
+}
+.loading-card:hover{box-shadow:0 22px 38px rgba(0,0,0,.18)}
+.loading-kicker{
+  font-size:.68rem;font-family:'DM Mono',monospace;letter-spacing:.16em;color:#7f8595;text-transform:uppercase;
+}
+.loading-title{
+  font-family:'DM Serif Display',serif;font-size:2.3rem;line-height:1.02;margin:.75rem 0 1rem;min-height:2.5em;
+  transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
+}
+.loading-copy{font-size:1rem;line-height:1.7;color:#8f94a3;max-width:560px;min-height:3.5em;transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth)}
+.loading-text.swap .loading-title,.loading-text.swap .loading-copy{
+  opacity:.2;transform:translateY(8px);
+}
+.loading-orbit{
+  width:112px;height:112px;border-radius:50%;margin:2rem 0 1.5rem;position:relative;
+  background:conic-gradient(var(--accent) 0 25%, rgba(200,245,100,.12) 25% 100%);
+  animation:spin 1.15s linear infinite;
+}
+.loading-orbit::before{
+  content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg);
+}
+.loading-orbit::after{
+  content:'';position:absolute;top:8px;left:50%;width:16px;height:16px;border-radius:50%;
+  background:var(--accent);transform:translateX(-50%);box-shadow:0 0 18px rgba(200,245,100,.5);
+}
+.loading-phase-list{display:grid;gap:.65rem;margin-top:1rem}
+.loading-phase{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);
+  color:#8f94a3;font-size:.9rem;
+  transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
+}
+.loading-phase.active{color:var(--text);transform:translateX(4px);box-shadow:inset 3px 0 0 var(--accent)}
+.loading-phase.done{opacity:.72}
+.loading-dot{
+  width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.85;flex-shrink:0;
+  transition:transform var(--t-med) var(--ease-smooth), opacity var(--t-med) var(--ease-smooth), background var(--t-med) var(--ease-smooth);
+}
+.loading-phase.active .loading-dot{transform:scale(1.35);opacity:1;background:var(--accent)}
+.loading-phase.done .loading-dot{background:var(--green)}
+.loading-files{
+  margin-top:1rem;font-size:.72rem;font-family:'DM Mono',monospace;color:#7f8595;
+  min-height:1.4em;
+  transition:opacity var(--t-med) var(--ease-smooth);
+}
+
+.result-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;
+}
+.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem}
+.result-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem}
+.reset-btn{
+  padding:.45rem 1.1rem;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:.72rem;
+  font-family:'DM Mono',monospace;cursor:pointer;transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.reset-btn:hover{border-color:var(--red);color:var(--red);transform:translateY(-1px)}
+
+.card-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.chip{
+  display:flex;align-items:center;gap:.4rem;padding:.4rem .9rem;
+  border-radius:999px;border:1px solid var(--border);background:var(--surface);
+  font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
+}
+.chip:hover{transform:translateY(-1px)}
+.chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);box-shadow:0 10px 22px rgba(0,0,0,.14)}
+.chip .cdot{width:7px;height:7px;border-radius:50%}
+
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
+.sum-card:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.15)}
+.sum-label{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:.4rem}
+.sum-val{font-size:1.3rem;font-weight:700;font-family:'DM Mono',monospace}
+.sum-sub{font-size:.65rem;color:var(--muted);margin-top:.2rem}
+
+.income-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.income-row{display:flex;align-items:center;gap:.75rem}
+.income-label-col{min-width:160px}
+.ilabel{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.ivalue{font-size:.85rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:.15rem}
+.ibar-bg{flex:1;height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.ibar-fill{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth),background var(--t-med) var(--ease-smooth)}
+.ipct{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:600;min-width:44px;text-align:right}
+.income-edit-row{display:flex;align-items:center;gap:.75rem;margin-top:.75rem}
+.income-edit-row label{font-size:.7rem;color:var(--muted);white-space:nowrap}
+.income-edit-row input[type=range]{flex:1;accent-color:var(--accent)}
+.income-edit-row span{font-size:.7rem;font-family:'DM Mono',monospace;min-width:80px}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
+.panel:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
+.ptitle{font-size:.65rem;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1.1rem}
+.cat-row{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.75rem}
+.cat-head{display:flex;justify-content:space-between}
+.cat-name{font-size:.78rem;font-weight:600}
+.cat-pct{font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted)}
+.cbar-bg{height:4px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.cbar{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth)}
+
+.tx-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.tx-table th{font-size:.6rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:.5rem .75rem;border-bottom:1px solid var(--border);text-align:left}
+.tx-table th:last-child{text-align:right}
+.tx-table td{padding:.55rem .75rem;border-bottom:1px solid rgba(42,45,53,.4);vertical-align:middle}
+.tx-table td:last-child{text-align:right;font-family:'DM Mono',monospace}
+.tx-table tr td{transition:background var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth)}
+.tx-table tr:hover td{background:var(--surface2)}
+.tx-table-wrap{max-height:320px;overflow-y:auto}
+.tx-table-wrap::-webkit-scrollbar{width:3px}
+.tx-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+.ttag{font-size:.58rem;padding:2px 7px;border-radius:999px;font-weight:600}
+.tcard{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace}
+
+.diagnosis-hero{
+  background:linear-gradient(90deg, rgba(255,255,255,.02), rgba(200,245,100,.04));
+  border:1px solid rgba(200,245,100,.12);border-radius:22px;padding:1.4rem 1.5rem;
+  margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;
+}
+.diagnosis-eyebrow,.heatmap-title,.insight-kicker{
+  font-size:.66rem;font-family:'DM Mono',monospace;letter-spacing:.14em;color:#7f8595;text-transform:uppercase;
+}
+.diagnosis-headline{
+  font-family:'DM Serif Display',serif;font-size:2rem;line-height:1.05;margin:.45rem 0 .6rem;
+}
+.diagnosis-copy{font-size:.95rem;color:#8f94a3;line-height:1.7;max-width:620px}
+.diagnosis-meter{
+  width:118px;height:118px;border-radius:50%;
+  display:grid;place-items:center;flex-shrink:0;position:relative;
+  background:conic-gradient(var(--meter-color, var(--green)) calc(var(--pct, 0) * 1%), #262934 0);
+  transition:background var(--t-slow) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
+}
+.diagnosis-meter::before{
+  content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg);
+}
+.diagnosis-meter-inner{position:relative;text-align:center;z-index:1}
+.diagnosis-meter-val{font-family:'DM Mono',monospace;font-size:2rem;font-weight:700;line-height:1}
+.diagnosis-meter-sub{font-size:.62rem;font-family:'DM Mono',monospace;color:#7f8595;letter-spacing:.12em;text-transform:uppercase}
+
+.heatmap-panel{margin-bottom:1rem}
+.heatmap-grid{
+  display:grid;grid-template-columns:28px repeat(4,1fr);gap:4px;align-items:stretch;
+}
+.heatmap-col-head,.heatmap-row-head{
+  font-size:.68rem;color:#7f8595;font-family:'DM Mono',monospace;display:grid;place-items:center;
+}
+.heatmap-corner{height:24px}
+.heatmap-cell{
+  min-height:74px;border-radius:4px;background:#263126;position:relative;overflow:hidden;
+  transition:transform var(--t-fast) var(--ease-smooth), filter var(--t-fast) var(--ease-smooth), background var(--t-med) var(--ease-smooth);
+}
+.heatmap-cell:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.heatmap-cell::after{
+  content:attr(data-tip);position:absolute;left:10px;bottom:8px;font-size:.62rem;
+  font-family:'DM Mono',monospace;color:rgba(255,255,255,.82);
+}
+
+.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
+.insight-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.15rem 1.2rem;
+  min-height:140px;
+  transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
+}
+.insight-card:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
+.insight-icon{
+  width:28px;height:28px;border-radius:8px;display:grid;place-items:center;margin-bottom:.9rem;
+  background:rgba(255,255,255,.06);font-size:1rem;
+}
+.insight-text{font-size:.95rem;line-height:1.7;color:#8f94a3}
+.insight-text strong{color:var(--text);font-weight:700}
+
+.dedup-banner{
+  display:none;align-items:flex-start;gap:.75rem;
+  background:rgba(92,158,255,.08);border:1px solid rgba(92,158,255,.25);
+  border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem;
+}
+.dedup-banner.show{display:flex}
+.dedup-banner-body{flex:1;font-size:.78rem;line-height:1.6;color:var(--muted)}
+.dedup-banner-body strong{color:var(--text)}
+.dedup-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap}
+.dbtn{
+  padding:.35rem .85rem;border-radius:999px;border:1px solid var(--border);
+  font-size:.68rem;font-family:'DM Mono',monospace;cursor:pointer;
+  background:transparent;color:var(--muted);transition:all .15s;
+}
+.dbtn:hover{color:var(--text);border-color:#3a3d45}
+.dbtn.primary{background:rgba(92,158,255,.12);color:var(--blue);border-color:rgba(92,158,255,.4)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .35s ease both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
+
+@media(max-width:620px){
+  .loading-title{font-size:1.8rem}
+  .diagnosis-hero{flex-direction:column;align-items:flex-start}
+  .summary-grid{grid-template-columns:1fr 1fr}
+  .insight-grid{grid-template-columns:1fr}
+  .two-col{grid-template-columns:1fr}
+  .heatmap-grid{grid-template-columns:22px repeat(4,1fr)}
+  .heatmap-cell{min-height:54px}
+}
+</style>
 </head>
 <body>
+<div class="wrap">
 
-  <div class="app">
+  <header>
+    <div class="logo">fincheck®<span> · controle seus gastos com cartão de crédito</span></div>
+    <div class="step-pills">
+      <div class="step-pill active" id="pill1">1 · Upload</div>
+      <div class="step-pill" id="pill2">2 · Processando</div>
+      <div class="step-pill" id="pill3">3 · Relatório</div>
+    </div>
+  </header>
 
-    <!-- ── UPLOAD SCREEN ── -->
-    <section id="screen-upload" class="screen screen--upload">
+  <div id="screenUpload" class="screen active">
+    <div class="drop-zone fu" id="dropZone">
+      <input type="file" id="fileInput" accept=".pdf" multiple onchange="handleFiles(this.files)">
+      <span class="drop-icon">📄</span>
+      <div class="drop-title">Arraste PDFs de fatura aqui</div>
+      <div class="drop-sub">Suporta <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
+    </div>
 
-      <header class="upload-header">
-        <span class="logo">fincheck<em>.</em></span>
-        <p class="logo-sub">diagnóstico de gastos via fatura PDF</p>
-      </header>
+    <div class="file-queue" id="fileQueue"></div>
 
-      <!-- API key -->
-      <div class="card api-card">
-        <label class="field-label" for="apiKey">Anthropic API Key</label>
-        <div class="api-row">
-          <input
-            id="apiKey"
-            type="password"
-            class="text-input"
-            placeholder="sk-ant-api03-..."
-            autocomplete="off"
-            spellcheck="false"
-          />
-        </div>
-        <p class="field-hint">
-          Usada localmente — nunca enviada a terceiros. Obtenha em
-          <a href="https://console.anthropic.com" target="_blank" rel="noopener">console.anthropic.com</a>.
-        </p>
+    <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
+      Analisar faturas →
+    </button>
+  </div>
+
+  <div id="screenLoading" class="screen">
+    <div class="loading-screen">
+      <div class="loading-card fu">
+      <div class="loading-kicker">Processando seu upload</div>
+      <div class="loading-text" id="loadingText">
+        <div class="loading-title" id="loadingTitle">Analisando seus gastos</div>
+        <div class="loading-copy" id="loadingCopy">Estamos lendo seus PDFs, estruturando as transações e preparando um diagnóstico completo para você.</div>
       </div>
-
-      <!-- Drop zone -->
-      <div
-        id="dropZone"
-        class="drop-zone"
-        role="button"
-        tabindex="0"
-        aria-label="Área de upload de PDFs de fatura"
-      >
-        <input
-          id="fileInput"
-          type="file"
-          accept=".pdf"
-          multiple
-          aria-hidden="true"
-        />
-        <div class="drop-zone__inner">
-          <div class="drop-zone__icon">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-              <rect x="8" y="4" width="24" height="32" rx="3" stroke="currentColor" stroke-width="1.5"/>
-              <path d="M24 4v8h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-              <path d="M13 20h14M13 25h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <p class="drop-zone__title">Arraste PDFs de fatura aqui</p>
-          <p class="drop-zone__sub">
-            Suporte a <strong>qualquer banco</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco, Santander e outros
-          </p>
-          <span class="drop-zone__btn">Selecionar arquivos</span>
-        </div>
+      <div class="loading-orbit" aria-hidden="true"></div>
+        <div class="loading-phase-list" id="loadingPhaseList"></div>
+        <div class="loading-files" id="loadingFiles">0 arquivo(s) na fila</div>
       </div>
+    </div>
+  </div>
 
-      <!-- File queue -->
-      <ul id="fileQueue" class="file-queue" aria-live="polite"></ul>
+  <div id="screenReport" class="screen">
+    <div class="result-header fu">
+      <div>
+        <div class="result-title">Diagnóstico de gastos</div>
+        <div class="result-sub" id="resultSub">Carregando...</div>
+      </div>
+      <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
+    </div>
 
-      <!-- Process button -->
-      <button id="processBtn" class="process-btn" disabled>
-        Extrair e diagnosticar
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-          <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-
-      <!-- Log -->
-      <div id="logBox" class="log-box" role="log" aria-live="polite" aria-label="Log de processamento"></div>
-
-    </section>
-
-    <!-- ── DIAGNOSIS SCREEN ── -->
-    <section id="screen-diagnosis" class="screen screen--diagnosis hidden">
-
-      <header class="diag-header">
-        <div class="diag-header__left">
-          <span class="logo">fincheck<em>.</em></span>
-          <div id="diagMeta" class="diag-meta"></div>
-        </div>
-        <button id="resetBtn" class="reset-btn" aria-label="Novo upload">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
-            <path d="M1 7a6 6 0 1 0 1.5-3.9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            <path d="M1 3v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          Novo upload
-        </button>
-      </header>
-
-      <!-- Dedup banner -->
-      <div id="dedupBanner" class="dedup-banner hidden" role="alert">
-        <div class="dedup-banner__icon">⚠</div>
-        <div class="dedup-banner__body">
-          <p id="dedupMessage" class="dedup-banner__text"></p>
-          <div class="dedup-banner__actions">
-            <button id="btnMerge"   class="dbtn dbtn--primary">Mesclar (recomendado)</button>
-            <button id="btnReplace" class="dbtn">Substituir existente</button>
-            <button id="btnIgnore"  class="dbtn">Ignorar</button>
-          </div>
+    <div class="dedup-banner" id="dedupBanner">
+      <span style="font-size:1.1rem;flex-shrink:0">🔄</span>
+      <div class="dedup-banner-body">
+        <span id="dedupText"></span>
+        <div class="dedup-actions">
+          <button class="dbtn primary" onclick="applyMerge()">Mesclar (recomendado)</button>
+          <button class="dbtn" onclick="applyReplace()">Substituir existente</button>
+          <button class="dbtn" onclick="closeDedupBanner()">Ignorar por ora</button>
         </div>
       </div>
+    </div>
 
-      <!-- Card filter chips -->
-      <div id="cardChips" class="chip-row" role="group" aria-label="Filtrar por cartão"></div>
+    <div class="card-chips" id="cardChips"></div>
+    <div class="summary-grid fu" id="summaryGrid"></div>
 
-      <!-- Summary metrics -->
-      <div id="summaryGrid" class="summary-grid"></div>
-
-      <!-- Income commitment -->
-      <div class="card income-card">
-        <div class="income-top">
-          <div>
-            <span class="field-label">Comprometimento de renda</span>
-            <div class="income-values">
-              <span id="incomeTotal" class="income-total">—</span>
-              <span id="incomePct"   class="income-pct">— %</span>
-            </div>
-          </div>
-          <div class="income-slider-wrap">
-            <label class="field-label" for="rendaSlider">Renda mensal líquida</label>
-            <div class="slider-row">
-              <input id="rendaSlider" type="range" min="1000" max="50000" step="500" value="12500" />
-              <span id="rendaDisplay" class="renda-display">R$ 12.500</span>
-            </div>
-          </div>
+    <div class="income-block fu" style="animation-delay:.05s">
+      <div class="income-row">
+        <div class="income-label-col">
+          <div class="ilabel">renda mensal</div>
+          <div class="ivalue" id="incomeDisplay">R$ 14.500</div>
         </div>
-        <div class="income-bar-wrap">
-          <div class="income-bar-bg">
-            <div id="incomeBar" class="income-bar-fill" style="width:0%"></div>
-          </div>
-        </div>
-        <div class="income-legend">
-          <span class="legend-item legend-item--green">Até 30% — saudável</span>
-          <span class="legend-item legend-item--amber">30–60% — atenção</span>
-          <span class="legend-item legend-item--red">Acima 60% — crítico</span>
+        <div class="ibar-bg"><div class="ibar-fill" id="ibarFill" style="width:0%;background:var(--green)"></div></div>
+        <div class="ipct" id="ipct" style="color:var(--green)">0%</div>
+      </div>
+      <div class="income-edit-row">
+        <label>Ajustar renda:</label>
+        <input type="range" min="2000" max="30000" step="500" value="14500" id="rendaSlider" oninput="updateRenda(this.value)">
+        <span id="rendaVal">R$ 14.500</span>
+      </div>
+    </div>
+
+    <div class="diagnosis-hero fu" style="animation-delay:.08s">
+      <div>
+        <div class="diagnosis-eyebrow">Diagnóstico geral</div>
+        <div class="diagnosis-headline" id="diagnosisHeadline">Carregando...</div>
+        <div class="diagnosis-copy" id="diagnosisCopy">Aguardando transações para montar o panorama.</div>
+      </div>
+      <div class="diagnosis-meter" id="diagnosisMeter">
+        <div class="diagnosis-meter-inner">
+          <div class="diagnosis-meter-val" id="diagnosisMeterVal">0</div>
+          <div class="diagnosis-meter-sub">/ saude</div>
         </div>
       </div>
+    </div>
 
-      <!-- Categories + top merchants -->
-      <div class="two-col">
-        <div class="card">
-          <h2 class="card-title">Categorias</h2>
-          <div id="catList" class="bar-list"></div>
-        </div>
-        <div class="card">
-          <h2 class="card-title">Estabelecimentos</h2>
-          <div id="merchantList" class="bar-list"></div>
+    <div class="panel heatmap-panel fu" style="animation-delay:.11s">
+      <div class="heatmap-title">dias de maior gasto</div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+    </div>
+
+    <div class="insight-grid fu" id="insightGrid" style="animation-delay:.14s"></div>
+
+    <div class="two-col">
+      <div class="panel fu" style="animation-delay:.1s">
+        <div class="ptitle">categorias</div>
+        <div id="catList"></div>
+      </div>
+      <div class="panel fu" style="animation-delay:.15s">
+        <div class="ptitle">estabelecimentos frequentes</div>
+        <div id="merchantList"></div>
+      </div>
+    </div>
+
+    <div class="panel fu" style="animation-delay:.2s">
+      <div class="ptitle">todas as transações</div>
+      <div class="tx-table-wrap">
+        <table class="tx-table">
+          <thead><tr>
+            <th>Data</th><th>Estabelecimento</th>
+            <th>Categoria</th><th>Cartão</th><th>Valor</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+const HARDCODED_API_KEY =
+  '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'
+
+const CAT_COLORS = {
+  'Alimentacao':'#f5a623','Delivery':'#f5a623','Mercado':'#5c9eff',
+  'Assinaturas':'#a78bfa','Transporte':'#4dcc8f','Combustivel':'#4dcc8f',
+  'Saude':'#ff5c5c','Farmacia':'#ff5c5c','Lazer':'#c8f564',
+  'Viagem':'#ff5c5c','Hospedagem':'#ff5c5c','Educacao':'#5c9eff',
+  'Outros':'#6b7080',
+  'Alimentação':'#f5a623','Combustível':'#4dcc8f','Saúde':'#ff5c5c',
+  'Farmácia':'#ff5c5c','Educação':'#5c9eff'
+}
+const CARD_COLORS = ['#820AD1','#ec7000','#00b86b','#5c9eff','#f5a623','#ff5c5c','#a78bfa']
+
+let apiKey = HARDCODED_API_KEY
+let fileQueue = []
+let allTransactions = []
+let cardRegistry = {}
+let renda = 14500
+let activeCard = 'all'
+let dedupPending = null
+let loadingInterval = null
+let loadingPhaseIndex = 0
+
+const LOADING_PHASES = [
+  { title: 'Analisando seus gastos', copy: 'Estamos lendo as páginas dos PDFs e identificando cada movimentação do período.' },
+  { title: 'Preparando seu relatório', copy: 'Agora agrupamos categorias, estabelecimentos e padrões de consumo.' },
+  { title: 'Calculando tudo pra você', copy: 'Finalizando indicadores, alertas e insights para montar o relatório completo.' }
+]
+
+const dropZone = document.getElementById('dropZone')
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over') })
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+dropZone.addEventListener('drop', e => {
+  e.preventDefault()
+  dropZone.classList.remove('drag-over')
+  handleFiles(e.dataTransfer.files)
+})
+
+function handleFiles(files) {
+  for (const f of files) {
+    if (!f.name.toLowerCase().endsWith('.pdf')) continue
+    const id = Date.now() + Math.random()
+    fileQueue.push({ id, file: f, name: f.name, size: f.size, status: 'pending', text: '' })
+  }
+  renderQueue()
+  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+}
+
+function removeFile(id) {
+  fileQueue = fileQueue.filter(f => f.id !== id)
+  renderQueue()
+  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+}
+
+function renderQueue() {
+  const el = document.getElementById('fileQueue')
+  el.innerHTML = fileQueue.map(f => {
+    const kb = (f.size / 1024).toFixed(0)
+    const statusMap = {
+      pending: ['#6b7080', 'var(--surface2)', 'aguardando'],
+      extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>extraindo texto...'],
+      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>analisando fatura...'],
+      done: ['#4dcc8f', 'rgba(77,204,143,.1)', '✓ processado'],
+      error: ['#ff5c5c', 'rgba(255,92,92,.1)', '✗ erro']
+    }
+    const [tc, bg, label] = statusMap[f.status] || statusMap.pending
+    return `<div class="file-item">
+      <span class="file-icon">📄</span>
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${kb} KB</div>
+        <div class="progress-wrap ${f.status === 'extracting' || f.status === 'parsing' ? 'show' : ''}">
+          <div class="progress-bar" style="width:${f.progress || 0}%"></div>
         </div>
       </div>
+      <span class="file-status" style="color:${tc};background:${bg}">${label}</span>
+      ${f.status === 'pending' ? `<button class="file-remove" onclick="removeFile(${f.id})">✕</button>` : ''}
+    </div>`
+  }).join('')
+}
 
-      <!-- Transactions -->
-      <div class="card">
-        <div class="tx-card-header">
-          <h2 class="card-title">Transações</h2>
-          <div class="tx-filters">
-            <input id="txSearch" type="search" class="text-input text-input--sm" placeholder="Buscar..." aria-label="Buscar transações" />
-            <select id="txCatFilter" class="select-input" aria-label="Filtrar por categoria">
-              <option value="">Todas as categorias</option>
-            </select>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table class="tx-table" aria-label="Tabela de transações">
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Estabelecimento</th>
-                <th>Categoria</th>
-                <th>Cartão</th>
-                <th class="col-right">Valor</th>
-              </tr>
-            </thead>
-            <tbody id="txBody"></tbody>
-          </table>
-        </div>
-        <p id="txCount" class="tx-count"></p>
-      </div>
+async function extractPdfText(file, onProgress) {
+  const buf = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise
+  let text = ''
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    text += content.items.map(s => s.str).join(' ') + '\n'
+    onProgress(Math.round((i / pdf.numPages) * 100))
+  }
+  return text
+}
 
-    </section>
+async function parseWithClaude(text) {
+  const prompt = `Voce e um especialista em analise de faturas de cartao de credito brasileiros.
 
-  </div><!-- .app -->
+Analise o texto abaixo extraido de um PDF de fatura de cartao de credito e extraia as informacoes em JSON.
 
-  <!-- pdfjs from CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+TEXTO DA FATURA:
+---
+${text.slice(0, 12000)}
+---
 
-  <!-- app modules (order matters) -->
-  <script src="js/pdf.js"></script>
-  <script src="js/parser.js"></script>
-  <script src="js/dedup.js"></script>
-  <script src="js/diagnosis.js"></script>
-  <script src="js/ui.js"></script>
+Retorne SOMENTE um JSON valido (sem markdown, sem explicacao) com este formato exato:
+{
+  "banco": "nome do banco (ex: Nubank, Itau, Bradesco, XP, Inter, C6, etc)",
+  "ultimos_digitos": "4 ultimos digitos do cartao (string) ou null se nao encontrar",
+  "mes_referencia": "MM/AAAA (ex: 03/2025) ou null se nao encontrar",
+  "titular": "nome do titular ou null",
+  "total_fatura": 0.00,
+  "transacoes": [
+    {
+      "data": "DD/MM/AAAA",
+      "estabelecimento": "nome limpo do estabelecimento",
+      "valor": 0.00,
+      "categoria": "uma de: Alimentacao, Delivery, Mercado, Assinaturas, Transporte, Combustivel, Saude, Farmacia, Lazer, Viagem, Hospedagem, Educacao, Outros",
+      "parcelado": false,
+      "parcela_atual": null,
+      "total_parcelas": null
+    }
+  ]
+}
 
+Regras importantes:
+- Inclua TODAS as transacoes encontradas, sem excecao
+- Para valores negativos (estornos/creditos), use valor negativo
+- Limpe os nomes dos estabelecimentos (remova codigos, cidades, datas embutidas)
+- Categorize com base no nome do estabelecimento
+- Ignore linhas de pagamento, fatura anterior, encargos e totais; apenas transacoes de compra/credito`
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  })
+
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}))
+    throw new Error(err.error && err.error.message ? err.error.message : `HTTP ${response.status}`)
+  }
+
+  const data = await response.json()
+  const raw = data.content && data.content[0] ? data.content[0].text || '' : ''
+  const clean = raw.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+}
+
+async function startParsing() {
+  showScreen('loading')
+  document.getElementById('parseBtn').disabled = true
+  setPill(1, 'done')
+  setPill(2, 'active')
+  setPill(3, '')
+  startLoadingCycle()
+  updateLoadingFiles()
+
+  for (const f of fileQueue) {
+    if (f.status === 'done') continue
+    try {
+      f.status = 'extracting'
+      f.progress = 0
+      updateLoadingFiles()
+
+      f.text = await extractPdfText(f.file, p => {
+        f.progress = p / 2
+        updateLoadingFiles()
+      })
+
+      f.status = 'parsing'
+      f.progress = 50
+      updateLoadingFiles()
+
+      const parsed = await parseWithClaude(f.text)
+      f.progress = 100
+      updateLoadingFiles()
+
+      const key = `${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`
+      if (cardRegistry[key]) {
+        dedupPending = { key, incoming: parsed, existing: cardRegistry[key] }
+      } else {
+        cardRegistry[key] = parsed
+        mergeTransactions(parsed)
+      }
+
+      f.status = 'done'
+      updateLoadingFiles()
+    } catch (e) {
+      f.status = 'error'
+      stopLoadingCycle()
+      updateLoadingFiles(e.message)
+      showScreen('upload')
+      setPill(1, 'active')
+      setPill(2, '')
+      setPill(3, '')
+      renderQueue()
+      alert(`Erro ao processar ${f.name}: ${e.message}`)
+      document.getElementById('parseBtn').disabled = fileQueue.length === 0
+      return
+    }
+  }
+
+  stopLoadingCycle()
+  renderQueue()
+  if (dedupPending) {
+    cardRegistry[dedupPending.key] = dedupPending.incoming
+    mergeTransactions(dedupPending.incoming)
+    dedupPending = null
+  }
+  if (allTransactions.length > 0) showResults()
+}
+
+function mergeTransactions(parsed) {
+  const txs = (parsed.transacoes || []).map(tx => ({
+    ...tx,
+    banco: parsed.banco,
+    ultimos_digitos: parsed.ultimos_digitos,
+    mes_referencia: parsed.mes_referencia,
+    _key: `${tx.data}|${tx.estabelecimento}|${tx.valor}`
+  }))
+
+  const existingKeys = new Set(allTransactions.map(t => t._key))
+  const newTxs = txs.filter(t => !existingKeys.has(t._key))
+  allTransactions.push(...newTxs)
+  return newTxs.length
+}
+
+function showDedupBanner(parsed) {
+  const b = document.getElementById('dedupBanner')
+  const incomingCount = parsed.transacoes ? parsed.transacoes.length : 0
+  const existing = cardRegistry[`${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`]
+  const existingCount = existing && existing.transacoes ? existing.transacoes.length : 0
+  document.getElementById('dedupText').innerHTML =
+    `Ja existe uma fatura do <strong>${escapeHtml(parsed.banco)} ····${escapeHtml(parsed.ultimos_digitos || '????')}</strong> para <strong>${escapeHtml(parsed.mes_referencia || 'sem mes')}</strong> com ${existingCount} transacoes. A nova tem ${incomingCount}. Como deseja tratar?`
+  b.classList.add('show')
+}
+
+function applyMerge() {
+  if (!dedupPending) return
+  const added = mergeTransactions(dedupPending.incoming)
+  log(`✓ Mesclado: ${added} transacoes novas adicionadas`, 'ok')
+  closeDedupBanner()
+  showResults()
+}
+
+function applyReplace() {
+  if (!dedupPending) return
+  allTransactions = allTransactions.filter(t =>
+    !(t.banco === dedupPending.incoming.banco &&
+      t.ultimos_digitos === dedupPending.incoming.ultimos_digitos &&
+      t.mes_referencia === dedupPending.incoming.mes_referencia)
+  )
+  cardRegistry[dedupPending.key] = dedupPending.incoming
+  mergeTransactions(dedupPending.incoming)
+  log('✓ Fatura substituida', 'ok')
+  closeDedupBanner()
+  showResults()
+}
+
+function closeDedupBanner() {
+  document.getElementById('dedupBanner').classList.remove('show')
+  dedupPending = null
+}
+
+function showResults() {
+  showScreen('report')
+  setPill(1, 'done')
+  setPill(2, 'done')
+  setPill(3, 'active')
+  renderResults()
+}
+
+function getFilteredTxs() {
+  if (activeCard === 'all') return allTransactions
+  return allTransactions.filter(t => `${t.banco}|${t.ultimos_digitos}` === activeCard)
+}
+
+function renderResults() {
+  const txs = getFilteredTxs()
+  if (!txs.length) return
+
+  const months = [...new Set(allTransactions.map(t => t.mes_referencia).filter(Boolean))]
+  document.getElementById('resultSub').textContent =
+    `${allTransactions.length} transacoes · ${months.join(', ')}`
+
+  const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.ultimos_digitos}`))]
+  const chips = document.getElementById('cardChips')
+  chips.innerHTML = `<div class="chip ${activeCard === 'all' ? 'active' : ''}" data-card="all" onclick="setCard('all')">
+    <span class="cdot" style="background:var(--accent)"></span> Todos
+  </div>` + cards.map((c, i) => {
+    const [banco, last4] = c.split('|')
+    const color = CARD_COLORS[i % CARD_COLORS.length]
+    return `<div class="chip ${activeCard === c ? 'active' : ''}" data-card="${escapeAttr(c)}" onclick="setCard('${escapeJs(c)}')">
+      <span class="cdot" style="background:${color}"></span> ${escapeHtml(banco)} ····${escapeHtml(last4 || '????')}
+    </div>`
+  }).join('')
+
+  const total = txs.reduce((s, t) => s + (t.valor > 0 ? t.valor : 0), 0)
+  const purchaseCount = txs.filter(t => t.valor > 0).length
+  const avgTicket = purchaseCount ? total / purchaseCount : 0
+  const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
+  const pct = Math.round((total / monthsCount / renda) * 100)
+  const pctColor = pct < 30 ? 'var(--green)' : pct < 60 ? 'var(--amber)' : 'var(--red)'
+  const monthlyTotal = total / monthsCount
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="sum-card"><div class="sum-label">Total gasto</div>
+      <div class="sum-val">${fmt(total)}</div>
+      <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : '1 mes'}</div></div>
+    <div class="sum-card"><div class="sum-label">Transacoes</div>
+      <div class="sum-val">${purchaseCount}</div>
+      <div class="sum-sub">compras</div></div>
+    <div class="sum-card"><div class="sum-label">Ticket medio</div>
+      <div class="sum-val">${fmt(avgTicket)}</div>
+      <div class="sum-sub">por compra</div></div>
+    <div class="sum-card"><div class="sum-label">Comprometimento</div>
+      <div class="sum-val" style="color:${pctColor}">${pct}%</div>
+      <div class="sum-sub">da renda/mes</div></div>`
+
+  document.getElementById('incomeDisplay').textContent = fmt(renda)
+  document.getElementById('rendaVal').textContent = fmt(renda)
+  const barW = Math.min(pct, 100)
+  document.getElementById('ibarFill').style.width = barW + '%'
+  document.getElementById('ibarFill').style.background = pctColor
+  document.getElementById('ipct').textContent = pct + '%'
+  document.getElementById('ipct').style.color = pctColor
+
+  renderDiagnosisOverview({ txs, total, monthsCount, monthlyTotal, pct })
+  renderHeatmap(txs)
+  renderInsights({ txs, total, monthsCount, monthlyTotal, pct })
+
+  const bycat = {}
+  txs.filter(t => t.valor > 0).forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria] || 0) + t.valor
+  })
+  const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1])
+  document.getElementById('catList').innerHTML = sorted.slice(0, 7).map(([cat, val]) => {
+    const pctC = total ? Math.round((val / total) * 100) : 0
+    const color = CAT_COLORS[cat] || '#6b7080'
+    return `<div class="cat-row">
+      <div class="cat-head"><span class="cat-name">${escapeHtml(cat)}</span>
+        <span class="cat-pct">${fmt(val)} · ${pctC}%</span></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${pctC}%;background:${color}"></div></div>
+    </div>`
+  }).join('')
+
+  const bymerch = {}
+  txs.filter(t => t.valor > 0).forEach(t => {
+    bymerch[t.estabelecimento] = (bymerch[t.estabelecimento] || 0) + t.valor
+  })
+  const sortedM = Object.entries(bymerch).sort((a, b) => b[1] - a[1])
+  const maxM = sortedM[0] ? sortedM[0][1] : 1
+  document.getElementById('merchantList').innerHTML = sortedM.slice(0, 8).map(([name, val]) => {
+    const pctM = Math.round((val / maxM) * 100)
+    return `<div class="cat-row">
+      <div class="cat-head"><span class="cat-name" style="font-size:.75rem">${escapeHtml(name)}</span>
+        <span class="cat-pct">${fmt(val)}</span></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${pctM}%;background:var(--blue)"></div></div>
+    </div>`
+  }).join('')
+
+  const txSorted = [...txs].sort((a, b) => toSortableDate(b.data) - toSortableDate(a.data))
+  document.getElementById('txBody').innerHTML = txSorted.map(tx => {
+    const color = CAT_COLORS[tx.categoria] || '#6b7080'
+    const neg = tx.valor < 0
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:.7rem;white-space:nowrap">${escapeHtml(tx.data || '')}</td>
+      <td>${escapeHtml(tx.estabelecimento || '')}${tx.parcelado ? ` <span style="font-size:.6rem;color:var(--muted)">${escapeHtml(String(tx.parcela_atual || '?'))}/${escapeHtml(String(tx.total_parcelas || '?'))}</span>` : ''}</td>
+      <td><span class="ttag" style="background:${color}22;color:${color}">${escapeHtml(tx.categoria || 'Outros')}</span></td>
+      <td><span class="tcard">${escapeHtml(tx.banco || '')} ····${escapeHtml(tx.ultimos_digitos || '????')}</span></td>
+      <td style="color:${neg ? 'var(--green)' : 'var(--text)'};font-size:.78rem">
+        ${neg ? '−' : ''}${Math.abs(tx.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function setCard(card) {
+  activeCard = card
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.card === card))
+  renderResults()
+}
+
+function updateRenda(v) {
+  renda = parseInt(v, 10)
+  document.getElementById('rendaVal').textContent = fmt(renda)
+  renderResults()
+}
+
+function resetAll() {
+  fileQueue = []
+  allTransactions = []
+  cardRegistry = {}
+  activeCard = 'all'
+  dedupPending = null
+  renda = 14500
+  document.getElementById('rendaSlider').value = '14500'
+  document.getElementById('fileQueue').innerHTML = ''
+  document.getElementById('parseBtn').disabled = true
+  document.getElementById('dedupBanner').classList.remove('show')
+  stopLoadingCycle()
+  setLoadingPhase(0)
+  showScreen('upload')
+  setPill(1, 'active')
+  setPill(2, '')
+  setPill(3, '')
+}
+
+function fmt(n) {
+  const num = Number(n) || 0
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function renderDiagnosisOverview(data) {
+  const score = getHealthScore(data.pct)
+  const headline = score >= 80 ? 'Saude em dia' : score >= 60 ? 'Atencao necessaria' : 'Ajuste urgente'
+  const concentration = getTopCategoryShare(data.txs, data.total)
+  const extra = concentration.name
+    ? `Concentracao maior em ${concentration.name.toLowerCase()} (${concentration.pct}% do total).`
+    : 'Distribuicao ainda sem categoria dominante.'
+  const text = `Voce esta comprometendo ${data.pct}% da sua renda liquida com cartoes, com media de ${fmt(data.monthlyTotal)}/mes. ${extra}`
+  const meterColor = score >= 80 ? 'var(--green)' : score >= 60 ? 'var(--amber)' : 'var(--red)'
+
+  document.getElementById('diagnosisHeadline').textContent = headline
+  document.getElementById('diagnosisCopy').textContent = text
+  document.getElementById('diagnosisMeterVal').textContent = String(score)
+  const meter = document.getElementById('diagnosisMeter')
+  meter.style.setProperty('--pct', String(score))
+  meter.style.setProperty('--meter-color', meterColor)
+}
+
+function renderHeatmap(txs) {
+  const grid = document.getElementById('heatmapGrid')
+  const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
+  const weeks = ['S1', 'S2', 'S3', 'S4']
+  const matrix = Array.from({ length: 7 }, () => Array(4).fill(0))
+
+  txs.filter(t => t.valor > 0).forEach(tx => {
+    const parts = (tx.data || '').split('/')
+    if (parts.length !== 3) return
+    const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`)
+    if (Number.isNaN(date.getTime())) return
+    const jsDay = date.getDay()
+    const row = jsDay === 0 ? 6 : jsDay - 1
+    const week = Math.min(3, Math.floor((date.getDate() - 1) / 7))
+    matrix[row][week] += Number(tx.valor) || 0
+  })
+
+  const max = Math.max(...matrix.flat(), 1)
+  let html = '<div class="heatmap-corner"></div>'
+  html += weeks.map(week => `<div class="heatmap-col-head">${week}</div>`).join('')
+  weekdays.forEach((day, row) => {
+    html += `<div class="heatmap-row-head">${day}</div>`
+    weeks.forEach((_, col) => {
+      const value = matrix[row][col]
+      const intensity = value / max
+      const light = 20 + Math.round(intensity * 42)
+      html += `<div class="heatmap-cell" style="background:hsl(94, 72%, ${light}%)" data-tip="${value ? shortMoney(value) : 'R$ 0'}" title="${day} · ${weeks[col]} · ${fmt(value)}"></div>`
+    })
+  })
+  grid.innerHTML = html
+}
+
+function renderInsights(data) {
+  const insightGrid = document.getElementById('insightGrid')
+  const weekendShare = getWeekendShare(data.txs, data.total)
+  const subs = getCategoryMonthlyValue(data.txs, data.monthsCount, ['Assinaturas'])
+  const delivery = getCategoryMonthlyValue(data.txs, data.monthsCount, ['Delivery'])
+  const deliverySaving = delivery * 0.3
+
+  const cards = [
+    {
+      icon: '17',
+      kicker: 'Ritmo da semana',
+      text: `Suas sextas e sabados concentram <strong>${weekendShare}%</strong> dos gastos do periodo, puxados por lazer, delivery e saidas.`
+    },
+    {
+      icon: '↻',
+      kicker: 'Assinaturas',
+      text: `Voce tem <strong>${fmt(subs)}/mes</strong> em assinaturas recorrentes. Vale revisar servicos pouco usados nos ultimos 60 dias.`
+    },
+    {
+      icon: '◎',
+      kicker: 'Oportunidade',
+      text: `Se reduzir delivery em 30%, voce libera <strong>${fmt(deliverySaving)}/mes</strong> para reforcar sua renda disponivel.`
+    }
+  ]
+
+  insightGrid.innerHTML = cards.map(card => `
+    <div class="insight-card">
+      <div class="insight-icon">${card.icon}</div>
+      <div class="insight-kicker">${card.kicker}</div>
+      <div class="insight-text">${card.text}</div>
+    </div>
+  `).join('')
+}
+
+function getHealthScore(pct) {
+  return Math.max(8, Math.min(96, 100 - Math.round(pct * 0.9)))
+}
+
+function getTopCategoryShare(txs, total) {
+  if (!total) return { name: '', pct: 0 }
+  const bycat = {}
+  txs.filter(t => t.valor > 0).forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria] || 0) + t.valor
+  })
+  const top = Object.entries(bycat).sort((a, b) => b[1] - a[1])[0]
+  if (!top) return { name: '', pct: 0 }
+  return { name: top[0], pct: Math.round((top[1] / total) * 100) }
+}
+
+function getWeekendShare(txs, total) {
+  if (!total) return 0
+  let weekendTotal = 0
+  txs.filter(t => t.valor > 0).forEach(tx => {
+    const parts = (tx.data || '').split('/')
+    if (parts.length !== 3) return
+    const date = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T12:00:00`)
+    if (Number.isNaN(date.getTime())) return
+    const day = date.getDay()
+    if (day === 5 || day === 6) weekendTotal += Number(tx.valor) || 0
+  })
+  return Math.round((weekendTotal / total) * 100)
+}
+
+function getCategoryMonthlyValue(txs, monthsCount, categories) {
+  const total = txs
+    .filter(t => t.valor > 0 && categories.includes(t.categoria))
+    .reduce((sum, tx) => sum + tx.valor, 0)
+  return total / (monthsCount || 1)
+}
+
+function shortMoney(n) {
+  const num = Number(n) || 0
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+}
+
+function showScreen(screen) {
+  document.getElementById('screenUpload').classList.toggle('active', screen === 'upload')
+  document.getElementById('screenLoading').classList.toggle('active', screen === 'loading')
+  document.getElementById('screenReport').classList.toggle('active', screen === 'report')
+}
+
+function startLoadingCycle() {
+  setLoadingPhase(0)
+  if (loadingInterval) clearInterval(loadingInterval)
+  loadingInterval = setInterval(() => {
+    loadingPhaseIndex = (loadingPhaseIndex + 1) % LOADING_PHASES.length
+    setLoadingPhase(loadingPhaseIndex)
+  }, 1800)
+}
+
+function stopLoadingCycle() {
+  if (loadingInterval) {
+    clearInterval(loadingInterval)
+    loadingInterval = null
+  }
+  document.querySelectorAll('.loading-phase').forEach((phase, index, phases) => {
+    phase.classList.toggle('done', index < phases.length - 1)
+    phase.classList.toggle('active', index === phases.length - 1)
+  })
+}
+
+function setLoadingPhase(index) {
+  loadingPhaseIndex = index
+  const phase = LOADING_PHASES[index]
+  const textWrap = document.getElementById('loadingText')
+  textWrap.classList.add('swap')
+  setTimeout(() => {
+    document.getElementById('loadingTitle').textContent = phase.title
+    document.getElementById('loadingCopy').textContent = phase.copy
+    textWrap.classList.remove('swap')
+  }, 170)
+  const list = document.getElementById('loadingPhaseList')
+  list.innerHTML = LOADING_PHASES.map((item, itemIndex) => {
+    const cls = itemIndex < index ? 'done' : itemIndex === index ? 'active' : ''
+    return `<div class="loading-phase ${cls}"><span>${item.title}</span><span class="loading-dot"></span></div>`
+  }).join('')
+}
+
+function updateLoadingFiles(errorMessage) {
+  const total = fileQueue.length
+  const processed = fileQueue.filter(file => file.status === 'done').length
+  const current = fileQueue.find(file => file.status === 'extracting' || file.status === 'parsing')
+  const suffix = errorMessage
+    ? ` · erro: ${errorMessage}`
+    : current
+      ? ` · agora: ${current.name}`
+      : processed === total && total > 0
+        ? ' · finalizando seu relatório'
+        : ''
+  document.getElementById('loadingFiles').textContent = `${processed}/${total} arquivo(s) processados${suffix}`
+}
+
+function setPill(n, state) {
+  const el = document.getElementById('pill' + n)
+  el.className = 'step-pill' + (state ? ' ' + state : '')
+}
+
+function toSortableDate(dateStr) {
+  if (!dateStr || !dateStr.includes('/')) return 0
+  const parts = dateStr.split('/')
+  if (parts.length !== 3) return 0
+  return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`).getTime() || 0
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value)
+}
+
+function escapeJs(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+}
+
+setLoadingPhase(0)
+</script>
 </body>
 </html>

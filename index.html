@@ -372,7 +372,7 @@ dropZone.addEventListener('drop', e => {
 
 function handleFiles(files) {
   for (const f of files) {
-    if (!f.name.endsWith('.pdf')) continue
+    if (!f.name.toLowerCase().endsWith('.pdf')) continue
     const id = Date.now() + Math.random()
     fileQueue.push({ id, file: f, name: f.name, size: f.size, status: 'pending', text: '' })
   }

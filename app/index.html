@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root {
   --bg:#0e0f11; --surface:#16181c; --surface2:#1e2026;
@@ -492,10 +493,10 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 
   <div id="screenUpload" class="screen active">
     <div class="drop-zone fu" id="dropZone">
-      <input type="file" id="fileInput" accept=".pdf,.csv,.ofx" multiple onchange="handleFiles(this.files)">
+      <input type="file" id="fileInput" accept=".pdf,.csv,.ofx,.png,.jpg,.jpeg,.webp" multiple onchange="handleFiles(this.files)">
       <span class="drop-icon">📄</span>
       <div class="drop-title">Arraste arquivos de extrato aqui</div>
-      <div class="drop-sub">Suporta <strong>PDF, CSV e OFX</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
+      <div class="drop-sub">Suporta <strong>PDF, imagem, CSV e OFX</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
     </div>
 
     <div class="file-queue" id="fileQueue"></div>
@@ -726,6 +727,7 @@ function detectFileKind(name) {
   if (lower.endsWith('.pdf')) return 'pdf'
   if (lower.endsWith('.csv')) return 'csv'
   if (lower.endsWith('.ofx')) return 'ofx'
+  if (/\.(png|jpe?g|webp)$/i.test(lower)) return 'image'
   return null
 }
 
@@ -748,6 +750,7 @@ async function extractPdfDocument(file, onProgress) {
   }
   return {
     fileName: file.name,
+    sourceKind: 'pdf',
     text: allLines.join('\n'),
     rawText: rawItemLines.join('\n'),
     rawItemLines,
@@ -755,9 +758,44 @@ async function extractPdfDocument(file, onProgress) {
   }
 }
 
+async function extractImageDocument(file, onProgress) {
+  if (!window.Tesseract) {
+    throw new Error('OCR indisponivel no momento. Tente novamente em alguns instantes.')
+  }
+
+  const result = await Tesseract.recognize(file, 'por+eng', {
+    logger(message) {
+      if (message && message.status === 'recognizing text' && typeof message.progress === 'number') {
+        onProgress(Math.max(1, Math.round(message.progress * 100)))
+      }
+    }
+  })
+
+  const text = String(result && result.data && result.data.text ? result.data.text : '')
+  const rawItemLines = text
+    .split(/\r?\n/)
+    .map(normalizeSpace)
+    .filter(Boolean)
+
+  onProgress(100)
+
+  return {
+    fileName: file.name,
+    sourceKind: 'image',
+    text: rawItemLines.join('\n'),
+    rawText: text,
+    rawItemLines,
+    pages: [{ pageNumber: 1, lines: rawItemLines.map(line => ({ text: line })) }]
+  }
+}
+
 async function parseImportedFile(file, kind, onProgress) {
   if (kind === 'pdf') {
     const document = await extractPdfDocument(file, onProgress)
+    return parseStatementDocument(document)
+  }
+  if (kind === 'image') {
+    const document = await extractImageDocument(file, onProgress)
     return parseStatementDocument(document)
   }
 
@@ -1400,7 +1438,8 @@ function parseTransactionCandidate(line, profile, options) {
 function finalizeParsedStatement(parsed, profile) {
   const normalizedTransactions = dedupeTransactions((parsed.transacoes || []).map(tx => normalizeTransaction(tx, parsed)))
   if (!normalizedTransactions.length) {
-    throw new Error('Nao consegui identificar transacoes suficientes neste PDF. Tente um PDF digital do banco com a lista detalhada de movimentacoes.')
+    const kind = parsed && parsed.tipo_documento === 'extrato_conta' ? 'extrato' : 'fatura'
+    throw new Error(`Nao consegui identificar transacoes suficientes neste ${kind}. Envie um PDF digital com a lista detalhada de movimentacoes. Se for conta corrente, CSV ou OFX tende a funcionar melhor.`)
   }
 
   const result = {
@@ -2024,6 +2063,25 @@ function wait(ms) {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
+function getFriendlyImportError(error, file) {
+  const message = String(error && error.message ? error.message : error || '').trim()
+  const kind = file && file.kind ? file.kind : detectFileKind(file && file.name)
+
+  if (error && error.name === 'PasswordException') {
+    return 'Este PDF esta protegido por senha. Remova a senha do arquivo antes de enviar.'
+  }
+
+  if (/No password given/i.test(message)) {
+    return 'Este PDF esta protegido por senha. Remova a senha do arquivo antes de enviar.'
+  }
+
+  if (kind === 'image' && /transacoes suficientes neste arquivo/i.test(message)) {
+    return 'Li a imagem via OCR, mas nao encontrei transacoes suficientes. Envie um print mais nitido, de preferencia com a lista completa da fatura ou do extrato.'
+  }
+
+  return message || 'Nao foi possivel processar este arquivo.'
+}
+
 async function startParsing() {
   const startedAt = Date.now()
   showScreen('loading')
@@ -2065,15 +2123,16 @@ async function startParsing() {
       f.status = 'done'
       updateLoadingFiles()
     } catch (e) {
+      const friendlyError = getFriendlyImportError(e, f)
       f.status = 'error'
       stopLoadingCycle()
-      updateLoadingFiles(e.message)
+      updateLoadingFiles(friendlyError)
       showScreen('upload')
       setPill(1, 'active')
       setPill(2, '')
       setPill(3, '')
       renderQueue()
-      alert(`Erro ao processar ${f.name}: ${e.message}`)
+      alert(`Erro ao processar ${f.name}: ${friendlyError}`)
       document.getElementById('parseBtn').disabled = fileQueue.length === 0
       return
     }
@@ -2463,6 +2522,8 @@ function getEffectiveDailyTotals(txs) {
   Object.values(groupedByStatement).forEach(statementTxs => {
     const officialDailyTotals = {}
     let hasOfficialTotals = false
+    let officialEntries = 0
+    let officialSum = 0
 
     statementTxs.forEach(tx => {
       if (!tx || !tx.data) return
@@ -2471,12 +2532,17 @@ function getEffectiveDailyTotals(txs) {
       const isoDate = toIsoDate(date)
 
       if (tx._official_day_total != null) {
-        officialDailyTotals[isoDate] = Number(tx._official_day_total) || 0
-        hasOfficialTotals = true
+        const officialValue = Number(tx._official_day_total)
+        if (Number.isFinite(officialValue) && officialValue > 0) {
+          officialDailyTotals[isoDate] = officialValue
+          hasOfficialTotals = true
+          officialEntries += 1
+          officialSum += officialValue
+        }
       }
     })
 
-    if (hasOfficialTotals) {
+    if (hasOfficialTotals && officialEntries > 0 && officialSum > 0) {
       Object.entries(officialDailyTotals).forEach(([date, value]) => {
         totals[date] = (totals[date] || 0) + (Number(value) || 0)
       })
@@ -2498,10 +2564,11 @@ function getEffectiveDailyTotals(txs) {
 function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
   const source = txs || []
   const expenseTxs = getExpenseTransactions(source)
+  const parsedExpenseTotal = expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
   const dailyTotals = effectiveDailyTotals || getEffectiveDailyTotals(expenseTxs)
   const baseTotal = Object.keys(dailyTotals).length
     ? Object.values(dailyTotals).reduce((sum, value) => sum + (Number(value) || 0), 0)
-    : expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+    : parsedExpenseTotal
 
   const statementAdjustments = source.reduce((sum, tx) => {
     if (!tx) return sum
@@ -2511,7 +2578,15 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
     return sum + Math.abs(Number(tx.valor) || 0)
   }, 0)
 
-  return Math.max(0, roundMoney(baseTotal - statementAdjustments))
+  const computedTotal = Math.max(0, roundMoney(baseTotal - statementAdjustments))
+
+  // Protect the UI from inconsistent totals when parsed expenses exist
+  // but a statement-level heuristic collapses the amount to zero.
+  if (computedTotal <= 0 && parsedExpenseTotal > 0) {
+    return roundMoney(parsedExpenseTotal)
+  }
+
+  return computedTotal
 }
 
 function isCardPaymentEntry(tx) {

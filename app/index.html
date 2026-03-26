@@ -1511,6 +1511,63 @@ function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100
 }
 
+/**
+ * Normaliza o valor de uma transação considerando seu contexto (sinal e descrição)
+ * Implementa a lógica de detecção de crédito/estorno vs. compra
+ * @param {string} valueStr - Ex: "R$ 159,98" ou "-R$ 159,98"
+ * @param {string} description - Ex: "Estorno de Tokstok" ou "CREDITO DE CONFIANCA"
+ * @returns {number} Negativo para crédito (subtrai da fatura), positivo para compra (soma na fatura)
+ */
+function normalizeTransactionValue(valueStr, description) {
+  // 1. Limpeza de string: remove R$, pontos de milhar e troca vírgula por ponto
+  let cleanValue = String(valueStr || '')
+    .replace(/R\$/gi, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .trim()
+
+  let numericValue = parseFloat(cleanValue) || 0
+
+  // 2. Identificação de Crédito (Entradas/Estornos)
+  // Verifica se tem o sinal de menos OU se a descrição contém palavras-chave
+  const desc = String(description || '').toLowerCase()
+  const isCredit = String(valueStr || '').includes('-') ||
+                   /estorno|crédito|cancelamento|reembolso|devolução|pagamento recebido/i.test(desc)
+
+  // Se for crédito, garantimos que o número seja negativo (subtrai da fatura)
+  // Se for compra, garantimos que seja positivo (soma na fatura)
+  return isCredit ? -Math.abs(numericValue) : Math.abs(numericValue)
+}
+
+/**
+ * Calcula o total de despesas da fatura/extrato filtrando casos especiais
+ * @param {Array} transactions - Lista de objetos {date, description, valor, valueStr, estabelecimento}
+ * @param {string} tipoDocumento - 'fatura_cartao' ou 'extrato_conta'
+ * @returns {number} Total em reais
+ */
+function calculateFincheckTotal(transactions, tipoDocumento) {
+  return transactions.reduce((total, t) => {
+    if (!t) return total
+
+    const desc = String(t.description || t.estabelecimento || '').toLowerCase()
+
+    // Regra de Negócio 1: Pagamentos de faturas anteriores não devem somar
+    // no "Gasto Real" para não inflar a métrica de comprometimento
+    if (/pagamento\s+(?:em|de\s+fatura)|fatura\s+anterior|em\s+\d{2}\/\d{2}/.test(desc)) {
+      return total
+    }
+
+    // Regra de Negócio 2: Créditos/Estornos (valor negativo) já descartam automaticamente
+    // Usa o valor já normalizado (que deve ter o sinal correto)
+    const value = Number(t.valor) || 0
+    if (value < 0) {
+      return total
+    }
+
+    return total + value
+  }, 0)
+}
+
 function parseDelimitedRows(content) {
   const source = String(content || '').replace(/^\uFEFF/, '')
   const lines = source.split(/\r?\n/).filter(line => line.trim())

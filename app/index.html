@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.8 - 25/03/2026, 23:36:00 -->
+  <!-- fincheck v1.0.9 - 25/03/2026, 23:45:05 -->
 
+  
   
   
   
@@ -2130,15 +2131,21 @@ function applyAmountSignal(rawAmount, natureza, tipoDocumento) {
 function dedupeTransactions(items) {
   const seen = new Set()
   return items.filter(item => {
-    // Chave de deduplicação mais robusta: ignora _source_row_index pois pode variar
-    // entre diferentes seções do PDF onde a mesma transação apareça
-    const key = [
-      item.data,
-      normalizeDocText(item.estabelecimento),
-      Number(item.valor || 0).toFixed(2),
-      String(item.parcela_atual || ''),
-      String(item.total_parcelas || '')
-    ].join('|')
+    if (!item) return false
+
+    // Preferir _source_row_index quando disponível, para preservar transações
+    // idênticas porém legítimas (mesmo valor/data/estabelecimento em diferentes linhas).
+    // Remover duplicatas somente quando não há outra forma segura de identificar linha.
+    const key = item._source_row_index != null
+      ? `${item._statement_key || 'unknown'}|row:${item._source_row_index}`
+      : [
+        item.data,
+        normalizeDocText(item.estabelecimento),
+        Number(item.valor || 0).toFixed(2),
+        String(item.parcela_atual || ''),
+        String(item.total_parcelas || '')
+      ].join('|')
+
     if (seen.has(key)) return false
     seen.add(key)
     return true

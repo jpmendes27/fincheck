@@ -1,9 +1,28 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.4 - 25/03/2026, 23:11:22 -->
+  <!-- fincheck v1.0.5 - 25/03/2026, 23:14:10 -->
 
   
+  <script>
+    // Auto-reload quando versão mudar (força atualização sem precisar limpar cache)
+    (function() {
+      const currentVersion = document.currentScript.parentElement.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
+      if (!currentVersion) return;
+      
+      const storedVersion = localStorage.getItem('fincheck_version');
+      
+      if (storedVersion && storedVersion !== currentVersion) {
+        console.log(`🔄 Fincheck atualizado (${storedVersion} → ${currentVersion}), recarregando...`);
+        localStorage.setItem('fincheck_version', currentVersion);
+        // Force hard reload
+        window.location.reload(true);
+        return;
+      }
+      
+      localStorage.setItem('fincheck_version', currentVersion);
+    })();
+  </script>
   
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.12 - 26/03/2026, 17:20:50 -->
+  <!-- fincheck v1.0.13 - 26/03/2026, 17:25:45 -->
 
+  
   
   
   
@@ -877,7 +878,7 @@ function parseCsvDocument(content, fileName) {
   }
 
   const mesReferencia = inferReferenceMonthFromTransactions(transacoes)
-  const gastos = transacoes.filter(tx => tx.natureza === 'gasto').reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+  const gastos = fromCents(sumCents(transacoes.filter(tx => tx.natureza === 'gasto').map(tx => Math.abs(Number(tx.valor) || 0))))
 
   return finalizeParsedStatement({
     tipo_documento: tipoDocumento,
@@ -942,7 +943,7 @@ function parseOfxDocument(content, fileName) {
   const accountId = extractOfxTag(content, 'ACCTID')
   const bankId = extractOfxTag(content, 'BANKID')
   const mesReferencia = inferReferenceMonthFromTransactions(transacoes)
-  const gastos = transacoes.filter(tx => tx.natureza === 'gasto').reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+  const gastos = fromCents(sumCents(transacoes.filter(tx => tx.natureza === 'gasto').map(tx => Math.abs(Number(tx.valor) || 0))))
   const bankName = detectBankName(`${normalizeDocText(content)} ${normalizeDocText(fileName)} ${normalizeDocText(bankId)}`, fileName)
 
   return finalizeParsedStatement({
@@ -1380,15 +1381,23 @@ function reconcileTransactionsWithDailyTotals(transacoes, dailyTotals) {
   const txs = Array.isArray(transacoes) ? [...transacoes] : []
   const byDay = {}
 
+  // Calcular totais por dia em centavos para precisão
   txs.forEach(tx => {
     if (!isExpenseTransaction(tx)) return
-    byDay[tx.data] = (byDay[tx.data] || 0) + Math.abs(Number(tx.valor) || 0)
+    const date = tx.data
+    byDay[date] = (byDay[date] || 0) + toCents(Math.abs(Number(tx.valor) || 0))
   })
 
   Object.entries(dailyTotals || {}).forEach(([date, officialTotal]) => {
-    const parsedTotal = byDay[date] || 0
-    const delta = roundMoney(officialTotal - parsedTotal)
-    if (delta <= 0.01) return
+    const parsedTotalCents = byDay[date] || 0
+    const parsedTotal = fromCents(parsedTotalCents)
+    const officialTotalCents = toCents(officialTotal)
+    const deltaCents = officialTotalCents - parsedTotalCents
+
+    // Só adicionar ajuste se a diferença for significativa (> 0 centavos)
+    if (Math.abs(deltaCents) <= 0) return
+
+    const delta = fromCents(deltaCents)
 
     txs.push({
       data: date,
@@ -1494,7 +1503,7 @@ function finalizeParsedStatement(parsed, profile) {
   }
 
   const expenseTxs = getExpenseTransactions(result.transacoes)
-  const derivedTotal = expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+  const derivedTotal = fromCents(sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0))))
 
   if (!result.total_gastos_periodo) result.total_gastos_periodo = derivedTotal
   if (result.tipo_documento === 'fatura_cartao' && !result.total_fatura) result.total_fatura = derivedTotal
@@ -2625,7 +2634,8 @@ function buildDailyTotalsFromTransactions(txs) {
     const date = getTransactionDate(tx)
     if (Number.isNaN(date.getTime())) return
     const key = toIsoDate(date)
-    totals[key] = (totals[key] || 0) + Math.abs(Number(tx.valor) || 0)
+    const cents = toCents(Math.abs(Number(tx.valor) || 0))
+    totals[key] = fromCents((toCents(totals[key] || 0)) + cents)
   })
   return totals
 }
@@ -2824,9 +2834,10 @@ function getWeekendShare(txs, total) {
 }
 
 function getCategoryMonthlyValue(txs, monthsCount, categories) {
-  const total = txs
+  const totalCents = sumCents(txs
     .filter(t => categories.includes(t.categoria))
-    .reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+    .map(tx => Math.abs(Number(tx.valor) || 0)))
+  const total = fromCents(totalCents)
   return total / (monthsCount || 1)
 }
 
@@ -2974,7 +2985,7 @@ function getDateRangeLabel(txs) {
 function getReportContext() {
   const txs = getFilteredTxs()
   const expenseTxs = getExpenseTransactions(txs)
-  const total = expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+  const total = fromCents(sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0))))
   const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
   const monthlyTotal = total / monthsCount
   const pct = Math.round((total / monthsCount / renda) * 100)

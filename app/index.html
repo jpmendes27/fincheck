@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.3 - 25/03/2026, 23:00:05 -->
+  <!-- fincheck v1.0.4 - 25/03/2026, 23:11:22 -->
 
+  
   
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -2107,14 +2108,14 @@ function applyAmountSignal(rawAmount, natureza, tipoDocumento) {
 function dedupeTransactions(items) {
   const seen = new Set()
   return items.filter(item => {
+    // Chave de deduplicação mais robusta: ignora _source_row_index pois pode variar
+    // entre diferentes seções do PDF onde a mesma transação apareça
     const key = [
       item.data,
       normalizeDocText(item.estabelecimento),
       Number(item.valor || 0).toFixed(2),
-      item.identificador || '',
-      item._source_row_index != null ? item._source_row_index : '',
-      item.parcela_atual || '',
-      item.total_parcelas || ''
+      String(item.parcela_atual || ''),
+      String(item.total_parcelas || '')
     ].join('|')
     if (seen.has(key)) return false
     seen.add(key)

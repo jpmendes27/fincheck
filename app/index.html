@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.13 - 26/03/2026, 17:25:45 -->
+  <!-- fincheck v1.0.14 - 26/03/2026, 17:29:21 -->
 
+  
   
   
   
@@ -2740,6 +2741,18 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
   const statementAdjustments = fromCents(statementAdjustmentsCents)
 
   const computedTotal = Math.max(0, baseTotal - statementAdjustments)
+
+  // Se houver total oficial da fatura disponível, use esse como fonte de verdade
+  const statementTotals = [...new Set(source
+    .map(tx => Number(tx._statement_total_gastos_periodo || 0))
+    .filter(v => Number.isFinite(v) && v > 0))]
+
+  if (statementTotals.length === 1) {
+    const statementTotal = statementTotals[0]
+    if (Math.abs(statementTotal - computedTotal) <= 0.01 || Math.abs(statementTotal - parsedExpenseTotal) <= 0.02) {
+      return statementTotal
+    }
+  }
 
   // Protect the UI from inconsistent totals when parsed expenses exist
   // but a statement-level heuristic collapses the amount to zero.

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.7 - 25/03/2026, 23:31:54 -->
+  <!-- fincheck v1.0.8 - 25/03/2026, 23:36:00 -->
 
+  
   
   
   
@@ -2788,6 +2789,13 @@ function getExpenseTransactions(txs) {
   const source = txs || []
   const explicit = source.filter(tx => tx.natureza === 'gasto')
   if (explicit.length) return explicit
+
+  // fallback inteligente para casos onde a classificação falha e temos pequenos encargos
+  const likelyExpenses = source.filter(tx => {
+    const desc = String(tx.estabelecimento || '').toLowerCase()
+    return tx.natureza === 'entrada' && Math.abs(Number(tx.valor) || 0) <= 20 && /metro rj|iof|tarifa|fatura anterior|outros lan[çc]amentos/.test(desc)
+  })
+  if (likelyExpenses.length) return [...explicit, ...likelyExpenses]
 
   const negatives = source.filter(tx => Number(tx.valor) < 0)
   const positives = source.filter(tx => Number(tx.valor) > 0)

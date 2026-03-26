@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.11 - 25/03/2026, 23:55:13 -->
+  <!-- fincheck v1.0.12 - 26/03/2026, 17:20:50 -->
 
+  
   
   
   
@@ -1548,6 +1549,23 @@ function roundMoney(value) {
   return Math.round((Number(value) || 0) * 100) / 100
 }
 
+// Funções auxiliares para cálculo preciso em centavos (evita erros de floating point)
+function toCents(value) {
+  return Math.round((Number(value) || 0) * 100)
+}
+
+function fromCents(cents) {
+  return cents / 100
+}
+
+function addCents(a, b) {
+  return a + b
+}
+
+function sumCents(values) {
+  return values.reduce((sum, val) => sum + toCents(val), 0)
+}
+
 /**
  * Normaliza o valor de uma transação considerando seu contexto (sinal e descrição)
  * Implementa a lógica de detecção de crédito/estorno vs. compra
@@ -2618,7 +2636,8 @@ function getEffectiveDailyTotals(txs) {
 
   const addDaily = (isoDate, amount) => {
     if (!isoDate || !Number.isFinite(Number(amount))) return
-    totals[isoDate] = roundMoney((totals[isoDate] || 0) + Math.abs(Number(amount) || 0))
+    const cents = toCents(amount)
+    totals[isoDate] = fromCents((toCents(totals[isoDate] || 0)) + cents)
   }
 
   ;(txs || []).forEach(tx => {
@@ -2651,7 +2670,8 @@ function getEffectiveDailyTotals(txs) {
     })
 
     if (hasOfficialTotals && officialEntries > 0 && officialSum > 0) {
-      const parsedSum = statementTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0)
+      const parsedSumCents = sumCents(statementTxs.map(tx => Math.abs(Number(tx.valor) || 0)))
+      const parsedSum = fromCents(parsedSumCents)
       // Se a soma oficial estiver muito abaixo do somado pelos itens, pode sinalizar falha de captura mínima,
       // então preferimos o total base do parser em vez de valores diários incompletos.
       if (Math.abs(parsedSum - officialSum) > 1.0) {
@@ -2686,11 +2706,14 @@ function getEffectiveDailyTotals(txs) {
 function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
   const source = txs || []
   const expenseTxs = getExpenseTransactions(source)
-  const parsedExpenseTotal = roundMoney(expenseTxs.reduce((sum, tx) => sum + Math.abs(Number(tx.valor) || 0), 0))
+
+  // Calcular total em centavos para precisão absoluta
+  const parsedExpenseTotalCents = sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0)))
+  const parsedExpenseTotal = fromCents(parsedExpenseTotalCents)
+
   const dailyTotals = effectiveDailyTotals || getEffectiveDailyTotals(expenseTxs)
-  const dailyTotalSum = Object.keys(dailyTotals).length
-    ? roundMoney(Object.values(dailyTotals).reduce((sum, value) => sum + (Number(value) || 0), 0))
-    : 0
+  const dailyTotalSumCents = sumCents(Object.values(dailyTotals))
+  const dailyTotalSum = fromCents(dailyTotalSumCents)
 
   // Só usar a soma dos totais por dia quando estiver consistente com parsedExpenseTotal.
   // Caso contrário, usamos o total direto do parser para evitar deixar sair diferença.
@@ -2698,15 +2721,15 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
     ? dailyTotalSum
     : parsedExpenseTotal
 
-  const statementAdjustments = roundMoney(source.reduce((sum, tx) => {
-    if (!tx) return sum
-    if (tx.tipo_documento !== 'fatura_cartao') return sum
-    if (tx.natureza !== 'estorno' && tx.natureza !== 'ajuste') return sum
-    if (isCardPaymentEntry(tx)) return sum
-    return sum + Math.abs(Number(tx.valor) || 0)
-  }, 0))
+  // Calcular ajustes em centavos
+  const statementAdjustmentsCents = sumCents(source
+    .filter(tx => tx && tx.tipo_documento === 'fatura_cartao' &&
+                  (tx.natureza === 'estorno' || tx.natureza === 'ajuste') &&
+                  !isCardPaymentEntry(tx))
+    .map(tx => Math.abs(Number(tx.valor) || 0)))
+  const statementAdjustments = fromCents(statementAdjustmentsCents)
 
-  const computedTotal = Math.max(0, roundMoney(baseTotal - statementAdjustments))
+  const computedTotal = Math.max(0, baseTotal - statementAdjustments)
 
   // Protect the UI from inconsistent totals when parsed expenses exist
   // but a statement-level heuristic collapses the amount to zero.

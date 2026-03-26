@@ -1658,7 +1658,7 @@ function inferCsvNatureza(schema, rawDescription, amount, tipoDocumento) {
   const source = normalizeDocText(rawDescription)
 
   if (tipoDocumento === 'fatura_cartao') {
-    if (/PAGAMENTO RECEBIDO|ESTORNO|CANCELAMENTO|CREDITO/i.test(source)) {
+    if (/PAGAMENTO RECEBIDO|ESTORNO|CANCELAMENTO|CREDITO|PAGAMENTO EM|PAGAMENTO DE FATURA|SALDO RESTANTE|FATURA ANTERIOR|REEMBOLSO|DEVOLUCAO/i.test(source)) {
       return 'estorno'
     }
     return amount < 0 ? 'estorno' : 'gasto'
@@ -2070,7 +2070,10 @@ function inferNatureza(description, rawAmount, tipoDocumento, options) {
   const hasMinus = /[-−]/.test(rawAmount)
   const hasPlus = /\+/.test(rawAmount)
 
-  if (/ESTORNO|CREDITO DE CONFIANCA|CANCELAMENTO/.test(source)) return 'estorno'
+  // Detecta pagamentos de fatura anterior, ajustes e estornos
+  if (/ESTORNO|CREDITO DE CONFIANCA|CANCELAMENTO|REEMBOLSO|DEVOLUCAO|PAGAMENTO EM|PAGAMENTO DE FATURA|SALDO RESTANTE|FATURA ANTERIOR/.test(source)) {
+    return 'estorno'
+  }
 
   if (tipoDocumento === 'extrato_conta') {
     if (hasPlus) return 'entrada'
@@ -2649,7 +2652,8 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
 function isCardPaymentEntry(tx) {
   const description = normalizeDocText(tx && tx._raw_description ? tx._raw_description : tx && tx.estabelecimento ? tx.estabelecimento : '')
   const amount = Math.abs(Number(tx && tx.valor) || 0)
-  if (!/PAGAMENTO RECEBIDO|PAGAMENTO DE FATURA/.test(description)) return false
+  // Detecta pagamentos, ajustes de fatura anterior, saldo restante, etc
+  if (!/PAGAMENTO RECEBIDO|PAGAMENTO DE FATURA|PAGAMENTO EM|SALDO RESTANTE|FATURA ANTERIOR/.test(description)) return false
   return amount >= 50
 }
 

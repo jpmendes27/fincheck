@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.9 - 25/03/2026, 23:45:05 -->
+  <!-- fincheck v1.0.10 - 25/03/2026, 23:52:25 -->
 
+  
   
   
   
@@ -1091,6 +1092,7 @@ function parseNubankAccountStatement(document, profile) {
   let currentDate = null
   let pending = null
   let skipNextSectionAmount = null
+  let rowIndex = 0
 
   const flushPending = () => {
     if (!pending) return
@@ -1126,7 +1128,8 @@ function parseNubankAccountStatement(document, profile) {
         categoria: 'Outros',
         parcelado: false,
         parcela_atual: null,
-        total_parcelas: null
+        total_parcelas: null,
+        _source_row_index: rowIndex++
       })
     }
 
@@ -1308,6 +1311,7 @@ function parseNubankSectionTransactions(section, profile) {
 function pairNubankCandidatesWithAmounts(candidates, amounts, profile) {
   const txs = []
   const queue = [...candidates]
+  let rowIndex = 0
 
   ;(amounts || []).forEach(amountRaw => {
     const candidate = queue.shift()
@@ -1329,7 +1333,8 @@ function pairNubankCandidatesWithAmounts(candidates, amounts, profile) {
       categoria: 'Outros',
       parcelado: false,
       parcela_atual: null,
-      total_parcelas: null
+      total_parcelas: null,
+      _source_row_index: rowIndex++
     })
   })
 
@@ -1402,6 +1407,7 @@ function reconcileTransactionsWithDailyTotals(transacoes, dailyTotals) {
 function parseTransactionLines(document, profile, options) {
   const lines = getDocumentLines(document)
   const txs = []
+  let rowIndex = 0
 
   for (let i = 0; i < lines.length; i++) {
     const current = normalizeSpace(lines[i])
@@ -1417,7 +1423,10 @@ function parseTransactionLines(document, profile, options) {
       }
     }
 
-    if (parsed) txs.push(parsed)
+    if (parsed) {
+      parsed._source_row_index = rowIndex++
+      txs.push(parsed)
+    }
   }
 
   return dedupeTransactions(txs)

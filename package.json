@@ -1,16 +1,21 @@
 {
   "name": "fincheck",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Diagnóstico de faturas de cartão via PDF",
   "main": "index.html",
   "scripts": {
     "dev": "npx http-server . -p 3000 -c-1 --cors",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "bump": "node bump-version.js"
   },
   "devDependencies": {
     "http-server": "^14.1.1"
   },
-  "keywords": ["pdf", "parser", "finance"],
+  "keywords": [
+    "pdf",
+    "parser",
+    "finance"
+  ],
   "author": "",
   "license": "MIT"
 }

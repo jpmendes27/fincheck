@@ -12,9 +12,14 @@ function toCents(value) {
 }
 
 function summarizeTransactions() {
-  const totalCents = allTransactions.reduce((s, t) => s + (t.valor > 0 ? toCents(t.valor) : 0), 0);
-  const count = allTransactions.filter(t => t.valor > 0).length;
-  const avgTicket = count ? (totalCents / count) / 100 : 0;
+  // Total should reflect statement amount (includes credits/estornos).
+  const totalCents = allTransactions.reduce((s, t) => s + toCents(t.valor), 0);
+  // Ticket médio considera apenas compras (valores positivos).
+  const purchaseCents = allTransactions.reduce((s, t) => s + (t.valor > 0 ? toCents(t.valor) : 0), 0);
+  const purchaseCount = allTransactions.filter(t => t.valor > 0).length;
+  const avgTicket = purchaseCount ? (purchaseCents / purchaseCount) / 100 : 0;
+  // Contagem de transações exibida inclui estornos/ajustes.
+  const count = allTransactions.length;
   const months = [...new Set(allTransactions.map(t => t.mesReferencia).filter(Boolean))];
   const monthsCount = months.length || 1;
   const total = totalCents / 100;

@@ -7,6 +7,7 @@ function parseTransactions(text) {
   let banco = null;
   let ultimosDigitos = null;
   let mesReferencia = null;
+  let anoReferencia = null;
 
   for (const line of lines) {
     // Banco
@@ -23,6 +24,10 @@ function parseTransactions(text) {
     if (!mesReferencia) {
       const refMatch = line.match(/\b(referência|referente a?|mês)\s*(\d{1,2})[\/\-](\d{4})\b/i);
       if (refMatch) mesReferencia = `${refMatch[2].padStart(2, '0')}/${refMatch[3]}`;
+    }
+    if (!anoReferencia) {
+      const anoMatch = line.match(/\b(?:JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)\b\s*(\d{4})\b/i);
+      if (anoMatch) anoReferencia = Number(anoMatch[1]);
     }
   }
 
@@ -138,6 +143,69 @@ function parseTransactions(text) {
         total_parcelas: null
       });
     }
+  }
+
+  // Nubank-style parsing: lines like "29 OUT", then description, then "R$ 23,50"
+  const monthMap = {
+    JAN: 1, FEV: 2, MAR: 3, ABR: 4, MAI: 5, JUN: 6,
+    JUL: 7, AGO: 8, SET: 9, OUT: 10, NOV: 11, DEZ: 12,
+  };
+  const txSet = new Set(transactions.map(t => `${t.data}|${t.estabelecimento}|${t.valor}`));
+  let inTransactions = false;
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.toUpperCase() === 'TRANSAÇÕES') {
+      inTransactions = true;
+      continue;
+    }
+    if (!inTransactions) continue;
+
+    const dm = line.match(/^(\d{1,2})\s+(JAN|FEV|MAR|ABR|MAI|JUN|JUL|AGO|SET|OUT|NOV|DEZ)$/i);
+    if (!dm) continue;
+
+    const day = Number(dm[1]);
+    const month = monthMap[dm[2].toUpperCase()];
+    const year = anoReferencia || new Date().getFullYear();
+    const data = `${day.toString().padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`;
+
+    let j = i + 1;
+    while (j < lines.length && lines[j].length === 0) j++;
+    if (j >= lines.length) continue;
+    let estabelecimento = lines[j];
+
+    let k = j + 1;
+    while (k < lines.length && lines[k].length === 0) k++;
+    if (k >= lines.length) continue;
+    const valLine = lines[k];
+    const mv = valLine.match(/(-?)\s*R\$\s*(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})/);
+    if (!mv) continue;
+    const sign = mv[1] === '-' ? -1 : 1;
+    const valor = sign * Number(mv[2].replace(/\./g, '') + '.' + mv[3]);
+
+    estabelecimento = estabelecimento
+      .replace(/\s+/g, ' ')
+      .replace(/[^\wÀ-ÿ\s]/g, '')
+      .trim();
+    if (estabelecimento.length < 3 || Math.abs(valor) < 0.5) continue;
+
+    let categoria = 'Outros';
+    const lowerEstab = estabelecimento.toLowerCase();
+    for (const [keyword, cat] of Object.entries(categorias)) {
+      if (lowerEstab.includes(keyword)) { categoria = cat; break; }
+    }
+
+    const key = `${data}|${estabelecimento}|${valor}`;
+    if (txSet.has(key)) continue;
+    txSet.add(key);
+    transactions.push({
+      data,
+      estabelecimento,
+      valor,
+      categoria,
+      parcelado: false,
+      parcela_atual: null,
+      total_parcelas: null
+    });
   }
 
   return {

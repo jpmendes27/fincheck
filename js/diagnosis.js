@@ -6,12 +6,19 @@ function addTransactions(transacoes) {
   allTransactions.push(...transacoes);
 }
 
+function toCents(value) {
+  // Normalize to integer cents to avoid floating point rounding drift.
+  return Math.round((value || 0) * 100);
+}
+
 function summarizeTransactions() {
-  const total = allTransactions.reduce((s, t) => s + (t.valor > 0 ? t.valor : 0), 0);
+  const totalCents = allTransactions.reduce((s, t) => s + (t.valor > 0 ? toCents(t.valor) : 0), 0);
   const count = allTransactions.filter(t => t.valor > 0).length;
-  const avgTicket = count ? total / count : 0;
+  const avgTicket = count ? (totalCents / count) / 100 : 0;
   const months = [...new Set(allTransactions.map(t => t.mesReferencia).filter(Boolean))];
-  const pct = Math.round((total / months.length / renda) * 100);
+  const monthsCount = months.length || 1;
+  const total = totalCents / 100;
+  const pct = Math.round(((totalCents / 100) / monthsCount / renda) * 100);
   return { total, count, avgTicket, months, pct };
 }
 

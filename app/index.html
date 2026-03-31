@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.29 - 31/03/2026, 19:58:39 -->
+  <!-- fincheck v1.0.30 - 31/03/2026, 20:45:33 -->
 
+  
   
   
   
@@ -812,6 +813,9 @@ async function extractImageDocument(file, onProgress) {
   }
 
   const result = await Tesseract.recognize(file, 'por+eng', {
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.1.1/tesseract-core-simd-lstm.wasm.js',
+    langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/tessdata',
     logger(message) {
       if (message && message.status === 'recognizing text' && typeof message.progress === 'number') {
         onProgress(Math.max(1, Math.round(message.progress * 100)))
@@ -2007,10 +2011,22 @@ function extractHolderName(lines) {
 }
 
 function extractLabeledMoney(fullText, labels) {
+  const matchLabeled = (text, label) =>
+    text.match(new RegExp(`${label}[\\s\\S]{0,40}?([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
+
   for (const label of labels) {
-    const match = fullText.match(new RegExp(`${label}\\s*(?:R\\$\\s*)?([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
+    const match = matchLabeled(fullText, label)
     if (match) return parseMoneyNumber(match[1])
   }
+
+  // OCR às vezes separa letras (ex: "V A L O R"), então tentamos versão compactada
+  const compactText = fullText.replace(/\s+/g, '')
+  for (const label of labels) {
+    const compactLabel = label.replace(/\s+/g, '')
+    const match = matchLabeled(compactText, compactLabel)
+    if (match) return parseMoneyNumber(match[1])
+  }
+
   return 0
 }
 
@@ -2018,12 +2034,19 @@ function extractHeaderInvoiceValue(fullText) {
   // Ex: "FATURA DEZEMBRO, NO VALOR DE R$ 3.378,22"
   // ou "FATURA ... VALOR DE R$ 3.378,22"
   const patterns = [
-    /FATURA[^\d]{0,120}(?:NO\s+VALOR\s+DE|VALOR\s+DE)\s*(?:R\$\s*)?([+\-−]?\s*\d{1,3}(?:\.\d{3})*,\d{2})/
+    /FATURA[^\d]{0,120}(?:NO\s+VALOR\s+DE|VALOR\s+DE)\s*([+\-−]?\s*\d{1,3}(?:\.\d{3})*,\d{2})/
   ]
   for (const pattern of patterns) {
     const match = fullText.match(pattern)
     if (match) return parseMoneyNumber(match[1])
   }
+
+  // Fallback para OCR com letras espaçadas
+  const compactText = fullText.replace(/\s+/g, '')
+  const compactPattern = /FATURA[^\d]{0,160}(?:NOVALORDE|VALORDE)([+\-−]?\d{1,3}(?:\.\d{3})*,\d{2})/
+  const compactMatch = compactText.match(compactPattern)
+  if (compactMatch) return parseMoneyNumber(compactMatch[1])
+
   return 0
 }
 

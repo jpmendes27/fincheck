@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.31 - 31/03/2026, 20:52:31 -->
+  <!-- fincheck v1.0.32 - 31/03/2026, 20:54:47 -->
 
+  
   
   
   
@@ -2039,13 +2040,14 @@ function getDocumentLines(document) {
 function detectBankName(fullText, fileName) {
   const source = `${fullText} ${normalizeDocText(fileName)}`
   if (/\bAFINZ\b|\bAFINZ\.COM\.BR\b/.test(source)) return 'Afinz'
-  if (/\bNUBANK\b|\bNU_\b|\bNU\b/.test(source)) return 'Nubank'
-  if (/\bITAU\b|\bUNIBANCO\b/.test(source)) return 'Itau'
-  if (/\bBRADESCO\b/.test(source)) return 'Bradesco'
-  if (/\bINTER\b/.test(source)) return 'Inter'
-  if (/\bSANTANDER\b/.test(source)) return 'Santander'
-  if (/\bC6\b/.test(source)) return 'C6'
-  if (/\bXP\b/.test(source)) return 'XP'
+  if (/\bNUBANK\b|\bNU_\b|\bNU\b|NUBANK\.COM\.BR/.test(source)) return 'Nubank'
+  if (/\bPICPAY\b|PICPAY\.COM\.BR/.test(source)) return 'PicPay'
+  if (/\bITAU\b|\bUNIBANCO\b|ITAU\.COM\.BR/.test(source)) return 'Itau'
+  if (/\bXP\b|XP\.COM\.BR/.test(source)) return 'XP'
+  if (/\bBRADESCO\b|BRADESCO\.COM\.BR/.test(source)) return 'Bradesco'
+  if (/\bC6\b|C6BANK|C6BANK\.COM\.BR/.test(source)) return 'C6'
+  if (/\bSANTANDER\b|SANTANDER\.COM\.BR/.test(source)) return 'Santander'
+  if (/\bINTER\b|BANCOINTER|INTER\.CO/.test(source)) return 'Inter'
   return 'Banco nao identificado'
 }
 

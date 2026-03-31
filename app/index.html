@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.30 - 31/03/2026, 20:45:33 -->
+  <!-- fincheck v1.0.31 - 31/03/2026, 20:52:31 -->
 
+  
   
   
   
@@ -1099,6 +1100,11 @@ function parseNubankStatement(document, profile) {
     ? parseNubankAccountStatement(document, profile)
     : parseTransactionLines(document, profile, { preferExplicitSignal: false })
 
+  if (document.sourceKind === 'image' && transacoes.length < 3) {
+    const imageTxs = parseImageTransactionLines(document, profile)
+    if (imageTxs.length > transacoes.length) transacoes = imageTxs
+  }
+
   if (!transacoes.length && document.rawItemLines && document.rawItemLines.length) {
     transacoes = profile.tipo_documento === 'extrato_conta'
         ? parseNubankAccountStatement(createFallbackLineDocument(document, document.rawItemLines), profile)
@@ -1243,6 +1249,13 @@ function parseGenericStatement(document, profile) {
   const primary = {
     ...profile,
     transacoes: parseTransactionLines(document, profile, { preferExplicitSignal: profile.tipo_documento === 'extrato_conta' })
+  }
+
+  if (document.sourceKind === 'image' && primary.transacoes.length < 3) {
+    const imageTxs = parseImageTransactionLines(document, profile)
+    if (imageTxs.length > primary.transacoes.length) {
+      return { ...profile, transacoes: imageTxs }
+    }
   }
 
   if (primary.transacoes.length || !document.rawItemLines || !document.rawItemLines.length) return primary
@@ -1469,6 +1482,90 @@ function parseTransactionLines(document, profile, options) {
       parsed._source_row_index = rowIndex++
       txs.push(parsed)
     }
+  }
+
+  return dedupeTransactions(txs)
+}
+
+function parseImageTransactionLines(document, profile) {
+  const lines = (document.rawItemLines && document.rawItemLines.length ? document.rawItemLines : getDocumentLines(document))
+    .map(normalizeSpace)
+    .filter(Boolean)
+
+  const txs = []
+  let rowIndex = 0
+  const amountRegex = /([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/i
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const normalized = normalizeDocText(line)
+    if (shouldIgnoreTransactionLine(normalized)) continue
+
+    const dateInfo = parseLeadingDate(line, profile)
+    if (!dateInfo) continue
+
+    const sameLineAmount = line.match(amountRegex)
+    let amountRaw = ''
+    let description = ''
+    let consumedIndex = i
+
+    if (sameLineAmount) {
+      amountRaw = sameLineAmount[1]
+      const remainder = normalizeSpace(line.slice(dateInfo.endIndex, sameLineAmount.index))
+      description = remainder
+      if (!description && i + 1 < lines.length) {
+        const next = normalizeSpace(lines[i + 1])
+        if (next && !parseStandaloneAmountLine(next) && !parseLeadingDate(next, profile)) {
+          description = next
+          consumedIndex = i + 1
+        }
+      }
+    } else {
+      const remainder = normalizeSpace(line.slice(dateInfo.endIndex))
+      const descParts = []
+      if (remainder) descParts.push(remainder)
+
+      let j = i + 1
+      while (j < lines.length && descParts.length < 2) {
+        const current = lines[j]
+        if (parseLeadingDate(current, profile)) break
+        const amt = current.match(amountRegex) || parseStandaloneAmountLine(current)
+        if (amt) {
+          amountRaw = amt[1] || amt
+          consumedIndex = j
+          break
+        }
+        if (!shouldIgnoreTransactionLine(normalizeDocText(current))) {
+          descParts.push(current)
+        }
+        j++
+      }
+      description = normalizeSpace(descParts.join(' '))
+    }
+
+    if (!amountRaw || !description) continue
+
+    const installment = extractInstallmentInfo(description)
+    const merchant = cleanMerchantName(installment.cleanDescription)
+    if (!merchant) continue
+
+    const natureza = inferNatureza(description, amountRaw, profile.tipo_documento, { preferExplicitSignal: true })
+    const valor = applyAmountSignal(amountRaw, natureza, profile.tipo_documento)
+    if (!Number.isFinite(valor) || Math.abs(valor) === 0) continue
+
+    txs.push({
+      data: dateInfo.date,
+      estabelecimento: merchant,
+      valor,
+      natureza,
+      categoria: 'Outros',
+      parcelado: installment.parcelado,
+      parcela_atual: installment.parcela_atual,
+      total_parcelas: installment.total_parcelas,
+      _source_row_index: rowIndex++
+    })
+
+    i = Math.max(i, consumedIndex)
   }
 
   return dedupeTransactions(txs)
@@ -1941,6 +2038,7 @@ function getDocumentLines(document) {
 
 function detectBankName(fullText, fileName) {
   const source = `${fullText} ${normalizeDocText(fileName)}`
+  if (/\bAFINZ\b|\bAFINZ\.COM\.BR\b/.test(source)) return 'Afinz'
   if (/\bNUBANK\b|\bNU_\b|\bNU\b/.test(source)) return 'Nubank'
   if (/\bITAU\b|\bUNIBANCO\b/.test(source)) return 'Itau'
   if (/\bBRADESCO\b/.test(source)) return 'Bradesco'

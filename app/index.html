@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.23 - 31/03/2026, 15:36:38 -->
+  <!-- fincheck v1.0.24 - 31/03/2026, 15:42:54 -->
 
+  
   
   
   
@@ -588,6 +589,7 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 
     <div class="card-chips" id="cardChips"></div>
     <div class="summary-grid fu" id="summaryGrid"></div>
+    <div class="panel fu" id="debugTotals" style="display:none;animation-delay:.06s"></div>
 
     <div class="income-block fu" style="animation-delay:.05s">
       <div class="income-row">
@@ -1059,13 +1061,14 @@ function detectDocumentProfile(document) {
   const totalSaidas = extractLabeledMoney(fullText, ['TOTAL DE SAIDAS', 'TOTAL SAIDAS', 'TOTAL DE DEBITOS'])
   const totalEntradas = extractLabeledMoney(fullText, ['TOTAL DE ENTRADAS', 'TOTAL ENTRADAS', 'TOTAL DE CREDITOS'])
   const headerFatura = extractHeaderInvoiceValue(fullText)
-  const totalFatura = headerFatura || extractLabeledMoney(fullText, [
+  const resumoFatura = extractLabeledMoney(fullText, [
     'TOTAL A PAGAR',
     'TOTAL DA FATURA',
     'VALOR DA FATURA',
     'VALOR TOTAL DA FATURA',
     'FATURA ATUAL'
   ])
+  const totalFatura = headerFatura || resumoFatura
 
   return {
     bank,
@@ -1075,6 +1078,8 @@ function detectDocumentProfile(document) {
     mes_referencia: mesReferencia,
     titular,
     total_fatura: tipoDocumento === 'fatura_cartao' ? totalFatura : 0,
+    total_fatura_cabecalho: tipoDocumento === 'fatura_cartao' ? headerFatura : 0,
+    total_fatura_resumo: tipoDocumento === 'fatura_cartao' ? resumoFatura : 0,
     total_gastos_periodo: tipoDocumento === 'extrato_conta' ? Math.abs(totalSaidas) : Math.abs(totalFatura),
     period
   }
@@ -1514,6 +1519,8 @@ function finalizeParsedStatement(parsed, profile) {
     mes_referencia: parsed.mes_referencia || profile.mes_referencia,
     titular: parsed.titular || profile.titular,
     total_fatura: Math.abs(Number(parsed.total_fatura) || Number(profile.total_fatura) || 0),
+    total_fatura_cabecalho: Math.abs(Number(parsed.total_fatura_cabecalho) || Number(profile.total_fatura_cabecalho) || 0),
+    total_fatura_resumo: Math.abs(Number(parsed.total_fatura_resumo) || Number(profile.total_fatura_resumo) || 0),
     total_gastos_periodo: Math.abs(Number(parsed.total_gastos_periodo) || Number(profile.total_gastos_periodo) || 0),
     daily_expense_totals: parsed.daily_expense_totals || profile.daily_expense_totals || {},
     transacoes: normalizedTransactions
@@ -2327,6 +2334,8 @@ function mergeTransactions(parsed) {
     _statement_key: statementKey,
     _official_day_total: parsed.daily_expense_totals && tx.data ? parsed.daily_expense_totals[tx.data] || null : null,
     _statement_total_gastos_periodo: parsed.total_gastos_periodo || null,
+    _statement_total_cabecalho: parsed.total_fatura_cabecalho || null,
+    _statement_total_resumo: parsed.total_fatura_resumo || null,
     _key: tx._source_row_index != null
       ? `${statementKey}|row:${tx._source_row_index}`
       : `${statementKey}|${tx.data}|${tx.estabelecimento}|${tx.valor}|${tx.identificador || ''}|${tx.parcela_atual || ''}|${tx.total_parcelas || ''}`
@@ -2388,6 +2397,15 @@ function getFilteredTxs() {
   return allTransactions.filter(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}` === activeCard)
 }
 
+function shouldShowDebug() {
+  return new URLSearchParams(window.location.search).has('debug')
+}
+
+function pickUniquePositive(values) {
+  const uniq = [...new Set((values || []).filter(v => Number.isFinite(v) && v > 0))]
+  return uniq.length === 1 ? uniq[0] : 0
+}
+
 function renderResults() {
   const txs = getFilteredTxs()
   if (!txs.length) return
@@ -2429,6 +2447,30 @@ function renderResults() {
     <div class="sum-card"><div class="sum-label">Comprometimento</div>
       <div class="sum-val" style="color:${pctColor}">${pct}%</div>
       <div class="sum-sub">da renda/mes</div></div>`
+
+  const debugEl = document.getElementById('debugTotals')
+  if (debugEl) {
+    if (!shouldShowDebug()) {
+      debugEl.style.display = 'none'
+    } else {
+      const headerTotal = pickUniquePositive(txs.map(t => Number(t._statement_total_cabecalho || 0)))
+      const resumoTotal = pickUniquePositive(txs.map(t => Number(t._statement_total_resumo || 0)))
+      const periodoTotal = pickUniquePositive(txs.map(t => Number(t._statement_total_gastos_periodo || 0)))
+      const diffHeader = headerTotal ? (headerTotal - total) : 0
+      const diffResumo = resumoTotal ? (resumoTotal - total) : 0
+      debugEl.style.display = 'block'
+      debugEl.innerHTML = `
+        <div class="ptitle" style="margin-bottom:.5rem">debug • totais detectados</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem;font-size:.78rem">
+          <div><span style="color:var(--text3)">total calculado</span><br><strong>${fmt(total)}</strong></div>
+          <div><span style="color:var(--text3)">cabecalho</span><br><strong>${headerTotal ? fmt(headerTotal) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">resumo</span><br><strong>${resumoTotal ? fmt(resumoTotal) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">periodo</span><br><strong>${periodoTotal ? fmt(periodoTotal) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">delta cabecalho</span><br><strong>${headerTotal ? fmt(diffHeader) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">delta resumo</span><br><strong>${resumoTotal ? fmt(diffResumo) : '—'}</strong></div>
+        </div>`
+    }
+  }
 
   document.getElementById('incomeDisplay').textContent = fmt(renda)
   document.getElementById('rendaVal').textContent = fmt(renda)

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.27 - 31/03/2026, 17:56:09 -->
+  <!-- fincheck v1.0.28 - 31/03/2026, 19:40:06 -->
 
+  
   
   
   
@@ -1508,10 +1509,46 @@ function parseTransactionCandidate(line, profile, options) {
 }
 
 function finalizeParsedStatement(parsed, profile) {
-  const normalizedTransactions = dedupeTransactions((parsed.transacoes || []).map(tx => normalizeTransaction(tx, parsed)))
+  let normalizedTransactions = dedupeTransactions((parsed.transacoes || []).map(tx => normalizeTransaction(tx, parsed)))
   if (!normalizedTransactions.length) {
-    const kind = parsed && parsed.tipo_documento === 'extrato_conta' ? 'extrato' : 'fatura'
-    throw new Error(`Nao consegui identificar transacoes suficientes neste ${kind}. Envie um PDF digital com a lista detalhada de movimentacoes. Se for conta corrente, CSV ou OFX tende a funcionar melhor.`)
+    const tipoDocumento = parsed.tipo_documento || profile.tipo_documento
+    const fallbackTotal = Math.abs(Number(parsed.total_fatura) || Number(profile.total_fatura) || 0)
+
+    if (tipoDocumento === 'fatura_cartao' && fallbackTotal > 0) {
+      let fallbackDate = ''
+      const period = parsed.period || profile.period
+      if (period && period.end) {
+        fallbackDate = formatDateParts(period.end.day, period.end.month, period.end.year)
+      } else {
+        const ref = String(parsed.mes_referencia || profile.mes_referencia || '')
+        const parts = ref.split('/')
+        if (parts.length === 2) {
+          const month = Number(parts[0])
+          const year = Number(parts[1])
+          if (Number.isFinite(month) && Number.isFinite(year)) {
+            const lastDay = new Date(year, month, 0).getDate()
+            fallbackDate = formatDateParts(lastDay, month, year)
+          }
+        }
+      }
+
+      const synthetic = normalizeTransaction({
+        data: fallbackDate,
+        estabelecimento: 'Total da fatura',
+        valor: fallbackTotal,
+        natureza: 'gasto',
+        categoria: 'Outros',
+        parcelado: false,
+        parcela_atual: null,
+        total_parcelas: null,
+        _raw_description: 'TOTAL DA FATURA'
+      }, parsed)
+
+      normalizedTransactions = dedupeTransactions([synthetic])
+    } else {
+      const kind = tipoDocumento === 'extrato_conta' ? 'extrato' : 'fatura'
+      throw new Error(`Nao consegui identificar transacoes suficientes neste ${kind}. Envie um PDF digital com a lista detalhada de movimentacoes. Se for conta corrente, CSV ou OFX tende a funcionar melhor.`)
+    }
   }
 
   const result = {

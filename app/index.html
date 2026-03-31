@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.20 - 31/03/2026, 15:18:34 -->
+  <!-- fincheck v1.0.21 - 31/03/2026, 15:26:44 -->
 
+  
   
   
   
@@ -2732,17 +2733,15 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
 
   // Calcular total em centavos para precisão absoluta
   const parsedExpenseTotalCents = sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0)))
-  const parsedExpenseTotal = fromCents(parsedExpenseTotalCents)
 
   const dailyTotals = effectiveDailyTotals || getEffectiveDailyTotals(expenseTxs)
   const dailyTotalSumCents = sumCents(Object.values(dailyTotals))
-  const dailyTotalSum = fromCents(dailyTotalSumCents)
 
   // Só usar a soma dos totais por dia quando estiver consistente com parsedExpenseTotal.
   // Caso contrário, usamos o total direto do parser para evitar deixar sair diferença.
-  const baseTotal = (dailyTotalSum > 0 && Math.abs(dailyTotalSum - parsedExpenseTotal) <= 1)
-    ? dailyTotalSum
-    : parsedExpenseTotal
+  const baseTotalCents = (dailyTotalSumCents > 0 && Math.abs(dailyTotalSumCents - parsedExpenseTotalCents) <= 100)
+    ? dailyTotalSumCents
+    : parsedExpenseTotalCents
 
   // Calcular ajustes em centavos
   const statementAdjustmentsCents = sumCents(source
@@ -2750,9 +2749,8 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
                   (tx.natureza === 'estorno' || tx.natureza === 'ajuste') &&
                   !isCardPaymentEntry(tx))
     .map(tx => Math.abs(Number(tx.valor) || 0)))
-  const statementAdjustments = fromCents(statementAdjustmentsCents)
 
-  const computedTotal = Math.max(0, baseTotal - statementAdjustments)
+  const computedTotalCents = Math.max(0, baseTotalCents - statementAdjustmentsCents)
 
   // Se houver total oficial da fatura disponível, use esse como fonte de verdade
   const statementTotals = [...new Set(source
@@ -2760,20 +2758,20 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
     .filter(v => Number.isFinite(v) && v > 0))]
 
   if (statementTotals.length === 1) {
-    const statementTotal = statementTotals[0]
+    const statementTotalCents = toCents(statementTotals[0])
     // Só confiar no total oficial quando ele estiver alinhado ao total calculado com estornos.
-    if (Math.abs(statementTotal - computedTotal) <= 0.01) {
-      return statementTotal
+    if (Math.abs(statementTotalCents - computedTotalCents) <= 1) {
+      return fromCents(statementTotalCents)
     }
   }
 
   // Protect the UI from inconsistent totals when parsed expenses exist
   // but a statement-level heuristic collapses the amount to zero.
-  if (computedTotal <= 0 && parsedExpenseTotal > 0) {
-    return parsedExpenseTotal
+  if (computedTotalCents <= 0 && parsedExpenseTotalCents > 0) {
+    return fromCents(parsedExpenseTotalCents)
   }
 
-  return computedTotal
+  return fromCents(computedTotalCents)
 }
 
 function isCardPaymentEntry(tx) {

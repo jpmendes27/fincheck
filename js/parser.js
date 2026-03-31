@@ -33,7 +33,7 @@ function parseTransactions(text) {
 
   const dateRegex = /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/;
   const valueRegex = /(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/;
-  const negativeValueRegex = /-\s*(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/;
+  const negativeValueRegex = /[-−–]\s*(?:R\$\s*)?(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})\b/;
   const stopWords = /\b(total|fatura anterior|pagamento|encargos|juros|saldo|pli|dinheiro|cielo|tef|cnpj|cpf|loja)\b/i;
 
   const categorias = {
@@ -54,7 +54,8 @@ function parseTransactions(text) {
     if (stopWords.test(line)) continue;
 
     const dateMatch = line.match(dateRegex);
-    const valueMatch = line.match(valueRegex) || line.match(negativeValueRegex);
+    const negMatch = line.match(negativeValueRegex);
+    const valueMatch = line.match(valueRegex) || negMatch;
     if (!dateMatch || !valueMatch) continue;
 
     const day = Number(dateMatch[1]);
@@ -64,7 +65,9 @@ function parseTransactions(text) {
     const data = `${day.toString().padStart(2, '0')}/${month.toString().padStart(2, '0')}/${year}`;
 
     let valor = Number(valueMatch[1].replace(/\./g, '') + '.' + valueMatch[2]);
-    if (line.includes('-') && !line.trim().startsWith('-')) {
+    if (negMatch) {
+      valor = -Math.abs(valor);
+    } else if (/[−–-]/.test(line) && !/^[−–-]/.test(line.trim())) {
       valor = -Math.abs(valor);
     }
 
@@ -152,6 +155,7 @@ function parseTransactions(text) {
   };
   const txSet = new Set(transactions.map(t => `${t.data}|${t.estabelecimento}|${t.valor}`));
   let inTransactions = false;
+  const nubankExclude = /\b(pagamento|fatura anterior|saldo restante|pagamento recebido|pagamento em)\b/i;
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     if (line.toUpperCase() === 'TRANSAÇÕES') {
@@ -177,9 +181,9 @@ function parseTransactions(text) {
     while (k < lines.length && lines[k].length === 0) k++;
     if (k >= lines.length) continue;
     const valLine = lines[k];
-    const mv = valLine.match(/(-?)\s*R\$\s*(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})/);
+    const mv = valLine.match(/([−–-]?)\s*R\$\s*(\d{1,3}(?:\.\d{3})*|\d+),(\d{2})/);
     if (!mv) continue;
-    const sign = mv[1] === '-' ? -1 : 1;
+    const sign = /[−–-]/.test(mv[1]) ? -1 : 1;
     const valor = sign * Number(mv[2].replace(/\./g, '') + '.' + mv[3]);
 
     estabelecimento = estabelecimento
@@ -187,6 +191,7 @@ function parseTransactions(text) {
       .replace(/[^\wÀ-ÿ\s]/g, '')
       .trim();
     if (estabelecimento.length < 3 || Math.abs(valor) < 0.5) continue;
+    if (stopWords.test(estabelecimento) || nubankExclude.test(estabelecimento)) continue;
 
     let categoria = 'Outros';
     const lowerEstab = estabelecimento.toLowerCase();

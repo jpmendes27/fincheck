@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.19 - 31/03/2026, 14:38:47 -->
+  <!-- fincheck v1.0.20 - 31/03/2026, 15:18:34 -->
 
+  
   
   
   
@@ -1054,7 +1055,13 @@ function detectDocumentProfile(document) {
   const titular = extractHolderName(lines)
   const totalSaidas = extractLabeledMoney(fullText, ['TOTAL DE SAIDAS', 'TOTAL SAIDAS', 'TOTAL DE DEBITOS'])
   const totalEntradas = extractLabeledMoney(fullText, ['TOTAL DE ENTRADAS', 'TOTAL ENTRADAS', 'TOTAL DE CREDITOS'])
-  const totalFatura = extractLabeledMoney(fullText, ['TOTAL DA FATURA', 'VALOR DA FATURA', 'FATURA ATUAL', 'TOTAL'])
+  const totalFatura = extractLabeledMoney(fullText, [
+    'TOTAL A PAGAR',
+    'TOTAL DA FATURA',
+    'VALOR DA FATURA',
+    'VALOR TOTAL DA FATURA',
+    'FATURA ATUAL'
+  ])
 
   return {
     bank,
@@ -2754,7 +2761,8 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
 
   if (statementTotals.length === 1) {
     const statementTotal = statementTotals[0]
-    if (Math.abs(statementTotal - computedTotal) <= 0.01 || Math.abs(statementTotal - parsedExpenseTotal) <= 0.02) {
+    // Só confiar no total oficial quando ele estiver alinhado ao total calculado com estornos.
+    if (Math.abs(statementTotal - computedTotal) <= 0.01) {
       return statementTotal
     }
   }

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.32 - 31/03/2026, 20:54:47 -->
+  <!-- fincheck v1.0.33 - 31/03/2026, 21:00:41 -->
 
+  
   
   
   
@@ -814,7 +815,7 @@ async function extractImageDocument(file, onProgress) {
     throw new Error('OCR indisponivel no momento. Tente novamente em alguns instantes.')
   }
 
-  const result = await Tesseract.recognize(file, 'por+eng', {
+  const worker = await Tesseract.createWorker({
     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
     corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.1.1/tesseract-core-simd-lstm.wasm.js',
     langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/tessdata',
@@ -825,11 +826,33 @@ async function extractImageDocument(file, onProgress) {
     }
   })
 
-  const text = String(result && result.data && result.data.text ? result.data.text : '')
-  const rawItemLines = text
-    .split(/\r?\n/)
-    .map(normalizeSpace)
-    .filter(Boolean)
+  await worker.loadLanguage('por+eng')
+  await worker.initialize('por+eng')
+  await worker.setParameters({
+    tessedit_pageseg_mode: '6',
+    preserve_interword_spaces: '1'
+  })
+
+  const fullBlob = await prepareImageForOCR(file, { scale: 2, threshold: true })
+  const cropBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.55, w: 1, h: 0.45 } })
+
+  const fullResult = await worker.recognize(fullBlob)
+  const cropResult = await worker.recognize(cropBlob)
+
+  await worker.terminate()
+
+  const fullText = String(fullResult && fullResult.data && fullResult.data.text ? fullResult.data.text : '')
+  const cropText = String(cropResult && cropResult.data && cropResult.data.text ? cropResult.data.text : '')
+  const combinedText = `${fullText}\n${cropText}`
+
+  const lineFromData = data =>
+    (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
+
+  const rawItemLines = [
+    ...lineFromData(fullResult.data),
+    ...lineFromData(cropResult.data),
+    ...combinedText.split(/\r?\n/).map(normalizeSpace).filter(Boolean)
+  ]
 
   onProgress(100)
 
@@ -837,10 +860,61 @@ async function extractImageDocument(file, onProgress) {
     fileName: file.name,
     sourceKind: 'image',
     text: rawItemLines.join('\n'),
-    rawText: text,
+    rawText: combinedText,
     rawItemLines,
     pages: [{ pageNumber: 1, lines: rawItemLines.map(line => ({ text: line })) }]
   }
+}
+
+async function prepareImageForOCR(file, options = {}) {
+  const scale = options.scale || 2
+  const threshold = Boolean(options.threshold)
+  const crop = options.crop || null
+
+  const bitmap = await createImageBitmap(file)
+  const sx = crop ? Math.floor(bitmap.width * crop.x) : 0
+  const sy = crop ? Math.floor(bitmap.height * crop.y) : 0
+  const sw = crop ? Math.floor(bitmap.width * crop.w) : bitmap.width
+  const sh = crop ? Math.floor(bitmap.height * crop.h) : bitmap.height
+
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.floor(sw * scale))
+  canvas.height = Math.max(1, Math.floor(sh * scale))
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const data = imageData.data
+  let sum = 0
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+    const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b)
+    data[i] = gray
+    data[i + 1] = gray
+    data[i + 2] = gray
+    sum += gray
+  }
+
+  if (threshold) {
+    const avg = sum / (data.length / 4)
+    const cutoff = Math.max(90, Math.min(190, avg))
+    for (let i = 0; i < data.length; i += 4) {
+      const v = data[i] > cutoff ? 255 : 0
+      data[i] = v
+      data[i + 1] = v
+      data[i + 2] = v
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0)
+
+  return new Promise(resolve => {
+    canvas.toBlob(blob => resolve(blob || file), 'image/png')
+  })
 }
 
 async function parseImportedFile(file, kind, onProgress) {

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.33 - 31/03/2026, 21:00:41 -->
+  <!-- fincheck v1.0.34 - 31/03/2026, 21:11:58 -->
 
+  
   
   
   
@@ -826,43 +827,51 @@ async function extractImageDocument(file, onProgress) {
     }
   })
 
-  await worker.loadLanguage('por+eng')
-  await worker.initialize('por+eng')
-  await worker.setParameters({
-    tessedit_pageseg_mode: '6',
-    preserve_interword_spaces: '1'
+  const timeoutMs = 90000
+  const withTimeout = (promise, label) => new Promise((resolve, reject) => {
+    const id = setTimeout(() => reject(new Error(`${label} demorou demais. Tente novamente com uma imagem mais nítida.`)), timeoutMs)
+    promise.then(v => { clearTimeout(id); resolve(v) }).catch(err => { clearTimeout(id); reject(err) })
   })
 
-  const fullBlob = await prepareImageForOCR(file, { scale: 2, threshold: true })
-  const cropBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.55, w: 1, h: 0.45 } })
+  try {
+    await worker.loadLanguage('por+eng')
+    await worker.initialize('por+eng')
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1'
+    })
 
-  const fullResult = await worker.recognize(fullBlob)
-  const cropResult = await worker.recognize(cropBlob)
+    const fullBlob = await prepareImageForOCR(file, { scale: 2, threshold: true })
+    const cropBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.55, w: 1, h: 0.45 } })
 
-  await worker.terminate()
+    const fullResult = await withTimeout(worker.recognize(fullBlob), 'OCR da imagem completa')
+    const cropResult = await withTimeout(worker.recognize(cropBlob), 'OCR da area de transacoes')
 
-  const fullText = String(fullResult && fullResult.data && fullResult.data.text ? fullResult.data.text : '')
-  const cropText = String(cropResult && cropResult.data && cropResult.data.text ? cropResult.data.text : '')
-  const combinedText = `${fullText}\n${cropText}`
+    const fullText = String(fullResult && fullResult.data && fullResult.data.text ? fullResult.data.text : '')
+    const cropText = String(cropResult && cropResult.data && cropResult.data.text ? cropResult.data.text : '')
+    const combinedText = `${fullText}\n${cropText}`
 
-  const lineFromData = data =>
-    (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
+    const lineFromData = data =>
+      (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
 
-  const rawItemLines = [
-    ...lineFromData(fullResult.data),
-    ...lineFromData(cropResult.data),
-    ...combinedText.split(/\r?\n/).map(normalizeSpace).filter(Boolean)
-  ]
+    const rawItemLines = [
+      ...lineFromData(fullResult.data),
+      ...lineFromData(cropResult.data),
+      ...combinedText.split(/\r?\n/).map(normalizeSpace).filter(Boolean)
+    ]
 
-  onProgress(100)
+    onProgress(100)
 
-  return {
-    fileName: file.name,
-    sourceKind: 'image',
-    text: rawItemLines.join('\n'),
-    rawText: combinedText,
-    rawItemLines,
-    pages: [{ pageNumber: 1, lines: rawItemLines.map(line => ({ text: line })) }]
+    return {
+      fileName: file.name,
+      sourceKind: 'image',
+      text: rawItemLines.join('\n'),
+      rawText: combinedText,
+      rawItemLines,
+      pages: [{ pageNumber: 1, lines: rawItemLines.map(line => ({ text: line })) }]
+    }
+  } finally {
+    await worker.terminate()
   }
 }
 

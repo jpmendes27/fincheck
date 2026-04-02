@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.34 - 31/03/2026, 21:11:58 -->
+  <!-- fincheck v1.0.35 - 02/04/2026, 16:54:19 -->
 
+  
   
   
   
@@ -816,6 +817,10 @@ async function extractImageDocument(file, onProgress) {
     throw new Error('OCR indisponivel no momento. Tente novamente em alguns instantes.')
   }
 
+  const bitmap = await createImageBitmap(file)
+  const pixelCount = bitmap.width * bitmap.height
+  const isLargeImage = pixelCount > 3_000_000
+
   const worker = await Tesseract.createWorker({
     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
     corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.1.1/tesseract-core-simd-lstm.wasm.js',
@@ -841,22 +846,35 @@ async function extractImageDocument(file, onProgress) {
       preserve_interword_spaces: '1'
     })
 
-    const fullBlob = await prepareImageForOCR(file, { scale: 2, threshold: true })
-    const cropBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.55, w: 1, h: 0.45 } })
-
-    const fullResult = await withTimeout(worker.recognize(fullBlob), 'OCR da imagem completa')
-    const cropResult = await withTimeout(worker.recognize(cropBlob), 'OCR da area de transacoes')
-
-    const fullText = String(fullResult && fullResult.data && fullResult.data.text ? fullResult.data.text : '')
-    const cropText = String(cropResult && cropResult.data && cropResult.data.text ? cropResult.data.text : '')
-    const combinedText = `${fullText}\n${cropText}`
+    const fullBlob = isLargeImage ? null : await prepareImageForOCR(file, { scale: 2, threshold: true, bitmap })
+    const topBlob = await prepareImageForOCR(file, { scale: 2, threshold: true, crop: { x: 0, y: 0, w: 1, h: 0.5 }, bitmap })
+    const bottomBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.45, w: 1, h: 0.55 }, bitmap })
 
     const lineFromData = data =>
       (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
 
+    const results = []
+    if (fullBlob) {
+      results.push(await withTimeout(worker.recognize(fullBlob), 'OCR da imagem completa'))
+    }
+    results.push(await withTimeout(worker.recognize(topBlob), 'OCR do cabecalho'))
+    results.push(await withTimeout(worker.recognize(bottomBlob), 'OCR das transacoes'))
+
+    const bottomLines = lineFromData(results[results.length - 1].data)
+    if (bottomLines.length < 6) {
+      await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' })
+      const bottomSparseBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.55, w: 1, h: 0.45 }, bitmap })
+      results.push(await withTimeout(worker.recognize(bottomSparseBlob), 'OCR das transacoes (sparse)'))
+      await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
+    }
+
+    const combinedText = results
+      .map(r => String(r && r.data && r.data.text ? r.data.text : ''))
+      .filter(Boolean)
+      .join('\n')
+
     const rawItemLines = [
-      ...lineFromData(fullResult.data),
-      ...lineFromData(cropResult.data),
+      ...results.flatMap(r => lineFromData(r.data)),
       ...combinedText.split(/\r?\n/).map(normalizeSpace).filter(Boolean)
     ]
 
@@ -879,8 +897,7 @@ async function prepareImageForOCR(file, options = {}) {
   const scale = options.scale || 2
   const threshold = Boolean(options.threshold)
   const crop = options.crop || null
-
-  const bitmap = await createImageBitmap(file)
+  const bitmap = options.bitmap || await createImageBitmap(file)
   const sx = crop ? Math.floor(bitmap.width * crop.x) : 0
   const sy = crop ? Math.floor(bitmap.height * crop.y) : 0
   const sw = crop ? Math.floor(bitmap.width * crop.w) : bitmap.width

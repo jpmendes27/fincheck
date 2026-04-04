@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.36 - 04/04/2026, 19:33:40 -->
+  <!-- fincheck v1.0.37 - 04/04/2026, 19:35:45 -->
 
+  
   
   
   
@@ -837,7 +838,7 @@ async function extractImageDocument(file, onProgress) {
     }
   })
 
-  const timeoutMs = 90000
+  const timeoutMs = 20000
   const withTimeout = (promise, label) => new Promise((resolve, reject) => {
     const id = setTimeout(() => reject(new Error(`${label} demorou demais. Tente novamente com uma imagem mais nítida.`)), timeoutMs)
     promise.then(v => { clearTimeout(id); resolve(v) }).catch(err => { clearTimeout(id); reject(err) })

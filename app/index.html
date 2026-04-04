@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.37 - 04/04/2026, 19:35:45 -->
+  <!-- fincheck v1.0.38 - 04/04/2026, 19:49:53 -->
 
+  
   
   
   
@@ -839,8 +840,15 @@ async function extractImageDocument(file, onProgress) {
   })
 
   const timeoutMs = 20000
+  const startedAt = performance.now()
+  const timeLeft = () => Math.max(0, timeoutMs - (performance.now() - startedAt))
   const withTimeout = (promise, label) => new Promise((resolve, reject) => {
-    const id = setTimeout(() => reject(new Error(`${label} demorou demais. Tente novamente com uma imagem mais nítida.`)), timeoutMs)
+    const remaining = timeLeft()
+    if (remaining <= 0) {
+      reject(new Error(`Tempo limite do OCR atingido. Tente novamente com uma imagem mais nítida.`))
+      return
+    }
+    const id = setTimeout(() => reject(new Error(`${label} demorou demais. Tente novamente com uma imagem mais nítida.`)), remaining)
     promise.then(v => { clearTimeout(id); resolve(v) }).catch(err => { clearTimeout(id); reject(err) })
   })
 
@@ -860,14 +868,19 @@ async function extractImageDocument(file, onProgress) {
       (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
 
     const results = []
-    if (fullBlob) {
+    if (fullBlob && timeLeft() > 3000) {
       results.push(await withTimeout(worker.recognize(fullBlob), 'OCR da imagem completa'))
     }
-    results.push(await withTimeout(worker.recognize(topBlob), 'OCR do cabecalho'))
-    results.push(await withTimeout(worker.recognize(bottomBlob), 'OCR das transacoes'))
+    if (timeLeft() > 2000) {
+      results.push(await withTimeout(worker.recognize(topBlob), 'OCR do cabecalho'))
+    }
+    if (timeLeft() > 2000) {
+      results.push(await withTimeout(worker.recognize(bottomBlob), 'OCR das transacoes'))
+    }
 
-    const bottomLines = lineFromData(results[results.length - 1].data)
-    if (bottomLines.length < 6) {
+    const lastResult = results[results.length - 1]
+    const bottomLines = lastResult ? lineFromData(lastResult.data) : []
+    if (bottomLines.length < 6 && timeLeft() > 4000) {
       await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' })
       const bottomSparseBlob = await prepareImageForOCR(file, { scale: bottomScale, threshold: true, crop: bottomCrop, bitmap })
       results.push(await withTimeout(worker.recognize(bottomSparseBlob), 'OCR das transacoes (sparse)'))

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.38 - 04/04/2026, 19:49:53 -->
+  <!-- fincheck v1.0.39 - 04/04/2026, 20:26:50 -->
 
+  
   
   
   
@@ -1245,13 +1246,14 @@ function detectDocumentProfile(document) {
   const totalSaidas = extractLabeledMoney(fullText, ['TOTAL DE SAIDAS', 'TOTAL SAIDAS', 'TOTAL DE DEBITOS'])
   const totalEntradas = extractLabeledMoney(fullText, ['TOTAL DE ENTRADAS', 'TOTAL ENTRADAS', 'TOTAL DE CREDITOS'])
   const headerFatura = extractHeaderInvoiceValue(fullText)
-  const resumoFatura = extractLabeledMoneyWithLabel(fullText, [
+  const resumoBlock = extractSummaryBlock(fullText)
+  const resumoFatura = extractLabeledMoneyWithLabel(resumoBlock || fullText, [
     'TOTAL A PAGAR',
     'TOTAL DA FATURA',
     'VALOR DA FATURA',
     'VALOR TOTAL DA FATURA',
     'FATURA ATUAL'
-  ])
+  ], fullText)
   const totalFatura = headerFatura || resumoFatura.value
 
   return {
@@ -2337,7 +2339,7 @@ function extractLabeledMoney(fullText, labels) {
   return 0
 }
 
-function extractLabeledMoneyWithLabel(fullText, labels) {
+function extractLabeledMoneyWithLabel(fullText, labels, fallbackText = '') {
   const matchLabeled = (text, label) =>
     text.match(new RegExp(`${label}[\\s\\S]{0,40}?([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
 
@@ -2353,7 +2355,32 @@ function extractLabeledMoneyWithLabel(fullText, labels) {
     if (match) return { value: parseMoneyNumber(match[1]), label }
   }
 
+  if (fallbackText) {
+    return extractLabeledMoneyWithLabel(fallbackText, labels, '')
+  }
+
   return { value: 0, label: '' }
+}
+
+function extractSummaryBlock(fullText) {
+  const start = fullText.indexOf('RESUMO')
+  if (start === -1) return ''
+  const tail = fullText.slice(start)
+  const endMarkers = [
+    'PAGAMENTO MINIMO',
+    'PAGAMENTO TOTAL',
+    'IMPORTANTE',
+    'AUTENTICACAO',
+    'FICHA DE COMPENSACAO',
+    'PAGAMENTOS POR BOLETO',
+    'SAIBA QUAIS SAO AS MODALIDADES'
+  ]
+  let end = tail.length
+  for (const marker of endMarkers) {
+    const idx = tail.indexOf(marker)
+    if (idx !== -1 && idx < end) end = idx
+  }
+  return tail.slice(0, Math.min(end, 1200))
 }
 
 function extractHeaderInvoiceValue(fullText) {

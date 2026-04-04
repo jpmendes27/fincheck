@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.35 - 02/04/2026, 16:54:19 -->
+  <!-- fincheck v1.0.36 - 04/04/2026, 19:33:40 -->
 
+  
   
   
   
@@ -820,6 +821,10 @@ async function extractImageDocument(file, onProgress) {
   const bitmap = await createImageBitmap(file)
   const pixelCount = bitmap.width * bitmap.height
   const isLargeImage = pixelCount > 3_000_000
+  const baseScale = bitmap.width < 1200 ? 3 : bitmap.width < 1800 ? 2.5 : 2
+  const bottomScale = bitmap.width < 1200 ? 4 : bitmap.width < 1800 ? 3.2 : 2.6
+  const autoCrop = detectDenseTextRegion(bitmap, { startY: 0.4 })
+  const bottomCrop = autoCrop || { x: 0, y: 0.45, w: 1, h: 0.55 }
 
   const worker = await Tesseract.createWorker({
     workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
@@ -846,9 +851,9 @@ async function extractImageDocument(file, onProgress) {
       preserve_interword_spaces: '1'
     })
 
-    const fullBlob = isLargeImage ? null : await prepareImageForOCR(file, { scale: 2, threshold: true, bitmap })
-    const topBlob = await prepareImageForOCR(file, { scale: 2, threshold: true, crop: { x: 0, y: 0, w: 1, h: 0.5 }, bitmap })
-    const bottomBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.45, w: 1, h: 0.55 }, bitmap })
+    const fullBlob = isLargeImage ? null : await prepareImageForOCR(file, { scale: baseScale, threshold: true, bitmap })
+    const topBlob = await prepareImageForOCR(file, { scale: baseScale, threshold: true, crop: { x: 0, y: 0, w: 1, h: 0.5 }, bitmap })
+    const bottomBlob = await prepareImageForOCR(file, { scale: bottomScale, threshold: true, crop: bottomCrop, bitmap })
 
     const lineFromData = data =>
       (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
@@ -863,7 +868,7 @@ async function extractImageDocument(file, onProgress) {
     const bottomLines = lineFromData(results[results.length - 1].data)
     if (bottomLines.length < 6) {
       await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' })
-      const bottomSparseBlob = await prepareImageForOCR(file, { scale: 3, threshold: true, crop: { x: 0, y: 0.55, w: 1, h: 0.45 }, bitmap })
+      const bottomSparseBlob = await prepareImageForOCR(file, { scale: bottomScale, threshold: true, crop: bottomCrop, bitmap })
       results.push(await withTimeout(worker.recognize(bottomSparseBlob), 'OCR das transacoes (sparse)'))
       await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
     }
@@ -941,6 +946,60 @@ async function prepareImageForOCR(file, options = {}) {
   return new Promise(resolve => {
     canvas.toBlob(blob => resolve(blob || file), 'image/png')
   })
+}
+
+function detectDenseTextRegion(bitmap, options = {}) {
+  const startY = options.startY || 0.4
+  const targetW = 360
+  const scale = Math.min(1, targetW / bitmap.width)
+  const w = Math.max(1, Math.floor(bitmap.width * scale))
+  const h = Math.max(1, Math.floor(bitmap.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(bitmap, 0, 0, w, h)
+
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const data = imageData.data
+  const rowDark = new Array(h).fill(0)
+  for (let y = 0; y < h; y++) {
+    let count = 0
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+      const gray = (0.299 * r + 0.587 * g + 0.114 * b)
+      if (gray < 170) count++
+    }
+    rowDark[y] = count / w
+  }
+
+  const startRow = Math.floor(h * startY)
+  const threshold = 0.08
+  let best = null
+  let currentStart = null
+  for (let y = startRow; y < h; y++) {
+    const isDense = rowDark[y] > threshold
+    if (isDense && currentStart == null) currentStart = y
+    if (!isDense && currentStart != null) {
+      const end = y
+      const size = end - currentStart
+      if (!best || size > best.size) best = { start: currentStart, end, size }
+      currentStart = null
+    }
+  }
+  if (currentStart != null) {
+    const end = h
+    const size = end - currentStart
+    if (!best || size > best.size) best = { start: currentStart, end, size }
+  }
+
+  if (!best || best.size < h * 0.15) return null
+  const cropY = best.start / h
+  const cropH = best.size / h
+  return { x: 0, y: Math.max(0, cropY - 0.02), w: 1, h: Math.min(1, cropH + 0.04) }
 }
 
 async function parseImportedFile(file, kind, onProgress) {
@@ -1172,25 +1231,27 @@ function detectDocumentProfile(document) {
   const totalSaidas = extractLabeledMoney(fullText, ['TOTAL DE SAIDAS', 'TOTAL SAIDAS', 'TOTAL DE DEBITOS'])
   const totalEntradas = extractLabeledMoney(fullText, ['TOTAL DE ENTRADAS', 'TOTAL ENTRADAS', 'TOTAL DE CREDITOS'])
   const headerFatura = extractHeaderInvoiceValue(fullText)
-  const resumoFatura = extractLabeledMoney(fullText, [
+  const resumoFatura = extractLabeledMoneyWithLabel(fullText, [
     'TOTAL A PAGAR',
     'TOTAL DA FATURA',
     'VALOR DA FATURA',
     'VALOR TOTAL DA FATURA',
     'FATURA ATUAL'
   ])
-  const totalFatura = headerFatura || resumoFatura
+  const totalFatura = headerFatura || resumoFatura.value
 
   return {
     bank,
     tipo_documento: tipoDocumento,
+    source_kind: document.sourceKind || null,
     identificador: identifier,
     ultimos_digitos: extractLast4(identifier),
     mes_referencia: mesReferencia,
     titular,
     total_fatura: tipoDocumento === 'fatura_cartao' ? totalFatura : 0,
     total_fatura_cabecalho: tipoDocumento === 'fatura_cartao' ? headerFatura : 0,
-    total_fatura_resumo: tipoDocumento === 'fatura_cartao' ? resumoFatura : 0,
+    total_fatura_resumo: tipoDocumento === 'fatura_cartao' ? resumoFatura.value : 0,
+    total_fatura_resumo_label: tipoDocumento === 'fatura_cartao' ? resumoFatura.label : '',
     total_gastos_periodo: tipoDocumento === 'extrato_conta' ? Math.abs(totalSaidas) : Math.abs(totalFatura),
     period
   }
@@ -1595,28 +1656,28 @@ function parseImageTransactionLines(document, profile) {
 
   const txs = []
   let rowIndex = 0
-  const amountRegex = /([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/i
+  const amountRegex = /([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*[.,]\d{2})/gi
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i]
+    const line = normalizeOcrDatePrefix(lines[i])
     const normalized = normalizeDocText(line)
     if (shouldIgnoreTransactionLine(normalized)) continue
 
-    const dateInfo = parseLeadingDate(line, profile)
+    const dateInfo = parseLeadingDate(line, profile) || parseLeadingDateOcr(line, profile)
     if (!dateInfo) continue
 
-    const sameLineAmount = line.match(amountRegex)
+    const sameLineAmount = extractLastAmountMatch(line, amountRegex)
     let amountRaw = ''
     let description = ''
     let consumedIndex = i
 
     if (sameLineAmount) {
       amountRaw = sameLineAmount[1]
-      const remainder = normalizeSpace(line.slice(dateInfo.endIndex, sameLineAmount.index))
+      const remainder = normalizeSpace(line.slice(dateInfo.endIndex).replace(sameLineAmount[1], ' '))
       description = remainder
       if (!description && i + 1 < lines.length) {
         const next = normalizeSpace(lines[i + 1])
-        if (next && !parseStandaloneAmountLine(next) && !parseLeadingDate(next, profile)) {
+        if (next && !parseStandaloneAmountLine(next) && !parseLeadingDate(next, profile) && !parseLeadingDateOcr(next, profile)) {
           description = next
           consumedIndex = i + 1
         }
@@ -1628,11 +1689,11 @@ function parseImageTransactionLines(document, profile) {
 
       let j = i + 1
       while (j < lines.length && descParts.length < 2) {
-        const current = lines[j]
-        if (parseLeadingDate(current, profile)) break
-        const amt = current.match(amountRegex) || parseStandaloneAmountLine(current)
-        if (amt) {
-          amountRaw = amt[1] || amt
+        const current = normalizeOcrDatePrefix(lines[j])
+        if (parseLeadingDate(current, profile) || parseLeadingDateOcr(current, profile)) break
+        const amtMatch = extractLastAmountMatch(current, amountRegex) || (parseStandaloneAmountLine(current) ? [parseStandaloneAmountLine(current)] : null)
+        if (amtMatch) {
+          amountRaw = amtMatch[1] || amtMatch[0] || amtMatch
           consumedIndex = j
           break
         }
@@ -1670,6 +1731,36 @@ function parseImageTransactionLines(document, profile) {
   }
 
   return dedupeTransactions(txs)
+}
+
+function normalizeOcrDatePrefix(line) {
+  const prefix = line.slice(0, 6)
+    .replace(/[Oo]/g, '0')
+    .replace(/[Il]/g, '1')
+  return prefix + line.slice(6)
+}
+
+function parseLeadingDateOcr(line, profile) {
+  const source = normalizeSpace(line)
+  const match = source.match(/^(\d{1,2})\s*[\/\-]?\s*(\d{1,2})\b/)
+  if (!match) return null
+  const day = Number(match[1])
+  const month = Number(match[2])
+  if (month < 1 || month > 12) return null
+  const year = inferYear(null, month, profile)
+  return {
+    date: formatDateParts(day, month, year),
+    endIndex: match[0].length
+  }
+}
+
+function extractLastAmountMatch(line, regex) {
+  let last = null
+  let match
+  while ((match = regex.exec(line)) !== null) {
+    last = match
+  }
+  return last
 }
 
 function parseTransactionCandidate(line, profile, options) {
@@ -1757,6 +1848,7 @@ function finalizeParsedStatement(parsed, profile) {
   const result = {
     tipo_documento: parsed.tipo_documento || profile.tipo_documento,
     banco: parsed.banco || profile.bank,
+    source_kind: parsed.source_kind || profile.source_kind || null,
     identificador: parsed.identificador || profile.identificador || 'principal',
     ultimos_digitos: parsed.ultimos_digitos || profile.ultimos_digitos,
     mes_referencia: parsed.mes_referencia || profile.mes_referencia,
@@ -1764,6 +1856,7 @@ function finalizeParsedStatement(parsed, profile) {
     total_fatura: Math.abs(Number(parsed.total_fatura) || Number(profile.total_fatura) || 0),
     total_fatura_cabecalho: Math.abs(Number(parsed.total_fatura_cabecalho) || Number(profile.total_fatura_cabecalho) || 0),
     total_fatura_resumo: Math.abs(Number(parsed.total_fatura_resumo) || Number(profile.total_fatura_resumo) || 0),
+    total_fatura_resumo_label: parsed.total_fatura_resumo_label || profile.total_fatura_resumo_label || '',
     total_gastos_periodo: Math.abs(Number(parsed.total_gastos_periodo) || Number(profile.total_gastos_periodo) || 0),
     daily_expense_totals: parsed.daily_expense_totals || profile.daily_expense_totals || {},
     transacoes: normalizedTransactions
@@ -2230,6 +2323,25 @@ function extractLabeledMoney(fullText, labels) {
   return 0
 }
 
+function extractLabeledMoneyWithLabel(fullText, labels) {
+  const matchLabeled = (text, label) =>
+    text.match(new RegExp(`${label}[\\s\\S]{0,40}?([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
+
+  for (const label of labels) {
+    const match = matchLabeled(fullText, label)
+    if (match) return { value: parseMoneyNumber(match[1]), label }
+  }
+
+  const compactText = fullText.replace(/\s+/g, '')
+  for (const label of labels) {
+    const compactLabel = label.replace(/\s+/g, '')
+    const match = matchLabeled(compactText, compactLabel)
+    if (match) return { value: parseMoneyNumber(match[1]), label }
+  }
+
+  return { value: 0, label: '' }
+}
+
 function extractHeaderInvoiceValue(fullText) {
   // Ex: "FATURA DEZEMBRO, NO VALOR DE R$ 3.378,22"
   // ou "FATURA ... VALOR DE R$ 3.378,22"
@@ -2591,6 +2703,7 @@ function mergeTransactions(parsed) {
     ...tx,
     tipo_documento: parsed.tipo_documento,
     banco: parsed.banco,
+    _source_kind: parsed.source_kind || parsed.sourceKind || null,
     identificador: identifier,
     ultimos_digitos: parsed.ultimos_digitos,
     mes_referencia: parsed.mes_referencia,
@@ -2599,6 +2712,7 @@ function mergeTransactions(parsed) {
     _statement_total_gastos_periodo: parsed.total_gastos_periodo || null,
     _statement_total_cabecalho: parsed.total_fatura_cabecalho || null,
     _statement_total_resumo: parsed.total_fatura_resumo || null,
+    _statement_total_resumo_label: parsed.total_fatura_resumo_label || null,
     _key: tx._source_row_index != null
       ? `${statementKey}|row:${tx._source_row_index}`
       : `${statementKey}|${tx.data}|${tx.estabelecimento}|${tx.valor}|${tx.identificador || ''}|${tx.parcela_atual || ''}|${tx.total_parcelas || ''}`
@@ -2678,12 +2792,11 @@ function renderResults() {
   const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}`))]
   const chips = document.getElementById('cardChips')
   chips.innerHTML = `<div class="chip ${activeCard === 'all' ? 'active' : ''}" data-card="all" onclick="setCard('all')">
-    <span class="cdot" style="background:var(--accent)"></span> Todos
+    Todos
   </div>` + cards.map((c, i) => {
     const [banco, last4] = c.split('|')
-    const color = CARD_COLORS[i % CARD_COLORS.length]
     return `<div class="chip ${activeCard === c ? 'active' : ''}" data-card="${escapeAttr(c)}" onclick="setCard('${escapeJs(c)}')">
-      <span class="cdot" style="background:${color}"></span> ${escapeHtml(banco)} ····${escapeHtml(last4 || 'principal')}
+      ${escapeHtml(banco)} ····${escapeHtml(last4 || 'principal')}
     </div>`
   }).join('')
 
@@ -3078,11 +3191,22 @@ function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
   const statementTotals = [...new Set(source
     .map(tx => Number(tx._statement_total_gastos_periodo || 0))
     .filter(v => Number.isFinite(v) && v > 0))]
+  const hasImageSource = source.some(tx => tx && tx._source_kind === 'image')
+  const hasPdfSource = source.some(tx => tx && tx._source_kind === 'pdf')
+  const strongTotalLabel = source
+    .map(tx => String(tx._statement_total_resumo_label || ''))
+    .some(label => /TOTAL A PAGAR|TOTAL DA FATURA|VALOR DA FATURA|VALOR TOTAL DA FATURA|FATURA ATUAL/.test(label))
 
   if (statementTotals.length === 1) {
     const statementTotalCents = toCents(statementTotals[0])
     // Só confiar no total oficial quando ele estiver alinhado ao total calculado com estornos.
     if (Math.abs(statementTotalCents - computedTotalCents) <= 1) {
+      return fromCents(statementTotalCents)
+    }
+    if (hasImageSource) {
+      return fromCents(statementTotalCents)
+    }
+    if (hasPdfSource && strongTotalLabel) {
       return fromCents(statementTotalCents)
     }
   }

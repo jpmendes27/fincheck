@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.53 - 04/04/2026, 22:30:33 -->
+  <!-- fincheck v1.0.54 - 04/04/2026, 22:33:11 -->
 
+  
   
   
   
@@ -616,7 +617,12 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .nav-inner { flex-wrap: nowrap; gap: .45rem .65rem; }
+      .nav-inner {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        align-items: center;
+        gap: .45rem .65rem;
+      }
       .nav-badge {
         display: inline-flex;
         font-size: .55rem;
@@ -624,6 +630,7 @@
         letter-spacing: .06em;
         border-color: rgba(255,255,255,.08);
         color: var(--text2);
+        justify-self: center;
       }
       .nav-cta { margin-left: auto; }
       .hero { padding: 4rem 0 3rem; }

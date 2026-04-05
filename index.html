@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.40 - 04/04/2026, 20:37:00 -->
+  <!-- fincheck v1.0.41 - 04/04/2026, 21:14:18 -->
 
+  
   
   
   
@@ -571,6 +572,24 @@
       font-family: 'DM Mono', monospace;
       font-style: italic;
     }
+    .footer-actions {
+      display: flex; align-items: center; gap: .75rem;
+      flex-wrap: wrap;
+    }
+    .footer-link {
+      font-size: .78rem;
+      color: var(--text2);
+    }
+    .footer-btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .5rem 1rem;
+      border-radius: 999px;
+      border: 1px solid var(--border2);
+      color: var(--text);
+      font-size: .75rem;
+      font-weight: 600;
+      background: transparent;
+    }
 
     /* ── ANIMATIONS ── */
     @keyframes fadeUp {
@@ -610,7 +629,7 @@
   <nav>
     <div class="nav-inner">
       <span class="nav-logo">fincheck<sup style="font-size:.5em;vertical-align:super;font-family:'DM Mono',monospace;color:var(--text3)">®</sup><em>.</em></span>
-      <span class="nav-badge">BETA GRATUITO</span>
+      <span class="nav-badge">TESTE GRATUITO</span>
       <a href="app/index.html" class="nav-cta">
         Começar agora
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -866,6 +885,10 @@
     <div class="footer-inner">
       <span class="footer-logo">fincheck<sup style="font-size:.5em;vertical-align:super;font-family:'DM Mono',monospace;color:var(--text3)">®</sup><em>.</em></span>
       <span class="footer-tagline">Feito para conversas financeiras mais claras.</span>
+      <div class="footer-actions">
+        <a class="footer-btn" href="https://wa.me/5521966939829" target="_blank" rel="noopener">Fale com a gente</a>
+        <a class="footer-link" href="https://linkedin.com/in/jpmendes27" target="_blank" rel="noopener">Conheça meu criador</a>
+      </div>
       <span class="footer-copy">© 2026 · Todos os direitos reservados</span>
     </div>
   </footer>

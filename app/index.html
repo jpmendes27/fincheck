@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.40 - 04/04/2026, 20:37:01 -->
+  <!-- fincheck v1.0.41 - 04/04/2026, 21:14:18 -->
 
+  
   
   
   
@@ -557,6 +558,14 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
       <div class="drop-sub">Suporta <strong>PDF, imagem, CSV e OFX</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
     </div>
 
+    <div class="panel fu" style="padding:1rem 1.1rem;margin-top:.8rem;animation-delay:.05s">
+      <div class="ptitle" style="margin-bottom:.35rem">renda mensal (opcional)</div>
+      <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
+        <input id="rendaInputUpload" type="number" min="600" step="1" placeholder="Ex: 1621" style="flex:1;min-width:180px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:.6rem .8rem;font-family:'DM Mono',monospace;font-size:.85rem" oninput="setRendaFromInput(this.value)">
+        <span style="color:var(--text3);font-size:.75rem">Padrão: R$ 1.621,00</span>
+      </div>
+    </div>
+
     <div class="file-queue" id="fileQueue"></div>
 
     <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
@@ -587,6 +596,7 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
       </div>
       <div class="result-actions">
         <button class="pdf-btn" onclick="downloadReportPdf()">↓ Baixar PDF</button>
+        <a class="pdf-btn" style="background:transparent;border:1px solid var(--border2);color:var(--text2)" href="https://wa.me/5521966939829" target="_blank" rel="noopener">Dar feedback</a>
         <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
       </div>
     </div>
@@ -611,15 +621,15 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
       <div class="income-row">
         <div class="income-label-col">
           <div class="ilabel">renda mensal</div>
-          <div class="ivalue" id="incomeDisplay">R$ 14.500</div>
+          <div class="ivalue" id="incomeDisplay">R$ 1.621</div>
         </div>
         <div class="ibar-bg"><div class="ibar-fill" id="ibarFill" style="width:0%;background:var(--green)"></div></div>
         <div class="ipct" id="ipct" style="color:var(--green)">0%</div>
       </div>
       <div class="income-edit-row">
         <label>Ajustar renda:</label>
-        <input type="range" min="2000" max="30000" step="500" value="14500" id="rendaSlider" oninput="updateRenda(this.value)">
-        <span id="rendaVal">R$ 14.500</span>
+        <input type="range" min="600" max="30000" step="100" value="1621" id="rendaSlider" oninput="updateRenda(this.value)">
+        <span id="rendaVal">R$ 1.621</span>
       </div>
     </div>
 
@@ -715,7 +725,7 @@ const MONTH_MAP = {
 let fileQueue = []
 let allTransactions = []
 let cardRegistry = {}
-let renda = 14500
+let renda = 1621
 let activeCard = 'all'
 let dedupPending = null
 let loadingInterval = null
@@ -3100,14 +3110,30 @@ function updateRenda(v) {
   renderResults()
 }
 
+function setRendaFromInput(value) {
+  const parsed = parseInt(String(value || '').replace(/[^\d]/g, ''), 10)
+  if (!Number.isFinite(parsed)) return
+  const safe = Math.max(600, parsed)
+  renda = safe
+  const slider = document.getElementById('rendaSlider')
+  if (slider) slider.value = String(safe)
+  if (document.getElementById('screenReport').classList.contains('active')) {
+    renderResults()
+  }
+}
+
 function resetAll() {
   fileQueue = []
   allTransactions = []
   cardRegistry = {}
   activeCard = 'all'
   dedupPending = null
-  renda = 14500
-  document.getElementById('rendaSlider').value = '14500'
+  renda = 1621
+  document.getElementById('rendaSlider').value = '1621'
+  document.getElementById('rendaVal').textContent = fmt(renda)
+  document.getElementById('incomeDisplay').textContent = fmt(renda)
+  const rendaInput = document.getElementById('rendaInputUpload')
+  if (rendaInput) rendaInput.value = ''
   document.getElementById('fileQueue').innerHTML = ''
   document.getElementById('parseBtn').disabled = true
   document.getElementById('dedupBanner').classList.remove('show')

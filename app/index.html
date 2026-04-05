@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.54 - 04/04/2026, 22:33:11 -->
+  <!-- fincheck v1.0.55 - 04/04/2026, 22:50:54 -->
 
+  
   
   
   
@@ -456,7 +457,8 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
   .two-col{grid-template-columns:1fr}
   .heatmap-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
   .heatmap-cell,.heatmap-empty{min-height:68px;padding:.55rem .45rem}
-  .heatmap-day,.heatmap-value{font-size:.6rem}
+  .heatmap-cell{align-items:center;text-align:center}
+  .heatmap-day,.heatmap-value{font-size:.6rem;line-height:1.2;white-space:normal;word-break:break-word}
 }
 
 @media print{
@@ -3044,16 +3046,16 @@ function renderResults() {
   document.getElementById('summaryGrid').innerHTML = `
     <div class="sum-card"><div class="sum-label">Total gasto</div>
       <div class="sum-val">${fmt(total)}</div>
-      <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : '1 mes'}</div></div>
+      <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : 'no mês'}</div></div>
     <div class="sum-card"><div class="sum-label">Transacoes</div>
       <div class="sum-val">${purchaseCount}</div>
       <div class="sum-sub">gastos</div></div>
-    <div class="sum-card"><div class="sum-label">Media por dia</div>
+    <div class="sum-card"><div class="sum-label">Média de gastos</div>
       <div class="sum-val">${fmt(avgPerDay)}</div>
       <div class="sum-sub">por dia</div></div>
     <div class="sum-card"><div class="sum-label">Comprometimento</div>
       <div class="sum-val" style="color:${pctColor}">${pct}%</div>
-      <div class="sum-sub">da renda/mes</div></div>`
+      <div class="sum-sub">da renda do mês</div></div>`
 
   const debugEl = document.getElementById('debugTotals')
   if (debugEl) {
@@ -3214,9 +3216,12 @@ function fmt(n) {
 function renderDiagnosisOverview(data) {
   const score = getHealthScore(data.pct)
   const headline = score >= 8 ? 'Saude em dia' : score >= 6 ? 'Atencao necessaria' : score >= 4 ? 'Pede ajustes' : 'Ajuste urgente'
+  const commitmentText = data.pct > 100
+    ? 'comprometendo mais do que a sua renda declarada.'
+    : `comprometendo ${data.pct}% da renda declarada.`
   const text = data.monthsCount > 1
-    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, comprometendo ${data.pct}% da renda declarada.`
-    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, comprometendo ${data.pct}% da renda declarada.`
+    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, ${commitmentText}`
+    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, ${commitmentText}`
   const meterColor = score >= 8 ? 'var(--green)' : score >= 6 ? 'var(--amber)' : 'var(--red)'
 
   document.getElementById('diagnosisHeadline').textContent = headline
@@ -3291,7 +3296,7 @@ function renderInsights(data) {
     },
     {
       icon: '02',
-      kicker: 'Media por dia da semana',
+      kicker: 'Média de gastos por dia da semana',
       text: topWeekdays.length
         ? `Em media, seus gastos se concentram em <strong>${topWeekdays.map(day => `${day.label} (${fmt(day.average)})`).join('</strong> e <strong>')}</strong>.`
         : 'Ainda nao houve dados suficientes para comparar os dias da semana.'
@@ -3506,7 +3511,7 @@ function getTopSpendingDay(txs, providedDailyTotals) {
 }
 
 function getTopAverageWeekdays(txs, providedDailyTotals) {
-  const labels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab']
+  const labels = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   const buckets = Array.from({ length: 7 }, () => ({ total: 0, dates: new Set() }))
   const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
 
@@ -3536,15 +3541,11 @@ function getTopCategories(txs, total) {
     bycat[category] = (bycat[category] || 0) + Math.abs(Number(tx.valor) || 0)
   })
   const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1]).slice(0, 3)
-  let pctSum = 0
-  return sorted.map(([name, value], idx) => {
-    let pct = Math.round((value / total) * 100)
-    if (idx === sorted.length - 1 && sorted.length > 1) {
-      pct = Math.max(0, 100 - pctSum)
-    }
-    pctSum += pct
-    return { name, value, pct }
-  })
+  return sorted.map(([name, value]) => ({
+    name,
+    value,
+    pct: Math.round((value / total) * 100)
+  }))
 }
 
 function getTopMerchantShare(txs, total) {
@@ -3634,7 +3635,7 @@ const CATEGORY_MAP = {
   Mercado: [
     'SUPERMERCADO', 'SUPERMERC', 'MERCADO', 'ATACAD', 'CARREFOUR', 'EXTRA', 'PAO DE ACUCAR',
     'HORTIFRU', 'ASSAI', 'CONDOR', 'MUFFATO', 'ZAFFARI', 'ATACADAO', 'SAMS CLUB',
-    'MINIMERCADO', 'MERCEARIA', 'COOP'
+    'MINIMERCADO', 'MERCEARIA', 'MERCADINHO', 'COOP'
   ],
   Transporte: [
     'UBER', '99APP', '99POP', 'CABIFY', 'ESTACIONAMENTO', 'PEDAGIO', 'CONECTCAR',
@@ -3651,7 +3652,7 @@ const CATEGORY_MAP = {
     'CRUNCHYROLL', 'PLAYSTATION', 'LAYSTATION', 'PLAY STATION', 'PSN', 'XBOX'
   ],
   Saude: [
-    'FARMACIA', 'DROGARIA', 'DROGASIL', 'DROGA RAIA', 'RAIA', 'PAGUE MENOS', 'NISSEI', 'PANVEL',
+    'FARMACIA', 'DROGARIA', 'DROGASIL', 'DROGASMIL', 'DROGA RAIA', 'RAIA', 'PAGUE MENOS', 'NISSEI', 'PANVEL',
     'HOSPITAL', 'MEDICO', 'CLINICA', 'ODONT', 'EXAME', 'LABORATORIO', 'PSICOLOG',
     'ACADEMIA', 'SMARTFIT', 'BLUEFIT'
   ],

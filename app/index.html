@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.43 - 04/04/2026, 21:24:58 -->
+  <!-- fincheck v1.0.44 - 04/04/2026, 21:27:42 -->
 
+  
   
   
   
@@ -278,13 +279,13 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 
 .income-upload{padding:1rem 1.1rem;margin-top:.8rem}
 .income-upload-row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.income-upload .ptitle{font-size:.72rem}
 .income-upload input{
   flex:1;min-width:180px;
   background:var(--surface2);border:1px solid var(--border);color:var(--text);
   border-radius:10px;padding:.6rem .8rem;
   font-family:'DM Mono',monospace;font-size:.85rem
 }
-.income-upload-hint{color:var(--text3);font-size:.75rem}
 
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
@@ -572,10 +573,9 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
     </div>
 
     <div class="panel income-upload fu" style="animation-delay:.05s">
-      <div class="ptitle" style="margin-bottom:.35rem">renda mensal (opcional)</div>
+      <div class="ptitle" style="margin-bottom:.35rem">informe sua renda mensal (opcional)</div>
       <div class="income-upload-row">
-        <input id="rendaInputUpload" type="number" min="600" step="1" placeholder="Ex: 1621" oninput="setRendaFromInput(this.value)">
-        <span class="income-upload-hint">Padrão: R$ 1.621,00</span>
+        <input id="rendaInputUpload" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="setRendaFromInput(this.value)">
       </div>
     </div>
 
@@ -3125,14 +3125,27 @@ function updateRenda(v) {
 }
 
 function setRendaFromInput(value) {
-  const parsed = parseInt(String(value || '').replace(/[^\d]/g, ''), 10)
-  if (!Number.isFinite(parsed)) return
-  const safe = Math.max(600, parsed)
+  const { cents, formatted } = parseCurrencyInput(value)
+  const input = document.getElementById('rendaInputUpload')
+  if (input) input.value = formatted
+  if (!Number.isFinite(cents)) return
+  const safe = Math.max(600, Math.round(cents / 100))
   renda = safe
   const slider = document.getElementById('rendaSlider')
   if (slider) slider.value = String(safe)
   if (document.getElementById('screenReport').classList.contains('active')) {
     renderResults()
+  }
+}
+
+function parseCurrencyInput(raw) {
+  const digits = String(raw || '').replace(/[^\d]/g, '')
+  if (!digits) return { cents: NaN, formatted: '' }
+  const cents = parseInt(digits, 10)
+  const value = cents / 100
+  return {
+    cents,
+    formatted: value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   }
 }
 

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.57 - 04/04/2026, 23:03:00 -->
+  <!-- fincheck v1.0.58 - 04/04/2026, 23:07:44 -->
 
+  
   
   
   
@@ -143,8 +144,8 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
   position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
 }
 .drop-icon{font-size:2.5rem;margin-bottom:.75rem;display:block}
-.drop-title{font-size:1rem;font-weight:600;margin-bottom:.4rem}
-.drop-sub{font-size:.78rem;color:var(--muted)}
+.drop-title{font-size:1.1rem;font-weight:600;margin-bottom:.4rem}
+.drop-sub{font-size:.88rem;color:var(--muted)}
 .drop-sub strong{color:var(--text)}
 
 .file-queue{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
@@ -289,24 +290,24 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 .income-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
 .income-row{display:flex;align-items:center;gap:.75rem}
 .income-label-col{min-width:160px}
-.ilabel{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
-.ivalue{font-size:.85rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:.15rem}
+.ilabel{font-size:.7rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.ivalue{font-size:.95rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:.15rem}
 .ibar-bg{flex:1;height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}
 .ibar-fill{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth),background var(--t-med) var(--ease-smooth)}
-.ipct{font-family:'DM Mono',monospace;font-size:.85rem;font-weight:600;min-width:44px;text-align:right}
+.ipct{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:600;min-width:44px;text-align:right}
 .income-edit-row{display:flex;align-items:center;gap:.75rem;margin-top:.75rem}
-.income-edit-row label{font-size:.7rem;color:var(--muted);white-space:nowrap}
+.income-edit-row label{font-size:.78rem;color:var(--muted);white-space:nowrap}
 .income-edit-row input[type=range]{flex:1;accent-color:var(--accent)}
-.income-edit-row span{font-size:.7rem;font-family:'DM Mono',monospace;min-width:80px}
+.income-edit-row span{font-size:.78rem;font-family:'DM Mono',monospace;min-width:80px}
 
 .income-upload{padding:1rem 1.1rem;margin-top:.8rem}
 .income-upload-row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
-.income-upload .ptitle{font-size:.72rem}
+.income-upload .ptitle{font-size:.85rem}
 .income-upload input{
   flex:1;min-width:180px;
   background:var(--surface2);border:1px solid var(--border);color:var(--text);
   border-radius:10px;padding:.6rem .8rem;
-  font-family:'DM Mono',monospace;font-size:1rem
+  font-family:'DM Mono',monospace;font-size:1.05rem
 }
 
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
@@ -453,7 +454,10 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
   .site-footer{justify-content:center}
   .footer-meta{gap:.6rem}
   .summary-grid{grid-template-columns:1fr 1fr}
-  .income-upload input{font-size:16px}
+  .drop-title{font-size:1.05rem}
+  .drop-sub{font-size:.86rem}
+  .income-upload .ptitle{font-size:.9rem}
+  .income-upload input{font-size:17px}
   .income-upload-row{flex-direction:column;align-items:stretch}
   .insight-grid{grid-template-columns:1fr}
   .two-col{grid-template-columns:1fr}
@@ -593,7 +597,7 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
     <div class="drop-zone fu" id="dropZone">
       <input type="file" id="fileInput" accept=".pdf,.csv,.ofx,.png,.jpg,.jpeg,.webp" multiple onchange="handleFiles(this.files)">
       <span class="drop-icon">📄</span>
-      <div class="drop-title">Arraste seu extrato ou fatura aqui</div>
+      <div class="drop-title">Envie seu extrato ou fatura</div>
       <div class="drop-sub">Baixe no app do seu banco a fatura/extrato em <strong>PDF, CSV ou OFX</strong> e envie aqui. Se for print/foto, envie a imagem.</div>
     </div>
 

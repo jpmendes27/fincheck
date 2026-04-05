@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.41 - 04/04/2026, 21:14:18 -->
+  <!-- fincheck v1.0.42 - 04/04/2026, 21:22:14 -->
 
+  
   
   
   
@@ -274,6 +275,16 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 .income-edit-row input[type=range]{flex:1;accent-color:var(--accent)}
 .income-edit-row span{font-size:.7rem;font-family:'DM Mono',monospace;min-width:80px}
 
+.income-upload{padding:1rem 1.1rem;margin-top:.8rem}
+.income-upload-row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.income-upload input{
+  flex:1;min-width:180px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:10px;padding:.6rem .8rem;
+  font-family:'DM Mono',monospace;font-size:.85rem
+}
+.income-upload-hint{color:var(--text3);font-size:.75rem}
+
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
 .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
 .panel:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
@@ -417,6 +428,7 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
   .site-footer{justify-content:center}
   .footer-meta{gap:.6rem}
   .summary-grid{grid-template-columns:1fr 1fr}
+  .income-upload-row{flex-direction:column;align-items:stretch}
   .insight-grid{grid-template-columns:1fr}
   .two-col{grid-template-columns:1fr}
   .heatmap-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
@@ -558,11 +570,11 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
       <div class="drop-sub">Suporta <strong>PDF, imagem, CSV e OFX</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
     </div>
 
-    <div class="panel fu" style="padding:1rem 1.1rem;margin-top:.8rem;animation-delay:.05s">
+    <div class="panel income-upload fu" style="animation-delay:.05s">
       <div class="ptitle" style="margin-bottom:.35rem">renda mensal (opcional)</div>
-      <div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">
-        <input id="rendaInputUpload" type="number" min="600" step="1" placeholder="Ex: 1621" style="flex:1;min-width:180px;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:.6rem .8rem;font-family:'DM Mono',monospace;font-size:.85rem" oninput="setRendaFromInput(this.value)">
-        <span style="color:var(--text3);font-size:.75rem">Padrão: R$ 1.621,00</span>
+      <div class="income-upload-row">
+        <input id="rendaInputUpload" type="number" min="600" step="1" placeholder="Ex: 1621" oninput="setRendaFromInput(this.value)">
+        <span class="income-upload-hint">Padrão: R$ 1.621,00</span>
       </div>
     </div>
 
@@ -703,6 +715,7 @@ const CAT_COLORS = {
   'Moradia':'#5c9eff','Contas':'#4dcc8f','Seguros':'#a78bfa',
   'Emprestimos':'#ff5c5c','Transferencias':'#6b7080','Impostos':'#f5a623',
   'Doacoes':'#c8f564','Recebimentos':'#4dcc8f','Outros':'#6b7080',
+  'Varejo':'#5c9eff',
   'Alimentação':'#f5a623','Combustível':'#4dcc8f','Saúde':'#ff5c5c',
   'Farmácia':'#ff5c5c','Educação':'#5c9eff'
 }
@@ -3563,10 +3576,80 @@ function normalizeNatureza(rawNatureza, valor, tipoDocumento) {
   return valor < 0 ? 'estorno' : 'gasto'
 }
 
+const CATEGORY_MAP = {
+  Alimentacao: [
+    'IFOOD', 'RAPPI', 'UBER EATS', 'MCDONALDS', 'BK', 'BURGER', 'PIZZA', 'SUSHI', 'YAKISOBA',
+    'TEMAKI', 'ACAI', 'BAR', 'CAFETERIA', 'STARBUCKS', 'PADARIA', 'PANIFICADORA',
+    'RESTAURANTE', 'CHURRASCARIA', 'LANCHONETE', 'COCO BAMBU', 'OUTBACK'
+  ],
+  Mercado: [
+    'SUPER', 'MERCADO', 'ATACAD', 'CARREFOUR', 'EXTRA', 'PAO DE ACUCAR', 'HORTIFRU', 'ASSAI',
+    'CONDOR', 'MUFFATO', 'ZAFFARI', 'ATACADAO', 'SAMS CLUB', 'MINIMERCADO', 'MERCEARIA', 'COOP'
+  ],
+  Transporte: [
+    'UBER', '99APP', '99POP', 'CABIFY', 'ESTACIONAMENTO', 'PEDAGIO', 'CONECTCAR',
+    'SEMPARAR', 'VELOE', 'BTG MOBI', 'AZUL', 'LATAM', 'GOL LINHAS', 'RODOVIARIA',
+    'METRO', 'TREM'
+  ],
+  Combustivel: [
+    'POSTO', 'COMBUSTIV', 'SHELL', 'IPIRANGA', 'PETROBRAS', 'TEXACO', 'BR MANIA'
+  ],
+  Assinaturas: [
+    'APPLE COM', 'APPLE', 'GOOGLE', 'AWS', 'CLOUD', 'MSFT', 'MICROSOFT', 'WELLHUB', 'GYMPASS',
+    'CLARO', 'VIVO', 'TIM', 'SKY', 'NET SERV', 'GLOBO', 'NETFLIX', 'SPOTIFY', 'YOUTUBE',
+    'HBOMAX', 'DISNEY', 'AMAZON PRIME', 'PARAMOUNT', 'CRUNCHYROLL'
+  ],
+  Saude: [
+    'FARMACIA', 'DROGARIA', 'RAIA', 'PAGUE MENOS', 'NISSEI', 'PANVEL', 'SAO PAULO',
+    'HOSPITAL', 'MEDICO', 'CLINICA', 'ODONT', 'EXAME', 'LABORATORIO', 'PSICOLOG',
+    'ACADEMIA', 'SMARTFIT', 'BLUEFIT'
+  ],
+  Varejo: [
+    'AMAZON', 'MERCADO LIVRE', 'MERCADOLIVRE', 'SHOPEE', 'SHEIN', 'MAGALU', 'MAGAZINE',
+    'AMERICANAS', 'CASAS BAHIA', 'ALIEXPRESS', 'KABUM', 'RIACHUELO', 'RENNER', 'CEA',
+    'ZARA', 'NIKE', 'ADIDAS'
+  ],
+  Educacao: [
+    'FACULDADE', 'ESCOLA', 'CURSO', 'UDEMY', 'HOTMART', 'ALURA', 'EDUZZ', 'FGV', 'PUC',
+    'ESTACIO', 'WIZARD', 'FISK', 'CULTURA INGLESA'
+  ],
+  Moradia: ['HABITACAO', 'ALUGUEL', 'CONDOMINIO', 'IMOB', 'QUINTOANDAR', 'LOCA', 'GCI CAIXA'],
+  Contas: ['ENERGIA', 'AGUA', 'SABESP', 'ENEL', 'CEG', 'NATURAL', 'VIVO', 'CLARO', 'TIM'],
+  Seguros: ['SEGURO', 'PROTECAO VEICULAR', 'GARANTIA', 'BV GARANTIA'],
+  Emprestimos: ['AFINZ', 'EMPRESTIMO', 'FINANCIAMENTO'],
+  Doacoes: ['IGREJA', 'DIZIMO', 'OFERTA', 'UNIVERSAL', 'DOACAO'],
+  Transferencias: ['PIX', 'TED', 'DOC', 'TRANSFERENCIA', 'ITAU UNIBANCO', 'BANCO ITAU', 'CAIXA ECONOMICA'],
+  Hospedagem: ['HOTEL', 'POUSADA', 'AIRBNB'],
+  Viagem: ['PASSAGEM', 'AEREA', 'VIAGEM'],
+  Lazer: ['CINEMA', 'TEATRO', 'SHOW', 'SHOPPING']
+}
+
+const CATEGORY_RULES = buildCategoryRules(CATEGORY_MAP)
+
+function normalizeCategoryText(value) {
+  return normalizeDocText(value)
+    .replace(/[^A-Z\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildCategoryRules(map) {
+  const rules = []
+  Object.entries(map).forEach(([category, keywords]) => {
+    ;(keywords || []).forEach(keyword => {
+      const normalized = normalizeCategoryText(keyword)
+      if (!normalized || normalized.length < 2) return
+      rules.push({ category, keyword: normalized })
+    })
+  })
+  rules.sort((a, b) => b.keyword.length - a.keyword.length)
+  return rules
+}
+
 function categorizeTransaction(name, natureza, valor, fallback) {
   if (natureza === 'entrada') return 'Recebimentos'
 
-  const source = String(name || '').toUpperCase()
+  const source = normalizeCategoryText(name || '')
 
   // Evita classificar transações de 'CREDITO' genérico como empréstimos.
   // Ex: 'CREDITO DE CONFIANCA' no extrato do Nubank não é empréstimo.
@@ -3574,25 +3657,8 @@ function categorizeTransaction(name, natureza, valor, fallback) {
     return 'Recebimentos'
   }
 
-  const rules = [
-    { category: 'Moradia', keywords: ['HABITACAO', 'ALUGUEL', 'CONDOMINIO', 'IMOB', 'QUINTOANDAR', 'LOCA', 'GCI CAIXA'] },
-    { category: 'Mercado', keywords: ['ATACADAO', 'ASSAI', 'CARREFOUR', 'EXTRA', 'PAO DE ACUCAR', 'SUPERMERC', 'MERCADO', 'COOP'] },
-    { category: 'Combustivel', keywords: ['POSTO', 'IPIRANGA', 'SHELL', 'COMBUST', 'PETROBRAS', 'ALE COMBUST'] },
-    { category: 'Transporte', keywords: ['UBER', '99', 'METRO', 'TREM', 'SEM PARAR', 'ESTACIONAMENTO', 'PEDAGIO'] },
-    { category: 'Delivery', keywords: ['IFOOD', 'RAPPI', 'DELIVERY', 'JAMES', 'UBER EATS'] },
-    { category: 'Alimentacao', keywords: ['RESTAURANTE', 'LANCH', 'PIZZARIA', 'BAR', 'CAFE', 'BURGER', 'A CASA DO', 'PADARIA'] },
-    { category: 'Assinaturas', keywords: ['NETFLIX', 'SPOTIFY', 'YOUTUBE', 'AMAZON PRIME', 'APPLE.COM', 'GOOGLE', 'MICROSOFT', 'ADOBE', 'TELECOM'] },
-    { category: 'Saude', keywords: ['FARM', 'DROGA', 'HOSPITAL', 'CLINICA', 'LABORATORIO', 'ODONTO', 'UNIMED'] },
-    { category: 'Educacao', keywords: ['ESCOLA', 'CURSO', 'FACULDADE', 'UDMY', 'ALURA', 'HOTMART'] },
-    { category: 'Seguros', keywords: ['SEGURO', 'PROTECAO VEICULAR', 'GARANTIA', 'BV GARANTIA'] },
-    { category: 'Emprestimos', keywords: ['AFINZ', 'EMPRESTIMO', 'FINANCIAMENTO'] },
-    { category: 'Doacoes', keywords: ['IGREJA', 'DIZIMO', 'OFERTA', 'UNIVERSAL', 'DOACAO'] },
-    { category: 'Transferencias', keywords: ['PIX', 'TED', 'DOC', 'TRANSFERENCIA', 'ITAU UNIBANCO', 'BANCO ITAU', 'CAIXA ECONOMICA'] },
-    { category: 'Contas', keywords: ['ENERGIA', 'AGUA', 'SABESP', 'ENEL', 'CEG', 'NATURAL', 'VIVO', 'CLARO', 'TIM'] }
-  ]
-
-  for (const rule of rules) {
-    if (rule.keywords.some(keyword => source.includes(keyword))) return rule.category
+  for (const rule of CATEGORY_RULES) {
+    if (source.includes(rule.keyword)) return rule.category
   }
 
   if (natureza === 'entrada' && valor > 0) return 'Recebimentos'

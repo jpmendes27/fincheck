@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.59 - 04/04/2026, 23:42:01 -->
+  <!-- fincheck v1.0.60 - 04/04/2026, 23:47:07 -->
 
+  
   
   
   
@@ -3886,6 +3887,12 @@ function showScreen(screen) {
   document.getElementById('screenLoading').classList.toggle('active', screen === 'loading')
   document.getElementById('screenReport').classList.toggle('active', screen === 'report')
   trackEvent('screen_view', { screen_name: screen })
+  if (window.gtag) {
+    window.gtag('event', 'page_view', {
+      page_path: `/app/${screen}`,
+      page_title: `app_${screen}`
+    })
+  }
 }
 
 function startLoadingCycle() {

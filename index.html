@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.58 - 04/04/2026, 23:07:44 -->
+  <!-- fincheck v1.0.59 - 04/04/2026, 23:42:01 -->
 
+  
   
   
   
@@ -79,6 +80,13 @@
   
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-MX1044VTPP"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){ dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'G-MX1044VTPP');
+  </script>
   <title>fincheck · controle seus gastos e fluxo financeiro</title>
   <meta name="description" content="Entenda para onde vai seu dinheiro. Importe fatura ou extrato e veja um diagnóstico completo em segundos." />
   <link rel="icon" type="image/svg+xml" href="logo.svg" />
@@ -923,6 +931,25 @@
     }, { threshold: 0.12 });
 
     reveals.forEach(el => observer.observe(el));
+
+    function trackEvent(name, params) {
+      if (!window.gtag) return;
+      window.gtag('event', name, params || {});
+    }
+
+    document.querySelectorAll('a.nav-cta, a.btn-primary, a.btn-ghost').forEach((link) => {
+      link.addEventListener('click', () => {
+        const label = (link.textContent || '').trim().toLowerCase().replace(/\s+/g, '_');
+        trackEvent('cta_click', { label, href: link.getAttribute('href') || '' });
+      });
+    });
+
+    document.querySelectorAll('.footer-btn').forEach((link) => {
+      link.addEventListener('click', () => {
+        const label = (link.textContent || '').trim().toLowerCase().replace(/\s+/g, '_');
+        trackEvent('footer_click', { label, href: link.getAttribute('href') || '' });
+      });
+    });
   </script>
 
 </body>

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.58 - 04/04/2026, 23:07:44 -->
+  <!-- fincheck v1.0.59 - 04/04/2026, 23:42:01 -->
 
+  
   
   
   
@@ -79,6 +80,13 @@
   
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MX1044VTPP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-MX1044VTPP');
+</script>
   <title>fincheck · controle seus gastos e fluxo financeiro</title>
 <link rel="icon" type="image/svg+xml" href="../logo.svg">
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
@@ -774,6 +782,24 @@ let dedupPending = null
 let loadingInterval = null
 let loadingPhaseIndex = 0
 
+function trackEvent(name, params) {
+  if (!window.gtag) return
+  window.gtag('event', name, params || {})
+}
+
+function getFileKindsSummary(files) {
+  const kinds = new Set((files || []).map(f => f.kind).filter(Boolean))
+  return [...kinds].join(',')
+}
+
+function classifyImportError(error) {
+  const msg = String(error && error.message ? error.message : error || '').toLowerCase()
+  if (/tempo limite|demorou demais/.test(msg)) return 'ocr_timeout'
+  if (/transacoes suficientes/.test(msg)) return 'ocr_no_transactions'
+  if (/senha|password/.test(msg)) return 'pdf_password'
+  return 'parse_error'
+}
+
 const LOADING_PHASES = [
   { title: 'Analisando seus gastos', copy: 'Estamos lendo seus arquivos e identificando cada movimentação do período.' },
   { title: 'Preparando seu relatório', copy: 'Agora agrupamos categorias, estabelecimentos e padrões de consumo.' },
@@ -789,15 +815,44 @@ dropZone.addEventListener('drop', e => {
   handleFiles(e.dataTransfer.files)
 })
 
+const parseBtnEl = document.getElementById('parseBtn')
+if (parseBtnEl) {
+  parseBtnEl.addEventListener('click', () => {
+    trackEvent('cta_click', { label: 'analisar_arquivos' })
+  })
+}
+
+document.querySelectorAll('.pdf-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('cta_click', { label: 'baixar_pdf' }))
+})
+
+document.querySelectorAll('.reset-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('cta_click', { label: 'novo_upload' }))
+})
+
+document.querySelectorAll('.feedback-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('cta_click', { label: 'dar_feedback' }))
+})
+
 function handleFiles(files) {
+  let added = 0
+  const addedKinds = new Set()
   for (const f of files) {
     const kind = detectFileKind(f.name)
     if (!kind) continue
     const id = Date.now() + Math.random()
     fileQueue.push({ id, file: f, name: f.name, size: f.size, kind, status: 'pending', text: '' })
+    added += 1
+    addedKinds.add(kind)
   }
   renderQueue()
   document.getElementById('parseBtn').disabled = fileQueue.length === 0
+  if (added) {
+    trackEvent('upload_files_added', {
+      file_count: added,
+      file_kinds: [...addedKinds].join(',')
+    })
+  }
 }
 
 function removeFile(id) {
@@ -2859,6 +2914,10 @@ function getFriendlyImportError(error, file) {
 
 async function startParsing() {
   const startedAt = Date.now()
+  trackEvent('processing_start', {
+    file_count: fileQueue.length,
+    file_kinds: getFileKindsSummary(fileQueue)
+  })
   showScreen('loading')
   document.getElementById('parseBtn').disabled = true
   setPill(1, 'done')
@@ -2899,6 +2958,10 @@ async function startParsing() {
       updateLoadingFiles()
     } catch (e) {
       const friendlyError = getFriendlyImportError(e, f)
+      trackEvent('processing_error', {
+        file_kind: f.kind || 'unknown',
+        error_type: classifyImportError(e)
+      })
       f.status = 'error'
       stopLoadingCycle()
       updateLoadingFiles(friendlyError)
@@ -2925,7 +2988,15 @@ async function startParsing() {
     mergeTransactions(dedupPending.incoming)
     dedupPending = null
   }
-  if (allTransactions.length > 0) showResults()
+  if (allTransactions.length > 0) {
+    trackEvent('report_ready', {
+      file_count: fileQueue.length,
+      file_kinds: getFileKindsSummary(fileQueue),
+      transactions: allTransactions.length,
+      elapsed_ms: Date.now() - startedAt
+    })
+    showResults()
+  }
 }
 
 function mergeTransactions(parsed) {
@@ -3814,6 +3885,7 @@ function showScreen(screen) {
   document.getElementById('screenUpload').classList.toggle('active', screen === 'upload')
   document.getElementById('screenLoading').classList.toggle('active', screen === 'loading')
   document.getElementById('screenReport').classList.toggle('active', screen === 'report')
+  trackEvent('screen_view', { screen_name: screen })
 }
 
 function startLoadingCycle() {
@@ -3897,6 +3969,7 @@ function escapeJs(value) {
 }
 
 setLoadingPhase(0)
+trackEvent('screen_view', { screen_name: 'upload' })
 </script>
 </body>
 </html>

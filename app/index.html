@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.55 - 04/04/2026, 22:50:54 -->
+  <!-- fincheck v1.0.56 - 04/04/2026, 22:58:23 -->
 
+  
   
   
   
@@ -3099,18 +3100,13 @@ function renderResults() {
   })
   const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1])
   const topCats = sorted.slice(0, 7)
-  let pctSum = 0
   document.getElementById('catList').innerHTML = topCats.map(([cat, val], idx) => {
-    let pctC = total ? Math.round((val / total) * 100) : 0
-    if (idx === topCats.length - 1 && topCats.length > 1) {
-      pctC = Math.max(0, 100 - pctSum)
-    }
-    pctSum += pctC
+    const pctC = total ? Math.round((val / total) * 100) : 0
     const color = CAT_COLORS[cat] || '#6b7080'
     return `<div class="cat-row">
       <div class="cat-head"><span class="cat-name">${escapeHtml(cat)}</span>
         <span class="cat-pct">${fmt(val)} · ${pctC}%</span></div>
-      <div class="cbar-bg"><div class="cbar" style="width:${pctC}%;background:${color}"></div></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${Math.min(pctC, 100)}%;background:${color}"></div></div>
     </div>`
   }).join('')
 

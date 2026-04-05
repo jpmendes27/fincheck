@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.44 - 04/04/2026, 21:27:42 -->
+  <!-- fincheck v1.0.45 - 04/04/2026, 21:34:22 -->
 
+  
   
   
   
@@ -3068,8 +3069,14 @@ function renderResults() {
     bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
   })
   const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1])
-  document.getElementById('catList').innerHTML = sorted.slice(0, 7).map(([cat, val]) => {
-    const pctC = total ? Math.round((val / total) * 100) : 0
+  const topCats = sorted.slice(0, 7)
+  let pctSum = 0
+  document.getElementById('catList').innerHTML = topCats.map(([cat, val], idx) => {
+    let pctC = total ? Math.round((val / total) * 100) : 0
+    if (idx === topCats.length - 1 && topCats.length > 1) {
+      pctC = Math.max(0, 100 - pctSum)
+    }
+    pctSum += pctC
     const color = CAT_COLORS[cat] || '#6b7080'
     return `<div class="cat-row">
       <div class="cat-head"><span class="cat-name">${escapeHtml(cat)}</span>
@@ -3501,15 +3508,16 @@ function getTopCategories(txs, total) {
     const category = tx.categoria || 'Outros'
     bycat[category] = (bycat[category] || 0) + Math.abs(Number(tx.valor) || 0)
   })
-
-  return Object.entries(bycat)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([name, value]) => ({
-      name,
-      value,
-      pct: Math.round((value / total) * 100)
-    }))
+  const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1]).slice(0, 3)
+  let pctSum = 0
+  return sorted.map(([name, value], idx) => {
+    let pct = Math.round((value / total) * 100)
+    if (idx === sorted.length - 1 && sorted.length > 1) {
+      pct = Math.max(0, 100 - pctSum)
+    }
+    pctSum += pct
+    return { name, value, pct }
+  })
 }
 
 function getTopMerchantShare(txs, total) {
@@ -3613,7 +3621,7 @@ const CATEGORY_MAP = {
     'APPLE COM', 'APPLECOM', 'APPLE', 'GOOGLE', 'AWS', 'CLOUD', 'MSFT', 'MICROSOFT',
     'WELLHUB', 'GYMPASS', 'CLARO', 'VIVO', 'TIM', 'SKY', 'NET SERV', 'GLOBO', 'NETFLIX',
     'SPOTIFY', 'YOUTUBE', 'HBOMAX', 'HBO MAX', 'DISNEY', 'AMAZON PRIME', 'PARAMOUNT',
-    'CRUNCHYROLL'
+    'CRUNCHYROLL', 'PLAYSTATION', 'LAYSTATION', 'PLAY STATION', 'PSN', 'XBOX'
   ],
   Saude: [
     'FARMACIA', 'DROGARIA', 'DROGASIL', 'DROGA RAIA', 'RAIA', 'PAGUE MENOS', 'NISSEI', 'PANVEL',

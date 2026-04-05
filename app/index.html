@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.56 - 04/04/2026, 22:58:23 -->
+  <!-- fincheck v1.0.57 - 04/04/2026, 23:03:00 -->
 
+  
   
   
   
@@ -592,8 +593,8 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
     <div class="drop-zone fu" id="dropZone">
       <input type="file" id="fileInput" accept=".pdf,.csv,.ofx,.png,.jpg,.jpeg,.webp" multiple onchange="handleFiles(this.files)">
       <span class="drop-icon">📄</span>
-      <div class="drop-title">Arraste arquivos de extrato aqui</div>
-      <div class="drop-sub">Suporta <strong>PDF, imagem, CSV e OFX</strong> — Nubank, Itaú, XP, Inter, C6, Bradesco e mais</div>
+      <div class="drop-title">Arraste seu extrato ou fatura aqui</div>
+      <div class="drop-sub">Baixe no app do seu banco a fatura/extrato em <strong>PDF, CSV ou OFX</strong> e envie aqui. Se for print/foto, envie a imagem.</div>
     </div>
 
     <div class="panel income-upload fu" style="animation-delay:.05s">
@@ -3050,7 +3051,7 @@ function renderResults() {
       <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : 'no mês'}</div></div>
     <div class="sum-card"><div class="sum-label">Transacoes</div>
       <div class="sum-val">${purchaseCount}</div>
-      <div class="sum-sub">gastos</div></div>
+      <div class="sum-sub">&nbsp;</div></div>
     <div class="sum-card"><div class="sum-label">Média de gastos</div>
       <div class="sum-val">${fmt(avgPerDay)}</div>
       <div class="sum-sub">por dia</div></div>

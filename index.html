@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.52 - 04/04/2026, 22:25:22 -->
+  <!-- fincheck v1.0.53 - 04/04/2026, 22:30:33 -->
 
+  
   
   
   
@@ -615,16 +616,16 @@
 
     /* ── RESPONSIVE ── */
     @media (max-width: 768px) {
-      .nav-inner { flex-wrap: wrap; gap: .45rem .75rem; }
+      .nav-inner { flex-wrap: nowrap; gap: .45rem .65rem; }
       .nav-badge {
         display: inline-flex;
-        order: 3;
-        width: 100%;
-        justify-content: center;
-        font-size: .6rem;
-        padding: .2rem .55rem;
+        font-size: .55rem;
+        padding: .18rem .45rem;
+        letter-spacing: .06em;
+        border-color: rgba(255,255,255,.08);
+        color: var(--text2);
       }
-      .nav-cta { order: 2; margin-left: auto; }
+      .nav-cta { margin-left: auto; }
       .hero { padding: 4rem 0 3rem; }
       .mockup-cards { grid-template-columns: repeat(2, 1fr); }
       .steps { grid-template-columns: 1fr; }

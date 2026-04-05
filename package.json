@@ -1,6 +1,6 @@
 {
   "name": "fincheck",
-  "version": "1.0.48",
+  "version": "1.0.49",
   "description": "Diagnóstico de faturas de cartão via PDF",
   "main": "index.html",
   "scripts": {

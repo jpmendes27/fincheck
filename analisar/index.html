@@ -1,0 +1,3984 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <!-- fincheck v1.0.62 - 10/04/2026, 15:33:44 -->
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <script>
+    // Auto-reload quando versão mudar (força atualização sem precisar limpar cache)
+    (function() {
+      const currentVersion = document.currentScript.parentElement.textContent.match(/v(\d+\.\d+\.\d+)/)?.[1];
+      if (!currentVersion) return;
+      
+      const storedVersion = localStorage.getItem('fincheck_version');
+      
+      if (storedVersion && storedVersion !== currentVersion) {
+        console.log(`🔄 Fincheck atualizado (${storedVersion} → ${currentVersion}), recarregando...`);
+        localStorage.setItem('fincheck_version', currentVersion);
+        // Force hard reload
+        window.location.reload(true);
+        return;
+      }
+      
+      localStorage.setItem('fincheck_version', currentVersion);
+    })();
+  </script>
+  
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-MX1044VTPP"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('js', new Date());
+  gtag('config', 'G-MX1044VTPP');
+</script>
+  <title>fincheck · controle seus gastos e fluxo financeiro</title>
+<link rel="icon" type="image/svg+xml" href="../logo.svg">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<style>
+:root {
+  --bg:#0e0f11; --surface:#16181c; --surface2:#1e2026;
+  --border:#2a2d35; --text:#e8e9ec; --muted:#6b7080;
+  --accent:#c8f564; --accent-dim:rgba(200,245,100,0.1);
+  --red:#ff5c5c; --blue:#5c9eff; --green:#4dcc8f;
+  --amber:#f5a623; --purple:#a78bfa; --radius:16px;
+  --ease-smooth:cubic-bezier(.22,1,.36,1);
+  --t-fast:.24s;
+  --t-med:.42s;
+  --t-slow:.62s;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--text);
+  font-family:'Syne',sans-serif;min-height:100vh;
+  padding:2rem 1.5rem 4rem;overflow-x:hidden;
+  transition:background var(--t-slow) var(--ease-smooth), color var(--t-med) var(--ease-smooth);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background-image:radial-gradient(circle,#2a2d35 1px,transparent 1px);
+  background-size:32px 32px;opacity:0.35;pointer-events:none;z-index:0;
+}
+.wrap{max-width:860px;margin:0 auto;position:relative;z-index:1;min-height:calc(100vh - 6rem);display:flex;flex-direction:column}
+.screen{display:none}
+.screen.active{display:block}
+.screen.active{flex:1}
+
+header{display:flex;flex-direction:column;align-items:center;justify-content:center;margin-bottom:2.5rem;gap:1rem;text-align:center}
+.page-back{position:fixed;top:1.9rem;left:1.6rem;z-index:2}
+.header-home{display:inline-flex;align-items:center;color:var(--accent);text-decoration:none;font-size:.86rem;font-weight:600;line-height:1.2;transition:color var(--t-med) var(--ease-smooth), opacity var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth)}
+.header-home:hover{opacity:.86;transform:translateX(-2px)}
+.logo{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--accent)}
+.logo span{color:var(--muted);font-style:italic}
+.step-pills{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap}
+.step-pill{
+  padding:.3rem .9rem;border-radius:999px;font-size:.68rem;
+  font-family:'DM Mono',monospace;letter-spacing:.06em;
+  border:1px solid var(--border);color:var(--muted);background:var(--surface);
+  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.step-pill.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.step-pill.done{border-color:#2a3a20;color:#4dcc8f;background:rgba(77,204,143,.07)}
+
+.drop-zone{
+  border:1.5px dashed var(--border);border-radius:var(--radius);
+  padding:3rem 2rem;text-align:center;cursor:pointer;
+  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);background:var(--surface);margin-bottom:1rem;
+  position:relative;
+}
+.drop-zone:hover,.drop-zone.drag-over{
+  border-color:var(--accent);background:var(--accent-dim);
+  transform:translateY(-2px);
+  box-shadow:0 16px 30px rgba(0,0,0,.18);
+}
+.drop-zone input[type=file]{
+  position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;
+}
+.drop-icon{font-size:2.5rem;margin-bottom:.75rem;display:block}
+.drop-title{font-size:1.1rem;font-weight:600;margin-bottom:.4rem}
+.drop-sub{font-size:.88rem;color:var(--muted)}
+.drop-sub strong{color:var(--text)}
+
+.file-queue{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+.file-item{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;padding:.85rem 1rem;
+  display:flex;align-items:center;gap:.75rem;
+  transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.file-icon{font-size:1.1rem;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:.82rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:.68rem;color:var(--muted);font-family:'DM Mono',monospace;margin-top:.15rem}
+.file-status{
+  font-size:.65rem;padding:3px 8px;border-radius:999px;font-family:'DM Mono',monospace;
+  font-weight:600;flex-shrink:0;
+}
+.file-remove{
+  width:24px;height:24px;border-radius:6px;border:none;
+  background:transparent;color:var(--muted);cursor:pointer;
+  font-size:.9rem;display:flex;align-items:center;justify-content:center;
+  transition:background var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);flex-shrink:0;
+}
+.file-remove:hover{background:var(--surface2);color:var(--red);transform:scale(1.06)}
+
+.progress-wrap{height:3px;background:var(--surface2);border-radius:999px;overflow:hidden;margin-top:.5rem;display:none}
+.progress-wrap.show{display:block}
+.progress-bar{height:100%;background:var(--accent);border-radius:999px;transition:width var(--t-med) var(--ease-smooth);width:0%}
+
+.parse-btn{
+  width:100%;padding:.9rem;border-radius:12px;
+  background:var(--accent-dim);border:1px solid var(--accent);
+  color:var(--accent);font-family:'Syne',sans-serif;
+  font-size:.88rem;font-weight:700;cursor:pointer;
+  transition:background var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);letter-spacing:.03em;margin-bottom:1rem;
+}
+.parse-btn:hover{background:rgba(200,245,100,.18);transform:translateY(-2px);box-shadow:0 14px 24px rgba(0,0,0,.18)}
+.parse-btn:disabled{opacity:.4;cursor:not-allowed}
+
+.loading-screen{
+  min-height:62vh;display:grid;place-items:center;
+}
+.loading-card{
+  width:min(100%, 720px);background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(200,245,100,.03));
+  border:1px solid rgba(200,245,100,.12);border-radius:28px;padding:2.2rem 2rem;
+  min-height:520px;
+  transition:border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
+}
+.loading-card:hover{box-shadow:0 22px 38px rgba(0,0,0,.18)}
+.loading-kicker{
+  font-size:.68rem;font-family:'DM Mono',monospace;letter-spacing:.16em;color:#7f8595;text-transform:uppercase;
+}
+.loading-title{
+  font-family:'DM Serif Display',serif;font-size:2.3rem;line-height:1.02;margin:.75rem 0 1rem;min-height:2.5em;
+  transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
+}
+.loading-copy{font-size:1rem;line-height:1.7;color:#8f94a3;max-width:560px;min-height:3.5em;transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth)}
+.loading-text.swap .loading-title,.loading-text.swap .loading-copy{
+  opacity:.2;transform:translateY(8px);
+}
+.loading-orbit{
+  width:112px;height:112px;border-radius:50%;margin:2rem 0 1.5rem;position:relative;
+  background:conic-gradient(var(--accent) 0 25%, rgba(200,245,100,.12) 25% 100%);
+  animation:spin 1.15s linear infinite;
+}
+.loading-orbit::before{
+  content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg);
+}
+.loading-orbit::after{
+  content:'';position:absolute;top:8px;left:50%;width:16px;height:16px;border-radius:50%;
+  background:var(--accent);transform:translateX(-50%);box-shadow:0 0 18px rgba(200,245,100,.5);
+}
+.loading-phase-list{display:grid;gap:.65rem;margin-top:1rem}
+.loading-phase{
+  display:flex;align-items:center;justify-content:space-between;gap:1rem;
+  padding:.8rem 1rem;border-radius:14px;border:1px solid rgba(255,255,255,.05);background:rgba(255,255,255,.02);
+  color:#8f94a3;font-size:.9rem;
+  transition:opacity var(--t-med) var(--ease-smooth), transform var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
+}
+.loading-phase.active{color:var(--text);transform:translateX(4px);box-shadow:inset 3px 0 0 var(--accent)}
+.loading-phase.done{opacity:.72}
+.loading-dot{
+  width:9px;height:9px;border-radius:50%;background:currentColor;opacity:.85;flex-shrink:0;
+  transition:transform var(--t-med) var(--ease-smooth), opacity var(--t-med) var(--ease-smooth), background var(--t-med) var(--ease-smooth);
+}
+.loading-phase.active .loading-dot{transform:scale(1.35);opacity:1;background:var(--accent)}
+.loading-phase.done .loading-dot{background:var(--green)}
+.loading-files{
+  margin-top:1rem;font-size:.72rem;font-family:'DM Mono',monospace;color:#7f8595;
+  min-height:1.4em;
+  transition:opacity var(--t-med) var(--ease-smooth);
+}
+
+.result-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;flex-wrap:wrap;gap:.75rem;
+}
+.result-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
+.result-title{font-family:'DM Serif Display',serif;font-size:1.5rem}
+.result-sub{font-size:.78rem;color:var(--muted);margin-top:.2rem}
+.reset-btn{
+  padding:.45rem 1.1rem;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:.72rem;
+  font-family:'DM Mono',monospace;cursor:pointer;transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.reset-btn:hover{border-color:var(--red);color:var(--red);transform:translateY(-1px)}
+.feedback-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  padding:.45rem 1.1rem;border-radius:999px;border:1px solid var(--border);
+  background:transparent;color:var(--muted);font-size:.72rem;
+  font-family:'DM Mono',monospace;cursor:pointer;white-space:nowrap;
+  text-decoration:none !important;appearance:none;
+  transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.feedback-btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.pdf-btn{
+  padding:.45rem 1.1rem;border-radius:999px;border:1px solid rgba(200,245,100,.28);
+  background:rgba(200,245,100,.08);color:var(--accent);font-size:.72rem;
+  font-family:'DM Mono',monospace;cursor:pointer;
+  transition:border-color var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth), background var(--t-fast) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth);
+}
+.pdf-btn:hover{background:rgba(200,245,100,.16);transform:translateY(-1px)}
+.pdf-btn:disabled{opacity:.55;cursor:progress;transform:none}
+
+.card-chips{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.25rem}
+.chip{
+  display:flex;align-items:center;gap:.4rem;padding:.4rem .9rem;
+  border-radius:999px;border:1px solid var(--border);background:var(--surface);
+  font-size:.72rem;font-weight:600;color:var(--muted);cursor:pointer;transition:background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), color var(--t-med) var(--ease-smooth), transform var(--t-fast) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
+}
+.chip:hover{transform:translateY(-1px)}
+.chip.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent);box-shadow:0 10px 22px rgba(0,0,0,.14)}
+.chip .cdot{width:7px;height:7px;border-radius:50%}
+
+.summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1rem}
+.sum-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.1rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
+.sum-card:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.15)}
+.sum-label{font-size:.63rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-bottom:.4rem}
+.sum-val{font-size:1.3rem;font-weight:700;font-family:'DM Mono',monospace}
+.sum-sub{font-size:.65rem;color:var(--muted);margin-top:.2rem}
+
+.income-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.income-row{display:flex;align-items:center;gap:.75rem}
+.income-label-col{min-width:160px}
+.ilabel{font-size:.7rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase}
+.ivalue{font-size:.95rem;font-weight:600;font-family:'DM Mono',monospace;margin-top:.15rem}
+.ibar-bg{flex:1;height:8px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.ibar-fill{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth),background var(--t-med) var(--ease-smooth)}
+.ipct{font-family:'DM Mono',monospace;font-size:.95rem;font-weight:600;min-width:44px;text-align:right}
+.income-edit-row{display:flex;align-items:center;gap:.75rem;margin-top:.75rem}
+.income-edit-row label{font-size:.78rem;color:var(--muted);white-space:nowrap}
+.income-edit-row input[type=range]{flex:1;accent-color:var(--accent)}
+.income-edit-row span{font-size:.78rem;font-family:'DM Mono',monospace;min-width:80px}
+
+.income-upload{padding:1rem 1.1rem;margin-top:.8rem}
+.income-upload-row{display:flex;gap:.6rem;align-items:center;flex-wrap:wrap}
+.income-upload .ptitle{font-size:.85rem}
+.income-upload input{
+  flex:1;min-width:180px;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:10px;padding:.6rem .8rem;
+  font-family:'DM Mono',monospace;font-size:1.05rem
+}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth)}
+.panel:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
+.ptitle{font-size:.65rem;font-family:'DM Mono',monospace;letter-spacing:.1em;color:var(--muted);text-transform:uppercase;margin-bottom:1.1rem}
+.cat-row{display:flex;flex-direction:column;gap:.25rem;margin-bottom:.75rem}
+.cat-head{display:flex;justify-content:space-between}
+.cat-name{font-size:.78rem;font-weight:600}
+.cat-pct{font-size:.68rem;font-family:'DM Mono',monospace;color:var(--muted)}
+.cbar-bg{height:4px;background:var(--surface2);border-radius:999px;overflow:hidden}
+.cbar{height:100%;border-radius:999px;transition:width var(--t-slow) var(--ease-smooth)}
+
+.tx-table{width:100%;border-collapse:collapse;font-size:.78rem}
+.tx-table th{font-size:.6rem;font-family:'DM Mono',monospace;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;padding:.5rem .75rem;border-bottom:1px solid var(--border);text-align:left}
+.tx-table th:last-child{text-align:right}
+.tx-table td{padding:.55rem .75rem;border-bottom:1px solid rgba(42,45,53,.4);vertical-align:middle}
+.tx-table td:last-child{text-align:right;font-family:'DM Mono',monospace}
+.tx-table tr td{transition:background var(--t-fast) var(--ease-smooth), color var(--t-fast) var(--ease-smooth)}
+.tx-table tr:hover td{background:var(--surface2)}
+.tx-table-wrap{max-height:320px;overflow-y:auto}
+.tx-table-wrap::-webkit-scrollbar{width:3px}
+.tx-table-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}
+.ttag{font-size:.58rem;padding:2px 7px;border-radius:999px;font-weight:600}
+.tcard{font-size:.6rem;color:var(--muted);font-family:'DM Mono',monospace}
+
+.diagnosis-hero{
+  background:linear-gradient(90deg, rgba(255,255,255,.02), rgba(200,245,100,.04));
+  border:1px solid rgba(200,245,100,.12);border-radius:22px;padding:1.4rem 1.5rem;
+  margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:1.25rem;
+}
+.diagnosis-eyebrow,.heatmap-title,.insight-kicker{
+  font-size:.66rem;font-family:'DM Mono',monospace;letter-spacing:.14em;color:#7f8595;text-transform:uppercase;
+}
+.diagnosis-headline{
+  font-family:'DM Serif Display',serif;font-size:2rem;line-height:1.05;margin:.45rem 0 .6rem;
+}
+.diagnosis-copy{font-size:.95rem;color:#8f94a3;line-height:1.7;max-width:620px}
+.diagnosis-meter{
+  width:118px;height:118px;border-radius:50%;
+  display:grid;place-items:center;flex-shrink:0;position:relative;
+  background:conic-gradient(var(--meter-color, var(--green)) calc(var(--pct, 0) * 1%), #262934 0);
+  transition:background var(--t-slow) var(--ease-smooth), transform var(--t-med) var(--ease-smooth);
+}
+.diagnosis-meter::before{
+  content:'';position:absolute;inset:12px;border-radius:50%;background:var(--bg);
+}
+.diagnosis-meter-inner{position:relative;text-align:center;z-index:1}
+.diagnosis-meter-val{font-family:'DM Mono',monospace;font-size:2rem;font-weight:700;line-height:1}
+.diagnosis-meter-sub{font-size:.62rem;font-family:'DM Mono',monospace;color:#7f8595;letter-spacing:.12em;text-transform:uppercase}
+
+.heatmap-panel{margin-bottom:1rem}
+.heatmap-grid{
+  display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px;align-items:stretch;
+}
+.heatmap-cell{
+  min-height:92px;border-radius:12px;background:#263126;position:relative;overflow:hidden;padding:.8rem .7rem;
+  border:1px solid rgba(255,255,255,.04);
+  display:flex;flex-direction:column;justify-content:space-between;
+  transition:transform var(--t-fast) var(--ease-smooth), filter var(--t-fast) var(--ease-smooth), background var(--t-med) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth);
+}
+.heatmap-cell:hover{transform:translateY(-1px);filter:brightness(1.06)}
+.heatmap-col-head{
+  font-size:.68rem;color:#7f8595;font-family:'DM Mono',monospace;display:grid;place-items:center;padding-bottom:.25rem;
+}
+.heatmap-empty{
+  min-height:92px;border-radius:12px;border:1px dashed rgba(255,255,255,.03);background:rgba(255,255,255,.015);
+}
+.heatmap-day{
+  font-size:.72rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.92);
+}
+.heatmap-value{
+  font-size:.72rem;font-family:'DM Mono',monospace;color:rgba(255,255,255,.84);line-height:1.35;
+}
+
+.insight-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1rem}
+.insight-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:1.15rem 1.2rem;
+  min-height:140px;
+  transition:transform var(--t-fast) var(--ease-smooth), border-color var(--t-med) var(--ease-smooth), box-shadow var(--t-med) var(--ease-smooth);
+}
+.insight-card:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(0,0,0,.14)}
+.insight-icon{
+  width:28px;height:28px;border-radius:8px;display:grid;place-items:center;margin-bottom:.9rem;
+  background:rgba(255,255,255,.06);font-size:1rem;
+}
+.insight-text{font-size:.95rem;line-height:1.7;color:#8f94a3}
+.insight-text strong{color:var(--text);font-weight:700}
+
+.site-footer{
+  margin-top:auto;padding-top:1.2rem;border-top:1px solid rgba(42,45,53,.8);
+  display:flex;align-items:center;justify-content:center;gap:1rem;flex-wrap:wrap;
+  text-align:center;
+}
+.footer-brand{
+  display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;
+  font-size:.72rem;color:#7f8595;font-family:'DM Mono',monospace;letter-spacing:.04em;
+  justify-content:center;
+}
+.footer-brand strong{
+  color:var(--text);font-family:'Syne',sans-serif;font-size:.82rem;letter-spacing:0;
+}
+.footer-meta{
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  font-size:.68rem;color:#6f7483;font-family:'DM Mono',monospace;
+  justify-content:center;
+}
+.footer-meta span{
+  position:relative;padding-left:.9rem;
+}
+.footer-meta span::before{
+  content:'';position:absolute;left:0;top:50%;width:4px;height:4px;border-radius:50%;
+  background:rgba(200,245,100,.45);transform:translateY(-50%);
+}
+
+.dedup-banner{
+  display:none;align-items:flex-start;gap:.75rem;
+  background:rgba(92,158,255,.08);border:1px solid rgba(92,158,255,.25);
+  border-radius:12px;padding:1rem 1.1rem;margin-bottom:1rem;
+}
+.dedup-banner.show{display:flex}
+.dedup-banner-body{flex:1;font-size:.78rem;line-height:1.6;color:var(--muted)}
+.dedup-banner-body strong{color:var(--text)}
+.dedup-actions{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap}
+.dbtn{
+  padding:.35rem .85rem;border-radius:999px;border:1px solid var(--border);
+  font-size:.68rem;font-family:'DM Mono',monospace;cursor:pointer;
+  background:transparent;color:var(--muted);transition:all .15s;
+}
+.dbtn:hover{color:var(--text);border-color:#3a3d45}
+.dbtn.primary{background:rgba(92,158,255,.12);color:var(--blue);border-color:rgba(92,158,255,.4)}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp .35s ease both}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner{display:inline-block;width:12px;height:12px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:.4rem}
+
+@media(max-width:620px){
+  .page-back{top:1.1rem;left:1rem}
+  .header-home{font-size:.72rem;max-width:220px;white-space:normal}
+  header{gap:.85rem}
+  .loading-title{font-size:1.8rem}
+  .diagnosis-hero{flex-direction:column;align-items:flex-start}
+  .site-footer{justify-content:center}
+  .footer-meta{gap:.6rem}
+  .summary-grid{grid-template-columns:1fr 1fr}
+  .drop-title{font-size:1.05rem}
+  .drop-sub{font-size:.86rem}
+  .income-upload .ptitle{font-size:.9rem}
+  .income-upload input{font-size:17px}
+  .income-upload-row{flex-direction:column;align-items:stretch}
+  .insight-grid{grid-template-columns:1fr}
+  .two-col{grid-template-columns:1fr}
+  .heatmap-grid{grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+  .heatmap-cell,.heatmap-empty{min-height:68px;padding:.55rem .45rem}
+  .heatmap-cell{align-items:center;text-align:center}
+  .heatmap-day,.heatmap-value{font-size:.6rem;line-height:1.2;white-space:normal;word-break:break-word}
+}
+
+@media print{
+  @page{
+    size:A4;
+    margin:10mm;
+  }
+
+  html,body{
+    background:var(--bg) !important;
+    color:var(--text) !important;
+    padding:0 !important;
+    overflow:visible !important;
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+
+  body::before,
+  #screenUpload,
+  #screenLoading,
+  .page-back,
+  .header-home,
+  .step-pills,
+  .site-footer,
+  .dedup-banner{
+    display:none !important;
+  }
+
+  .wrap{
+    max-width:none !important;
+    min-height:auto !important;
+    display:block !important;
+  }
+
+  #screenReport{
+    display:block !important;
+  }
+
+  header{
+    display:block !important;
+    margin-bottom:8mm !important;
+  }
+
+  .logo{
+    color:var(--accent) !important;
+  }
+
+  .logo span,
+  .result-sub,
+  .sum-sub,
+  .cat-pct,
+  .tcard,
+  .diagnosis-copy,
+  .heatmap-title,
+  .ptitle,
+  .ilabel,
+  .footer-brand,
+  .footer-meta{
+    color:var(--muted) !important;
+  }
+
+  .sum-card,
+  .income-block,
+  .panel,
+  .diagnosis-hero{
+    background:var(--surface) !important;
+    color:var(--text) !important;
+    border:1px solid var(--border) !important;
+    box-shadow:none !important;
+    break-inside:avoid;
+    page-break-inside:avoid;
+  }
+
+  .chip{
+    background:var(--surface) !important;
+    border-color:var(--border) !important;
+    color:var(--muted) !important;
+    box-shadow:none !important;
+  }
+
+  .chip.active{
+    background:var(--accent-dim) !important;
+    border-color:var(--accent) !important;
+    color:var(--accent) !important;
+  }
+
+  .tx-table-wrap{
+    max-height:none !important;
+    overflow:visible !important;
+  }
+
+  .tx-table th,
+  .tx-table td{
+    color:var(--text) !important;
+    border-bottom:1px solid rgba(42,45,53,.65) !important;
+  }
+
+  .tx-table tr:hover td{
+    background:transparent !important;
+  }
+
+  .result-actions{
+    display:flex !important;
+  }
+
+  .pdf-btn,
+  .reset-btn{
+    display:none !important;
+  }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="page-back">
+    <a class="header-home" href="/fincheck">&lt; Voltar para página inicial</a>
+  </div>
+
+  <header>
+    <div class="logo">fincheck®<span> • controle seus gastos e extratos</span></div>
+    <div class="step-pills">
+      <div class="step-pill active" id="pill1">1 · Upload</div>
+      <div class="step-pill" id="pill2">2 · Processando</div>
+      <div class="step-pill" id="pill3">3 · Relatório</div>
+    </div>
+  </header>
+
+  <div id="screenUpload" class="screen active">
+    <div class="drop-zone fu" id="dropZone">
+      <input type="file" id="fileInput" accept=".pdf,.csv,.ofx,.png,.jpg,.jpeg,.webp" multiple onchange="handleFiles(this.files)">
+      <span class="drop-icon">📄</span>
+      <div class="drop-title">Envie seu extrato ou fatura</div>
+      <div class="drop-sub">Baixe no app do seu banco a fatura/extrato em <strong>PDF, CSV ou OFX</strong> e envie aqui. Se for print/foto, envie a imagem.</div>
+    </div>
+
+    <div class="panel income-upload fu" style="animation-delay:.05s">
+      <div class="ptitle" style="margin-bottom:.35rem">informe sua renda mensal (opcional)</div>
+      <div class="income-upload-row">
+        <input id="rendaInputUpload" type="text" inputmode="numeric" placeholder="R$ 0,00" oninput="setRendaFromInput(this.value)">
+      </div>
+    </div>
+
+    <div class="file-queue" id="fileQueue"></div>
+
+    <button class="parse-btn fu" id="parseBtn" disabled onclick="startParsing()">
+      Analisar arquivos →
+    </button>
+  </div>
+
+  <div id="screenLoading" class="screen">
+    <div class="loading-screen">
+      <div class="loading-card fu">
+      <div class="loading-kicker">Processando seu upload</div>
+      <div class="loading-text" id="loadingText">
+        <div class="loading-title" id="loadingTitle">Analisando seus gastos</div>
+        <div class="loading-copy" id="loadingCopy">Estamos lendo seus PDFs e imagens, estruturando as transações e preparando um diagnóstico completo para você.</div>
+      </div>
+      <div class="loading-orbit" aria-hidden="true"></div>
+        <div class="loading-phase-list" id="loadingPhaseList"></div>
+        <div class="loading-files" id="loadingFiles">0 arquivo(s) na fila</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="screenReport" class="screen">
+    <div class="result-header fu">
+      <div>
+        <div class="result-title">Diagnóstico de gastos</div>
+        <div class="result-sub" id="resultSub">Carregando...</div>
+      </div>
+      <div class="result-actions">
+        <button class="pdf-btn" onclick="downloadReportPdf()">↓ Baixar PDF</button>
+        <button class="reset-btn" onclick="resetAll()">↺ Novo upload</button>
+        <button class="feedback-btn" onclick="window.open('https://wa.me/5521966939829','_blank','noopener')">Dar feedback</button>
+      </div>
+    </div>
+
+    <div class="dedup-banner" id="dedupBanner">
+      <span style="font-size:1.1rem;flex-shrink:0">🔄</span>
+      <div class="dedup-banner-body">
+        <span id="dedupText"></span>
+        <div class="dedup-actions">
+          <button class="dbtn primary" onclick="applyMerge()">Mesclar (recomendado)</button>
+          <button class="dbtn" onclick="applyReplace()">Substituir existente</button>
+          <button class="dbtn" onclick="closeDedupBanner()">Ignorar por ora</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-chips" id="cardChips"></div>
+    <div class="summary-grid fu" id="summaryGrid"></div>
+    <div class="panel fu" id="debugTotals" style="display:none;animation-delay:.06s"></div>
+
+    <div class="income-block fu" style="animation-delay:.05s">
+      <div class="income-row">
+        <div class="income-label-col">
+          <div class="ilabel">renda mensal</div>
+          <div class="ivalue" id="incomeDisplay">R$ 1.621</div>
+        </div>
+        <div class="ibar-bg"><div class="ibar-fill" id="ibarFill" style="width:0%;background:var(--green)"></div></div>
+        <div class="ipct" id="ipct" style="color:var(--green)">0%</div>
+      </div>
+      <div class="income-edit-row">
+        <label>Ajustar renda:</label>
+        <input type="range" min="600" max="30000" step="100" value="1621" id="rendaSlider" oninput="updateRenda(this.value)">
+        <span id="rendaVal">R$ 1.621</span>
+      </div>
+    </div>
+
+    <div class="diagnosis-hero fu" style="animation-delay:.08s">
+      <div>
+        <div class="diagnosis-eyebrow">Diagnóstico geral</div>
+        <div class="diagnosis-headline" id="diagnosisHeadline">Carregando...</div>
+        <div class="diagnosis-copy" id="diagnosisCopy">Aguardando transações para montar o panorama.</div>
+      </div>
+      <div class="diagnosis-meter" id="diagnosisMeter">
+        <div class="diagnosis-meter-inner">
+          <div class="diagnosis-meter-val" id="diagnosisMeterVal">0</div>
+          <div class="diagnosis-meter-sub">/ nota</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel heatmap-panel fu" style="animation-delay:.11s">
+      <div class="heatmap-title">dias de maior gasto</div>
+      <div class="heatmap-grid" id="heatmapGrid"></div>
+    </div>
+
+    <div class="insight-grid fu" id="insightGrid" style="animation-delay:.14s"></div>
+
+    <div class="two-col">
+      <div class="panel fu" style="animation-delay:.1s">
+        <div class="ptitle">categorias</div>
+        <div id="catList"></div>
+      </div>
+      <div class="panel fu" style="animation-delay:.15s">
+        <div class="ptitle">estabelecimentos frequentes</div>
+        <div id="merchantList"></div>
+      </div>
+    </div>
+
+    <div class="panel fu" style="animation-delay:.2s">
+      <div class="ptitle">todas as transações</div>
+      <div class="tx-table-wrap">
+        <table class="tx-table">
+          <thead><tr>
+            <th>Data</th><th>Estabelecimento</th>
+            <th>Categoria</th><th>Cartão</th><th>Valor</th>
+          </tr></thead>
+          <tbody id="txBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <strong>Fincheck®</strong>
+      <span>Todos os direitos reservados.</span>
+    </div>
+    <div class="footer-meta">
+      <span>Feito para conversas financeiras mais claras</span>
+      <span>Relatórios privados e compartilháveis</span>
+    </div>
+  </footer>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
+
+const CAT_COLORS = {
+  'Alimentacao':'#f5a623','Delivery':'#f5a623','Mercado':'#5c9eff',
+  'Assinaturas':'#a78bfa','Transporte':'#4dcc8f','Combustivel':'#4dcc8f',
+  'Saude':'#ff5c5c','Farmacia':'#ff5c5c','Lazer':'#c8f564',
+  'Viagem':'#ff5c5c','Hospedagem':'#ff5c5c','Educacao':'#5c9eff',
+  'Moradia':'#5c9eff','Contas':'#4dcc8f','Seguros':'#a78bfa',
+  'Emprestimos':'#ff5c5c','Transferencias':'#6b7080','Impostos':'#f5a623',
+  'Doacoes':'#c8f564','Recebimentos':'#4dcc8f','Outros':'#6b7080',
+  'Varejo':'#5c9eff',
+  'Alimentação':'#f5a623','Combustível':'#4dcc8f','Saúde':'#ff5c5c',
+  'Farmácia':'#ff5c5c','Educação':'#5c9eff'
+}
+const CARD_COLORS = ['#820AD1','#ec7000','#00b86b','#5c9eff','#f5a623','#ff5c5c','#a78bfa']
+const MONTH_MAP = {
+  'JAN': 1, 'JANEIRO': 1,
+  'FEV': 2, 'FEVEREIRO': 2,
+  'MAR': 3, 'MARCO': 3,
+  'ABR': 4, 'ABRIL': 4,
+  'MAI': 5, 'MAIO': 5,
+  'JUN': 6, 'JUNHO': 6,
+  'JUL': 7, 'JULHO': 7,
+  'AGO': 8, 'AGOSTO': 8,
+  'SET': 9, 'SETEMBRO': 9,
+  'OUT': 10, 'OUTUBRO': 10,
+  'NOV': 11, 'NOVEMBRO': 11,
+  'DEZ': 12, 'DEZEMBRO': 12
+}
+
+let fileQueue = []
+let allTransactions = []
+let cardRegistry = {}
+let renda = 1621
+let activeCard = 'all'
+let dedupPending = null
+let loadingInterval = null
+let loadingPhaseIndex = 0
+
+function trackEvent(name, params) {
+  if (!window.gtag) return
+  window.gtag('event', name, params || {})
+}
+
+function getFileKindsSummary(files) {
+  const kinds = new Set((files || []).map(f => f.kind).filter(Boolean))
+  return [...kinds].join(',')
+}
+
+function classifyImportError(error) {
+  const msg = String(error && error.message ? error.message : error || '').toLowerCase()
+  if (/tempo limite|demorou demais/.test(msg)) return 'ocr_timeout'
+  if (/transacoes suficientes/.test(msg)) return 'ocr_no_transactions'
+  if (/senha|password/.test(msg)) return 'pdf_password'
+  return 'parse_error'
+}
+
+const LOADING_PHASES = [
+  { title: 'Analisando seus gastos', copy: 'Estamos lendo seus arquivos e identificando cada movimentação do período.' },
+  { title: 'Preparando seu relatório', copy: 'Agora agrupamos categorias, estabelecimentos e padrões de consumo.' },
+  { title: 'Calculando tudo pra você', copy: 'Finalizando indicadores, alertas e insights para montar o relatório completo.' }
+]
+
+const dropZone = document.getElementById('dropZone')
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over') })
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
+dropZone.addEventListener('drop', e => {
+  e.preventDefault()
+  dropZone.classList.remove('drag-over')
+  handleFiles(e.dataTransfer.files)
+})
+
+const parseBtnEl = document.getElementById('parseBtn')
+if (parseBtnEl) {
+  parseBtnEl.addEventListener('click', () => {
+    trackEvent('cta_click', { label: 'analisar_arquivos' })
+  })
+}
+
+document.querySelectorAll('.pdf-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('cta_click', { label: 'baixar_pdf' }))
+})
+
+document.querySelectorAll('.reset-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('cta_click', { label: 'novo_upload' }))
+})
+
+document.querySelectorAll('.feedback-btn').forEach(btn => {
+  btn.addEventListener('click', () => trackEvent('cta_click', { label: 'dar_feedback' }))
+})
+
+function handleFiles(files) {
+  let added = 0
+  const addedKinds = new Set()
+  for (const f of files) {
+    const kind = detectFileKind(f.name)
+    if (!kind) continue
+    const id = Date.now() + Math.random()
+    fileQueue.push({ id, file: f, name: f.name, size: f.size, kind, status: 'pending', text: '' })
+    added += 1
+    addedKinds.add(kind)
+  }
+  renderQueue()
+  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+  if (added) {
+    trackEvent('upload_files_added', {
+      file_count: added,
+      file_kinds: [...addedKinds].join(',')
+    })
+  }
+}
+
+function removeFile(id) {
+  fileQueue = fileQueue.filter(f => f.id !== id)
+  renderQueue()
+  document.getElementById('parseBtn').disabled = fileQueue.length === 0
+}
+
+function renderQueue() {
+  const el = document.getElementById('fileQueue')
+  el.innerHTML = fileQueue.map(f => {
+    const kb = (f.size / 1024).toFixed(0)
+    const statusMap = {
+      pending: ['#6b7080', 'var(--surface2)', 'aguardando'],
+      extracting: ['#f5a623', 'rgba(245,166,35,.1)', '<span class="spinner"></span>lendo arquivo...'],
+      parsing: ['#5c9eff', 'rgba(92,158,255,.1)', '<span class="spinner"></span>estruturando transacoes...'],
+      done: ['#4dcc8f', 'rgba(77,204,143,.1)', '✓ processado'],
+      error: ['#ff5c5c', 'rgba(255,92,92,.1)', '✗ erro']
+    }
+    const [tc, bg, label] = statusMap[f.status] || statusMap.pending
+    const kindLabel = (f.kind || 'pdf').toUpperCase()
+    return `<div class="file-item">
+      <span class="file-icon">📄</span>
+      <div class="file-info">
+        <div class="file-name">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${kb} KB · ${kindLabel}</div>
+        <div class="progress-wrap ${f.status === 'extracting' || f.status === 'parsing' ? 'show' : ''}">
+          <div class="progress-bar" style="width:${f.progress || 0}%"></div>
+        </div>
+      </div>
+      <span class="file-status" style="color:${tc};background:${bg}">${label}</span>
+      ${f.status === 'pending' ? `<button class="file-remove" onclick="removeFile(${f.id})">✕</button>` : ''}
+    </div>`
+  }).join('')
+}
+
+function detectFileKind(name) {
+  const lower = String(name || '').toLowerCase()
+  if (lower.endsWith('.pdf')) return 'pdf'
+  if (lower.endsWith('.csv')) return 'csv'
+  if (lower.endsWith('.ofx')) return 'ofx'
+  if (/\.(png|jpe?g|webp)$/i.test(lower)) return 'image'
+  return null
+}
+
+async function extractPdfDocument(file, onProgress) {
+  const buf = await file.arrayBuffer()
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise
+  const pages = []
+  const allLines = []
+  const rawItemLines = []
+
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i)
+    const content = await page.getTextContent()
+    const sortedItems = sortPageItems(content.items || [])
+    const lines = buildPageLines(sortedItems)
+    pages.push({ pageNumber: i, lines })
+    allLines.push(...lines.map(line => line.text))
+    rawItemLines.push(...sortedItems.map(item => normalizeSpace(item.str)).filter(Boolean))
+    onProgress(Math.round((i / pdf.numPages) * 100))
+  }
+  return {
+    fileName: file.name,
+    sourceKind: 'pdf',
+    text: allLines.join('\n'),
+    rawText: rawItemLines.join('\n'),
+    rawItemLines,
+    pages
+  }
+}
+
+async function extractImageDocument(file, onProgress) {
+  if (!window.Tesseract) {
+    throw new Error('OCR indisponivel no momento. Tente novamente em alguns instantes.')
+  }
+
+  const bitmap = await createImageBitmap(file)
+  const pixelCount = bitmap.width * bitmap.height
+  const isLargeImage = pixelCount > 3_000_000
+  const baseScale = bitmap.width < 1200 ? 3 : bitmap.width < 1800 ? 2.5 : 2
+  const bottomScale = bitmap.width < 1200 ? 4 : bitmap.width < 1800 ? 3.2 : 2.6
+  const autoCrop = detectDenseTextRegion(bitmap, { startY: 0.4 })
+  const bottomCrop = autoCrop || { x: 0, y: 0.45, w: 1, h: 0.55 }
+  const deskewAngle = bitmap.width >= 700 ? estimateSkewAngle(bitmap) : 0
+  const deskewCanvas = deskewAngle ? getDeskewedCanvas(bitmap, deskewAngle) : null
+
+  const worker = await Tesseract.createWorker({
+    workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+    corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@v5.1.1/tesseract-core-simd-lstm.wasm.js',
+    langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/tessdata',
+    logger(message) {
+      if (message && message.status === 'recognizing text' && typeof message.progress === 'number') {
+        onProgress(Math.max(1, Math.round(message.progress * 100)))
+      }
+    }
+  })
+
+  const timeoutMs = 20000
+  const startedAt = performance.now()
+  const timeLeft = () => Math.max(0, timeoutMs - (performance.now() - startedAt))
+  const withTimeout = (promise, label) => new Promise((resolve, reject) => {
+    const remaining = timeLeft()
+    if (remaining <= 0) {
+      reject(new Error(`Tempo limite do OCR atingido. Tente novamente com uma imagem mais nítida.`))
+      return
+    }
+    const id = setTimeout(() => reject(new Error(`${label} demorou demais. Tente novamente com uma imagem mais nítida.`)), remaining)
+    promise.then(v => { clearTimeout(id); resolve(v) }).catch(err => { clearTimeout(id); reject(err) })
+  })
+
+  try {
+    await worker.loadLanguage('por+eng')
+    await worker.initialize('por+eng')
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1'
+    })
+
+    const fullBlob = isLargeImage ? null : await prepareImageForOCR(file, {
+      scale: baseScale,
+      threshold: true,
+      bitmap,
+      deskewCanvas
+    })
+    const topBlob = await prepareImageForOCR(file, {
+      scale: baseScale,
+      threshold: true,
+      crop: { x: 0, y: 0, w: 1, h: 0.5 },
+      bitmap,
+      deskewCanvas
+    })
+    const bottomBlob = await prepareImageForOCR(file, {
+      scale: bottomScale,
+      threshold: true,
+      crop: bottomCrop,
+      bitmap,
+      deskewCanvas
+    })
+
+    const lineFromData = data =>
+      (data && data.lines ? data.lines.map(line => normalizeSpace(line.text)).filter(Boolean) : [])
+
+    const results = []
+    if (fullBlob && timeLeft() > 3000) {
+      results.push(await withTimeout(worker.recognize(fullBlob), 'OCR da imagem completa'))
+    }
+    if (timeLeft() > 2000) {
+      results.push(await withTimeout(worker.recognize(topBlob), 'OCR do cabecalho'))
+    }
+    if (timeLeft() > 2000) {
+      results.push(await withTimeout(worker.recognize(bottomBlob), 'OCR das transacoes'))
+    }
+
+    const lastResult = results[results.length - 1]
+    const bottomLines = lastResult ? lineFromData(lastResult.data) : []
+    if (bottomLines.length < 6 && timeLeft() > 4000) {
+      await worker.setParameters({ tessedit_pageseg_mode: '11', preserve_interword_spaces: '1' })
+      const bottomSparseBlob = await prepareImageForOCR(file, {
+        scale: bottomScale,
+        threshold: true,
+        crop: bottomCrop,
+        bitmap,
+        deskewCanvas
+      })
+      results.push(await withTimeout(worker.recognize(bottomSparseBlob), 'OCR das transacoes (sparse)'))
+
+      if (timeLeft() > 3000) {
+        const leftCrop = {
+          x: bottomCrop.x,
+          y: bottomCrop.y,
+          w: Math.min(0.75, bottomCrop.w),
+          h: bottomCrop.h
+        }
+        const rightCrop = {
+          x: Math.max(0.55, bottomCrop.x + bottomCrop.w - 0.4),
+          y: bottomCrop.y,
+          w: 0.4,
+          h: bottomCrop.h
+        }
+        const leftBlob = await prepareImageForOCR(file, { scale: bottomScale, threshold: true, crop: leftCrop, bitmap, deskewCanvas })
+        const rightBlob = await prepareImageForOCR(file, { scale: bottomScale, threshold: true, crop: rightCrop, bitmap, deskewCanvas })
+        results.push(await withTimeout(worker.recognize(leftBlob), 'OCR transacoes (coluna esquerda)'))
+        results.push(await withTimeout(worker.recognize(rightBlob), 'OCR transacoes (coluna direita)'))
+      }
+      await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1' })
+    }
+
+    const combinedText = results
+      .map(r => String(r && r.data && r.data.text ? r.data.text : ''))
+      .filter(Boolean)
+      .join('\n')
+
+    const rawItemLines = [
+      ...results.flatMap(r => lineFromData(r.data)),
+      ...combinedText.split(/\r?\n/).map(normalizeSpace).filter(Boolean)
+    ]
+
+    onProgress(100)
+
+    return {
+      fileName: file.name,
+      sourceKind: 'image',
+      text: rawItemLines.join('\n'),
+      rawText: combinedText,
+      rawItemLines,
+      pages: [{ pageNumber: 1, lines: rawItemLines.map(line => ({ text: line })) }]
+    }
+  } finally {
+    await worker.terminate()
+  }
+}
+
+async function prepareImageForOCR(file, options = {}) {
+  const scale = options.scale || 2
+  const threshold = Boolean(options.threshold)
+  const crop = options.crop || null
+  const bitmap = options.deskewCanvas || options.bitmap || await createImageBitmap(file)
+  const sx = crop ? Math.floor(bitmap.width * crop.x) : 0
+  const sy = crop ? Math.floor(bitmap.height * crop.y) : 0
+  const sw = crop ? Math.floor(bitmap.width * crop.w) : bitmap.width
+  const sh = crop ? Math.floor(bitmap.height * crop.h) : bitmap.height
+
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.floor(sw * scale))
+  canvas.height = Math.max(1, Math.floor(sh * scale))
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
+
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const data = imageData.data
+  let sum = 0
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i]
+    const g = data[i + 1]
+    const b = data[i + 2]
+    const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b)
+    data[i] = gray
+    data[i + 1] = gray
+    data[i + 2] = gray
+    sum += gray
+  }
+
+  if (threshold) {
+    const avg = sum / (data.length / 4)
+    const cutoff = Math.max(90, Math.min(190, avg))
+    for (let i = 0; i < data.length; i += 4) {
+      const v = data[i] > cutoff ? 255 : 0
+      data[i] = v
+      data[i + 1] = v
+      data[i + 2] = v
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0)
+
+  return new Promise(resolve => {
+    canvas.toBlob(blob => resolve(blob || file), 'image/png')
+  })
+}
+
+function detectDenseTextRegion(bitmap, options = {}) {
+  const startY = options.startY || 0.4
+  const targetW = 360
+  const scale = Math.min(1, targetW / bitmap.width)
+  const w = Math.max(1, Math.floor(bitmap.width * scale))
+  const h = Math.max(1, Math.floor(bitmap.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(bitmap, 0, 0, w, h)
+
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const data = imageData.data
+  const rowDark = new Array(h).fill(0)
+  for (let y = 0; y < h; y++) {
+    let count = 0
+    for (let x = 0; x < w; x++) {
+      const idx = (y * w + x) * 4
+      const r = data[idx]
+      const g = data[idx + 1]
+      const b = data[idx + 2]
+      const gray = (0.299 * r + 0.587 * g + 0.114 * b)
+      if (gray < 170) count++
+    }
+    rowDark[y] = count / w
+  }
+
+  const startRow = Math.floor(h * startY)
+  const threshold = 0.08
+  let best = null
+  let currentStart = null
+  for (let y = startRow; y < h; y++) {
+    const isDense = rowDark[y] > threshold
+    if (isDense && currentStart == null) currentStart = y
+    if (!isDense && currentStart != null) {
+      const end = y
+      const size = end - currentStart
+      if (!best || size > best.size) best = { start: currentStart, end, size }
+      currentStart = null
+    }
+  }
+  if (currentStart != null) {
+    const end = h
+    const size = end - currentStart
+    if (!best || size > best.size) best = { start: currentStart, end, size }
+  }
+
+  if (!best || best.size < h * 0.15) return null
+  const cropY = best.start / h
+  const cropH = best.size / h
+  return { x: 0, y: Math.max(0, cropY - 0.02), w: 1, h: Math.min(1, cropH + 0.04) }
+}
+
+function estimateSkewAngle(bitmap) {
+  const targetW = 280
+  const scale = Math.min(1, targetW / bitmap.width)
+  const w = Math.max(1, Math.floor(bitmap.width * scale))
+  const h = Math.max(1, Math.floor(bitmap.height * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.drawImage(bitmap, 0, 0, w, h)
+
+  const imageData = ctx.getImageData(0, 0, w, h)
+  const data = imageData.data
+
+  const angles = []
+  for (let a = -3; a <= 3.01; a += 0.5) angles.push(a)
+
+  const scoreAngle = angle => {
+    const rad = (angle * Math.PI) / 180
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+    const cx = w / 2
+    const cy = h / 2
+    const rowSum = new Array(h).fill(0)
+
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const rx = (x - cx) * cos - (y - cy) * sin + cx
+        const ry = (x - cx) * sin + (y - cy) * cos + cy
+        const ix = Math.floor(rx)
+        const iy = Math.floor(ry)
+        if (ix < 0 || iy < 0 || ix >= w || iy >= h) continue
+        const idx = (iy * w + ix) * 4
+        const gray = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2]
+        if (gray < 170) rowSum[y] += 1
+      }
+    }
+
+    let mean = 0
+    for (let y = 0; y < h; y++) mean += rowSum[y]
+    mean /= h
+    let variance = 0
+    for (let y = 0; y < h; y++) {
+      const diff = rowSum[y] - mean
+      variance += diff * diff
+    }
+    return variance / h
+  }
+
+  let bestAngle = 0
+  let bestScore = -Infinity
+  for (const angle of angles) {
+    const score = scoreAngle(angle)
+    if (score > bestScore) {
+      bestScore = score
+      bestAngle = angle
+    }
+  }
+
+  return Math.abs(bestAngle) >= 0.2 ? bestAngle : 0
+}
+
+function getDeskewedCanvas(bitmap, angle) {
+  const rad = (angle * Math.PI) / 180
+  const cos = Math.abs(Math.cos(rad))
+  const sin = Math.abs(Math.sin(rad))
+  const w = bitmap.width
+  const h = bitmap.height
+  const newW = Math.floor(w * cos + h * sin)
+  const newH = Math.floor(w * sin + h * cos)
+  const canvas = document.createElement('canvas')
+  canvas.width = newW
+  canvas.height = newH
+  const ctx = canvas.getContext('2d', { willReadFrequently: true })
+  ctx.translate(newW / 2, newH / 2)
+  ctx.rotate(rad)
+  ctx.drawImage(bitmap, -w / 2, -h / 2)
+  return canvas
+}
+
+async function parseImportedFile(file, kind, onProgress) {
+  if (kind === 'pdf') {
+    const document = await extractPdfDocument(file, onProgress)
+    return parseStatementDocument(document)
+  }
+  if (kind === 'image') {
+    const document = await extractImageDocument(file, onProgress)
+    return parseStatementDocument(document)
+  }
+
+  onProgress(100)
+  const content = await file.text()
+  if (kind === 'csv') return parseCsvDocument(content, file.name)
+  if (kind === 'ofx') return parseOfxDocument(content, file.name)
+  throw new Error('Formato de arquivo nao suportado')
+}
+
+function parseCsvDocument(content, fileName) {
+  const rows = parseDelimitedRows(content)
+  if (rows.length < 2) {
+    throw new Error('Nao consegui identificar linhas suficientes neste CSV')
+  }
+
+  const header = rows[0].map(cell => normalizeDocText(cell))
+  const schema = detectCsvSchema(header)
+  const tipoDocumento = getCsvDocumentType(schema, fileName)
+  const bankName = detectCsvBank(schema, content, fileName)
+  const dateIdx = findHeaderIndex(header, ['DATA', 'DATE', 'DTPOSTED', 'TRANSACTION CREATED AT', 'MOVEMENT CREATED AT'])
+  const descIdx = findHeaderIndex(header, [
+    'DESCRICAO', 'DESCRIÇÃO', 'HISTORICO', 'HISTÓRICO', 'ESTABELECIMENTO', 'DESCR', 'MEMO', 'NAME', 'TITLE',
+    'MOVEMENT DESCRIPTION', 'MOVEMENT ADDITIONAL INFORMATION', 'TRANSACTION DESCRIPTION', 'DESCRIPTION'
+  ])
+  const amountIdx = findHeaderIndex(header, ['VALOR', 'AMOUNT', 'VALOR FINAL', 'TRNAMT', 'MOVEMENT AMOUNT', 'AMOUNT BRL'])
+  const debitIdx = findHeaderIndex(header, ['DEBITO', 'DÉBITO', 'SAIDA', 'SAÍDA', 'DEBIT'])
+  const creditIdx = findHeaderIndex(header, ['CREDITO', 'CRÉDITO', 'ENTRADA', 'CREDIT'])
+  const identifierIdx = findHeaderIndex(header, ['IDENTIFICADOR', 'ID', 'IDENTIFIER', 'MOVEMENT IDENTIFIER', 'TRANSACTION ID'])
+
+  if (dateIdx === -1 || descIdx === -1 || (amountIdx === -1 && debitIdx === -1 && creditIdx === -1)) {
+    throw new Error('Nao consegui mapear as colunas principais do CSV')
+  }
+
+  const transacoes = rows.slice(1).map((row, rowIndex) => parseCsvRow(row, {
+    schema,
+    tipoDocumento,
+    dateIdx,
+    descIdx,
+    amountIdx,
+    debitIdx,
+    creditIdx,
+    identifierIdx,
+    rowIndex
+  })).filter(Boolean)
+
+  if (!transacoes.length) {
+    throw new Error('Nao consegui identificar transacoes validas neste CSV')
+  }
+
+  const mesReferencia = inferReferenceMonthFromTransactions(transacoes)
+  const gastos = fromCents(sumCents(transacoes.filter(tx => tx.natureza === 'gasto').map(tx => Math.abs(Number(tx.valor) || 0))))
+
+  return finalizeParsedStatement({
+    tipo_documento: tipoDocumento,
+    banco: bankName,
+    identificador: null,
+    ultimos_digitos: null,
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: tipoDocumento === 'fatura_cartao' ? gastos : 0,
+    total_gastos_periodo: gastos,
+    transacoes
+  }, {
+    bank: bankName,
+    tipo_documento: tipoDocumento,
+    identificador: null,
+    ultimos_digitos: null,
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: tipoDocumento === 'fatura_cartao' ? gastos : 0,
+    total_gastos_periodo: gastos
+  })
+}
+
+function detectCsvSchema(header) {
+  const joined = header.join(' | ')
+  if (joined === 'DATE | TITLE | AMOUNT') {
+    return 'nubank_card_simple'
+  }
+  if (joined.includes('IDENTIFICADOR') && joined.includes('DESCRICAO') && joined.includes('VALOR')) {
+    return 'nubank'
+  }
+  if (joined.includes('MOVEMENT AMOUNT') || joined.includes('MOVEMENT DESCRIPTION') || joined.includes('TRANSACTION CREATED AT')) {
+    return 'movement_template'
+  }
+  return 'generic'
+}
+
+function getCsvDocumentType(schema, fileName) {
+  if (schema === 'nubank_card_simple') return 'fatura_cartao'
+  if (/NUBANK_\d{4}-\d{2}-\d{2}\.CSV$/i.test(String(fileName || ''))) return 'fatura_cartao'
+  return 'extrato_conta'
+}
+
+function detectCsvBank(schema, content, fileName) {
+  if (schema === 'nubank' || schema === 'nubank_card_simple' || /NUBANK/i.test(String(fileName || ''))) {
+    return 'Nubank'
+  }
+  return detectBankName(normalizeDocText(content), fileName)
+}
+
+function parseOfxDocument(content, fileName) {
+  const blocks = String(content || '').match(/<STMTTRN>[\s\S]*?<\/STMTTRN>/gi) || []
+  if (!blocks.length) {
+    throw new Error('Nao consegui identificar transacoes neste OFX')
+  }
+
+  const transacoes = blocks.map(block => parseOfxTransaction(block)).filter(Boolean)
+  if (!transacoes.length) {
+    throw new Error('Nao consegui converter as transacoes deste OFX')
+  }
+
+  const accountId = extractOfxTag(content, 'ACCTID')
+  const bankId = extractOfxTag(content, 'BANKID')
+  const mesReferencia = inferReferenceMonthFromTransactions(transacoes)
+  const gastos = fromCents(sumCents(transacoes.filter(tx => tx.natureza === 'gasto').map(tx => Math.abs(Number(tx.valor) || 0))))
+  const bankName = detectBankName(`${normalizeDocText(content)} ${normalizeDocText(fileName)} ${normalizeDocText(bankId)}`, fileName)
+
+  return finalizeParsedStatement({
+    tipo_documento: 'extrato_conta',
+    banco: bankName,
+    identificador: accountId || bankId || null,
+    ultimos_digitos: extractLast4(accountId || ''),
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: 0,
+    total_gastos_periodo: gastos,
+    transacoes
+  }, {
+    bank: bankName,
+    tipo_documento: 'extrato_conta',
+    identificador: accountId || bankId || null,
+    ultimos_digitos: extractLast4(accountId || ''),
+    mes_referencia: mesReferencia,
+    titular: null,
+    total_fatura: 0,
+    total_gastos_periodo: gastos
+  })
+}
+
+function sortPageItems(items) {
+  return (items || [])
+    .map(item => ({
+      str: normalizeSpace(item.str || ''),
+      x: Number(item.transform && item.transform[4]) || 0,
+      y: Number(item.transform && item.transform[5]) || 0,
+      width: Number(item.width) || 0,
+      height: Number(item.height) || 0
+    }))
+    .filter(item => item.str)
+    .sort((a, b) => {
+      if (Math.abs(a.y - b.y) <= 2.5) return a.x - b.x
+      return b.y - a.y
+    })
+}
+
+function buildPageLines(items) {
+  const groups = []
+  ;(items || []).forEach(item => {
+    const current = groups[groups.length - 1]
+    if (current && Math.abs(current.y - item.y) <= 2.5) {
+      current.items.push(item)
+      return
+    }
+    groups.push({ y: item.y, items: [item] })
+  })
+
+  return groups
+    .map(group => {
+      const lineItems = group.items.sort((a, b) => a.x - b.x)
+      return {
+        y: group.y,
+        text: joinLineItems(lineItems)
+      }
+    })
+    .filter(line => line.text)
+}
+
+function joinLineItems(items) {
+  let text = ''
+  let previousEnd = null
+
+  items.forEach(item => {
+    const token = normalizeSpace(item.str)
+    if (!token) return
+
+    if (text) {
+      const gap = previousEnd == null ? 0 : item.x - previousEnd
+      if (gap > 6) text += ' '
+    }
+
+    text += token
+    previousEnd = item.x + item.width
+  })
+
+  return normalizeSpace(text)
+}
+
+function parseStatementDocument(document) {
+  const profile = detectDocumentProfile(document)
+  const parsed = profile.bank === 'Nubank'
+    ? parseNubankStatement(document, profile)
+    : parseGenericStatement(document, profile)
+
+  return finalizeParsedStatement(parsed, profile)
+}
+
+function detectDocumentProfile(document) {
+  const fullText = normalizeDocText(document.text)
+  const lines = getDocumentLines(document)
+  const bank = detectBankName(fullText, document.fileName)
+  const tipoDocumento = detectDocumentType(fullText)
+  const period = extractDateRange(fullText)
+  const mesReferencia = period
+    ? `${String(period.end.month).padStart(2, '0')}/${period.end.year}`
+    : extractReferenceMonth(fullText)
+  const identifier = extractIdentifier(lines, fullText, tipoDocumento)
+  const titular = extractHolderName(lines)
+  const totalSaidas = extractLabeledMoney(fullText, ['TOTAL DE SAIDAS', 'TOTAL SAIDAS', 'TOTAL DE DEBITOS'])
+  const totalEntradas = extractLabeledMoney(fullText, ['TOTAL DE ENTRADAS', 'TOTAL ENTRADAS', 'TOTAL DE CREDITOS'])
+  const headerFatura = extractHeaderInvoiceValue(fullText)
+  const resumoBlock = extractSummaryBlock(fullText)
+  const resumoFatura = extractLabeledMoneyWithLabel(resumoBlock || fullText, [
+    'TOTAL A PAGAR',
+    'TOTAL DA FATURA',
+    'VALOR DA FATURA',
+    'VALOR TOTAL DA FATURA',
+    'FATURA ATUAL'
+  ], fullText)
+  const totalFatura = headerFatura || resumoFatura.value
+
+  return {
+    bank,
+    tipo_documento: tipoDocumento,
+    source_kind: document.sourceKind || null,
+    identificador: identifier,
+    ultimos_digitos: extractLast4(identifier),
+    mes_referencia: mesReferencia,
+    titular,
+    total_fatura: tipoDocumento === 'fatura_cartao' ? totalFatura : 0,
+    total_fatura_cabecalho: tipoDocumento === 'fatura_cartao' ? headerFatura : 0,
+    total_fatura_resumo: tipoDocumento === 'fatura_cartao' ? resumoFatura.value : 0,
+    total_fatura_resumo_label: tipoDocumento === 'fatura_cartao' ? resumoFatura.label : '',
+    total_gastos_periodo: tipoDocumento === 'extrato_conta' ? Math.abs(totalSaidas) : Math.abs(totalFatura),
+    period
+  }
+}
+
+function parseNubankStatement(document, profile) {
+  let transacoes = profile.tipo_documento === 'extrato_conta'
+    ? parseNubankAccountStatement(document, profile)
+    : parseTransactionLines(document, profile, { preferExplicitSignal: false })
+
+  if (document.sourceKind === 'image' && transacoes.length < 3) {
+    const imageTxs = parseImageTransactionLines(document, profile)
+    if (imageTxs.length > transacoes.length) transacoes = imageTxs
+  }
+
+  if (!transacoes.length && document.rawItemLines && document.rawItemLines.length) {
+    transacoes = profile.tipo_documento === 'extrato_conta'
+        ? parseNubankAccountStatement(createFallbackLineDocument(document, document.rawItemLines), profile)
+        : parseTransactionLines(createFallbackLineDocument(document, document.rawItemLines), profile, { preferExplicitSignal: false })
+  }
+
+  if (profile.tipo_documento === 'extrato_conta') {
+    const dailyTotals = extractNubankDailyExpenseTotals(document.rawItemLines && document.rawItemLines.length ? document.rawItemLines : getDocumentLines(document), profile)
+    transacoes = reconcileTransactionsWithDailyTotals(transacoes, dailyTotals)
+    profile.daily_expense_totals = dailyTotals
+  }
+
+  return {
+    ...profile,
+    transacoes
+  }
+}
+
+function parseNubankAccountStatement(document, profile) {
+  const lines = (document.rawItemLines && document.rawItemLines.length ? document.rawItemLines : getDocumentLines(document))
+    .map(normalizeSpace)
+    .filter(Boolean)
+
+  const txs = []
+  let currentDate = null
+  let pending = null
+  let skipNextSectionAmount = null
+  let rowIndex = 0
+
+  const flushPending = () => {
+    if (!pending) return
+
+    const normalizedOperation = normalizeDocText(pending.operation || '')
+    const hasMerchant = pending.merchantParts.length > 0
+    const canUseStandalone = isStandaloneOperation(normalizedOperation)
+
+    if (!pending.amountRaw || (!hasMerchant && !canUseStandalone)) {
+      pending = null
+      return
+    }
+
+    const merchant = hasMerchant
+      ? cleanMerchantName(pending.merchantParts.join(' '))
+      : cleanMerchantName(pending.operation)
+
+    if (!merchant) {
+      pending = null
+      return
+    }
+
+    const description = `${pending.operation || ''} ${merchant}`.trim()
+    const natureza = inferNatureza(description, pending.amountRaw, profile.tipo_documento, { preferExplicitSignal: true })
+    const valor = applyAmountSignal(pending.amountRaw, natureza, profile.tipo_documento)
+
+    if (Number.isFinite(valor) && Math.abs(valor) > 0) {
+      txs.push({
+        data: pending.date || currentDate,
+        estabelecimento: merchant,
+        valor,
+        natureza,
+        categoria: 'Outros',
+        parcelado: false,
+        parcela_atual: null,
+        total_parcelas: null,
+        _source_row_index: rowIndex++
+      })
+    }
+
+    pending = null
+  }
+
+  for (const line of lines) {
+    const normalized = normalizeDocText(line)
+    const dateInfo = parseLeadingDate(line, profile)
+
+    if (dateInfo && isDateHeadingLine(normalized)) {
+      currentDate = dateInfo.date
+      if (pending && !pending.merchantParts.length && !pending.amountRaw) {
+        pending.date = currentDate
+      }
+      continue
+    }
+
+    if (shouldIgnoreNubankMetaLine(normalized)) continue
+
+    if (isSectionTotalLabel(normalized)) {
+      skipNextSectionAmount = normalized
+      continue
+    }
+
+    if (isNubankOperationLine(normalized)) {
+      flushPending()
+      pending = {
+        date: currentDate,
+        operation: line,
+        merchantParts: [],
+        amountRaw: null
+      }
+      continue
+    }
+
+    const amountOnly = parseStandaloneAmountLine(line)
+    if (amountOnly) {
+      if (skipNextSectionAmount) {
+        const shouldSkip = skipNextSectionAmount === 'TOTAL DE SAIDAS' ? /[-−]/.test(amountOnly) : /\+/.test(amountOnly)
+        if (shouldSkip) {
+          skipNextSectionAmount = null
+          continue
+        }
+        skipNextSectionAmount = null
+      }
+
+      if (!pending) continue
+
+      if (pending.merchantParts.length || isStandaloneOperation(normalizeDocText(pending.operation || ''))) {
+        pending.amountRaw = amountOnly
+        flushPending()
+      }
+
+      continue
+    }
+
+    if (!pending) continue
+    if (shouldIgnoreCounterpartyDetailLine(normalized)) continue
+    if (!isLikelyMerchantLine(normalized)) continue
+
+    if (!pending.merchantParts.length) {
+      pending.merchantParts.push(line)
+      continue
+    }
+
+    if (shouldAppendMerchantLine(normalized, pending.merchantParts)) {
+      pending.merchantParts.push(line)
+    }
+  }
+
+  flushPending()
+  return dedupeTransactions(txs)
+}
+
+function parseGenericStatement(document, profile) {
+  const primary = {
+    ...profile,
+    transacoes: parseTransactionLines(document, profile, { preferExplicitSignal: profile.tipo_documento === 'extrato_conta' })
+  }
+
+  if (document.sourceKind === 'image' && primary.transacoes.length < 3) {
+    const imageTxs = parseImageTransactionLines(document, profile)
+    if (imageTxs.length > primary.transacoes.length) {
+      return { ...profile, transacoes: imageTxs }
+    }
+  }
+
+  if (primary.transacoes.length || !document.rawItemLines || !document.rawItemLines.length) return primary
+
+  return {
+    ...profile,
+    transacoes: parseTransactionLines(
+      createFallbackLineDocument(document, document.rawItemLines),
+      profile,
+      { preferExplicitSignal: profile.tipo_documento === 'extrato_conta' }
+    )
+  }
+}
+
+function createFallbackLineDocument(document, rawLines) {
+  return {
+    ...document,
+    text: String(document.rawText || document.text || ''),
+    pages: [{ pageNumber: 1, lines: (rawLines || []).map(text => ({ text })) }]
+  }
+}
+
+function splitNubankSectionsByDate(lines, profile) {
+  const sections = []
+  let current = null
+
+  ;(lines || []).forEach(line => {
+    const normalized = normalizeDocText(line)
+    const dateInfo = parseLeadingDate(line, profile)
+
+    if (dateInfo && isDateHeadingLine(normalized)) {
+      if (current) sections.push(current)
+      current = { date: dateInfo.date, lines: [] }
+      return
+    }
+
+    if (!current) return
+    current.lines.push(line)
+  })
+
+  if (current) sections.push(current)
+  return sections
+}
+
+function parseNubankSectionTransactions(section, profile) {
+  const candidates = []
+  const amounts = []
+  let lastOperation = null
+  let skipNextSectionAmount = null
+
+  ;(section.lines || []).forEach(line => {
+    const normalized = normalizeDocText(line)
+
+    if (shouldIgnoreNubankMetaLine(normalized)) return
+
+    if (isSectionTotalLabel(normalized)) {
+      skipNextSectionAmount = normalized
+      return
+    }
+
+    if (isNubankOperationLine(normalized)) {
+      lastOperation = line
+      if (isStandaloneOperation(normalized)) {
+        candidates.push({
+          date: section.date,
+          operation: line,
+          merchant: line
+        })
+      }
+      return
+    }
+
+    const amountOnly = parseStandaloneAmountLine(line)
+    if (amountOnly) {
+      if (skipNextSectionAmount) {
+        const skipSigned = skipNextSectionAmount === 'TOTAL DE SAIDAS' ? /[-−]/.test(amountOnly) : /\+/.test(amountOnly)
+        if (skipSigned) {
+          skipNextSectionAmount = null
+          return
+        }
+      }
+      skipNextSectionAmount = null
+      amounts.push(amountOnly)
+      return
+    }
+
+    if (shouldIgnoreCounterpartyDetailLine(normalized)) return
+    if (!isLikelyMerchantLine(normalized)) return
+
+    candidates.push({
+      date: section.date,
+      operation: lastOperation,
+      merchant: line
+    })
+  })
+
+  return pairNubankCandidatesWithAmounts(candidates, amounts, profile)
+}
+
+function pairNubankCandidatesWithAmounts(candidates, amounts, profile) {
+  const txs = []
+  const queue = [...candidates]
+  let rowIndex = 0
+
+  ;(amounts || []).forEach(amountRaw => {
+    const candidate = queue.shift()
+    if (!candidate) return
+
+    const merchant = cleanMerchantName(candidate.merchant)
+    if (!merchant) return
+
+    const description = `${candidate.operation || ''} ${merchant}`.trim()
+    const natureza = inferNatureza(description, amountRaw, profile.tipo_documento, { preferExplicitSignal: true })
+    const valor = applyAmountSignal(amountRaw, natureza, profile.tipo_documento)
+    if (!Number.isFinite(valor) || Math.abs(valor) === 0) return
+
+    txs.push({
+      data: candidate.date,
+      estabelecimento: merchant,
+      valor,
+      natureza,
+      categoria: 'Outros',
+      parcelado: false,
+      parcela_atual: null,
+      total_parcelas: null,
+      _source_row_index: rowIndex++
+    })
+  })
+
+  return txs
+}
+
+function extractNubankDailyExpenseTotals(lines, profile) {
+  const totals = {}
+  let currentDate = null
+  let awaitingTotal = false
+
+  ;(lines || []).forEach(rawLine => {
+    const line = normalizeSpace(rawLine)
+    const normalized = normalizeDocText(line)
+    const dateInfo = parseLeadingDate(line, profile)
+
+    if (dateInfo && isDateHeadingLine(normalized)) {
+      currentDate = dateInfo.date
+      awaitingTotal = false
+      return
+    }
+
+    if (normalized === 'TOTAL DE SAIDAS') {
+      awaitingTotal = true
+      return
+    }
+
+    if (!awaitingTotal || !currentDate) return
+
+    const amount = parseStandaloneAmountLine(line)
+    if (!amount || !/[-−]/.test(amount)) return
+
+    totals[currentDate] = Math.abs(parseMoneyNumber(amount))
+    awaitingTotal = false
+  })
+
+  return totals
+}
+
+function reconcileTransactionsWithDailyTotals(transacoes, dailyTotals) {
+  const txs = Array.isArray(transacoes) ? [...transacoes] : []
+  const byDay = {}
+
+  // Calcular totais por dia em centavos para precisão
+  txs.forEach(tx => {
+    if (!isExpenseTransaction(tx)) return
+    const date = tx.data
+    byDay[date] = (byDay[date] || 0) + toCents(Math.abs(Number(tx.valor) || 0))
+  })
+
+  Object.entries(dailyTotals || {}).forEach(([date, officialTotal]) => {
+    const parsedTotalCents = byDay[date] || 0
+    const parsedTotal = fromCents(parsedTotalCents)
+    const officialTotalCents = toCents(officialTotal)
+    const deltaCents = officialTotalCents - parsedTotalCents
+
+    // Só adicionar ajuste se a diferença for significativa (> 0 centavos)
+    if (Math.abs(deltaCents) <= 0) return
+
+    const delta = fromCents(deltaCents)
+
+    txs.push({
+      data: date,
+      estabelecimento: 'Outras saídas do dia',
+      valor: -delta,
+      natureza: 'gasto',
+      categoria: 'Outros',
+      parcelado: false,
+      parcela_atual: null,
+      total_parcelas: null,
+      _synthetic: true
+    })
+  })
+
+  return dedupeTransactions(txs)
+}
+
+function parseTransactionLines(document, profile, options) {
+  const lines = getDocumentLines(document)
+  const txs = []
+  let rowIndex = 0
+
+  for (let i = 0; i < lines.length; i++) {
+    const current = normalizeSpace(lines[i])
+    if (!current) continue
+
+    let parsed = parseTransactionCandidate(current, profile, options)
+    if (!parsed && hasLeadingDate(current) && i + 1 < lines.length) {
+      const combined = normalizeSpace(`${current} ${lines[i + 1]}`)
+      const combinedParsed = parseTransactionCandidate(combined, profile, options)
+      if (combinedParsed) {
+        parsed = combinedParsed
+        i += 1
+      }
+    }
+
+    if (parsed) {
+      parsed._source_row_index = rowIndex++
+      txs.push(parsed)
+    }
+  }
+
+  return dedupeTransactions(txs)
+}
+
+function parseImageTransactionLines(document, profile) {
+  const lines = (document.rawItemLines && document.rawItemLines.length ? document.rawItemLines : getDocumentLines(document))
+    .map(normalizeSpace)
+    .filter(Boolean)
+
+  const txs = []
+  let rowIndex = 0
+  const amountRegex = /([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*[.,]\d{2})/gi
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = normalizeOcrDatePrefix(lines[i])
+    const normalized = normalizeDocText(line)
+    if (shouldIgnoreTransactionLine(normalized)) continue
+
+    const dateInfo = parseLeadingDate(line, profile) || parseLeadingDateOcr(line, profile)
+    if (!dateInfo) continue
+
+    const sameLineAmount = extractLastAmountMatch(line, amountRegex)
+    let amountRaw = ''
+    let description = ''
+    let consumedIndex = i
+
+    if (sameLineAmount) {
+      amountRaw = sameLineAmount[1]
+      const remainder = normalizeSpace(line.slice(dateInfo.endIndex).replace(sameLineAmount[1], ' '))
+      description = remainder
+      if (!description && i + 1 < lines.length) {
+        const next = normalizeSpace(lines[i + 1])
+        if (next && !parseStandaloneAmountLine(next) && !parseLeadingDate(next, profile) && !parseLeadingDateOcr(next, profile)) {
+          description = next
+          consumedIndex = i + 1
+        }
+      }
+    } else {
+      const remainder = normalizeSpace(line.slice(dateInfo.endIndex))
+      const descParts = []
+      if (remainder) descParts.push(remainder)
+
+      let j = i + 1
+      while (j < lines.length && descParts.length < 2) {
+        const current = normalizeOcrDatePrefix(lines[j])
+        if (parseLeadingDate(current, profile) || parseLeadingDateOcr(current, profile)) break
+        const amtMatch = extractLastAmountMatch(current, amountRegex) || (parseStandaloneAmountLine(current) ? [parseStandaloneAmountLine(current)] : null)
+        if (amtMatch) {
+          amountRaw = amtMatch[1] || amtMatch[0] || amtMatch
+          consumedIndex = j
+          break
+        }
+        if (!shouldIgnoreTransactionLine(normalizeDocText(current))) {
+          descParts.push(current)
+        }
+        j++
+      }
+      description = normalizeSpace(descParts.join(' '))
+    }
+
+    if (!amountRaw || !description) continue
+    if (!/[A-Za-zÀ-ÿ]/.test(description)) continue
+
+    const installment = extractInstallmentInfo(description)
+    const merchant = cleanMerchantName(installment.cleanDescription)
+    if (!merchant) continue
+
+    if (profile && profile.period) {
+      const dateObj = getTransactionDate({ data: dateInfo.date, mes_referencia: profile.mes_referencia })
+      if (!isDateInPeriod(dateObj, profile.period)) continue
+    }
+
+    const natureza = inferNatureza(description, amountRaw, profile.tipo_documento, { preferExplicitSignal: true })
+    const valor = applyAmountSignal(amountRaw, natureza, profile.tipo_documento)
+    if (!Number.isFinite(valor) || Math.abs(valor) === 0) continue
+
+    txs.push({
+      data: dateInfo.date,
+      estabelecimento: merchant,
+      valor,
+      natureza,
+      categoria: 'Outros',
+      parcelado: installment.parcelado,
+      parcela_atual: installment.parcela_atual,
+      total_parcelas: installment.total_parcelas,
+      _source_row_index: rowIndex++
+    })
+
+    i = Math.max(i, consumedIndex)
+  }
+
+  return dedupeTransactions(txs)
+}
+
+function normalizeOcrDatePrefix(line) {
+  const prefix = line.slice(0, 6)
+    .replace(/[Oo]/g, '0')
+    .replace(/[Il]/g, '1')
+  return prefix + line.slice(6)
+}
+
+function parseLeadingDateOcr(line, profile) {
+  const source = normalizeSpace(line)
+  const match = source.match(/^(\d{1,2})\s*[\/\-]?\s*(\d{1,2})\b/)
+  if (!match) return null
+  const day = Number(match[1])
+  const month = Number(match[2])
+  if (month < 1 || month > 12) return null
+  const year = inferYear(null, month, profile)
+  return {
+    date: formatDateParts(day, month, year),
+    endIndex: match[0].length
+  }
+}
+
+function extractLastAmountMatch(line, regex) {
+  let last = null
+  let match
+  while ((match = regex.exec(line)) !== null) {
+    last = match
+  }
+  return last
+}
+
+function isDateInPeriod(date, period) {
+  if (!period || !date || Number.isNaN(date.getTime())) return true
+  const start = new Date(period.start.year, period.start.month - 1, period.start.day, 0, 0, 0)
+  const end = new Date(period.end.year, period.end.month - 1, period.end.day, 23, 59, 59)
+  return date >= start && date <= end
+}
+
+function parseTransactionCandidate(line, profile, options) {
+  if (!line) return null
+
+  const normalizedLine = normalizeDocText(line)
+  if (shouldIgnoreTransactionLine(normalizedLine)) return null
+
+  const amountMatch = line.match(/([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})\s*$/i)
+  if (!amountMatch) return null
+
+  const dateInfo = parseLeadingDate(line, profile)
+  if (!dateInfo) return null
+
+  const description = normalizeSpace(line.slice(dateInfo.endIndex, amountMatch.index))
+    .replace(/^[-–—:|]+/, '')
+    .trim()
+
+  if (!description) return null
+  if (shouldIgnoreTransactionLine(normalizeDocText(description))) return null
+
+  const installment = extractInstallmentInfo(description)
+  const merchant = cleanMerchantName(installment.cleanDescription)
+  if (!merchant) return null
+
+  const natureza = inferNatureza(description, amountMatch[1], profile.tipo_documento, options)
+  const valor = applyAmountSignal(amountMatch[1], natureza, profile.tipo_documento)
+  if (!Number.isFinite(valor) || Math.abs(valor) === 0) return null
+
+  return {
+    data: dateInfo.date,
+    estabelecimento: merchant,
+    valor,
+    natureza,
+    categoria: 'Outros',
+    parcelado: installment.parcelado,
+    parcela_atual: installment.parcela_atual,
+    total_parcelas: installment.total_parcelas
+  }
+}
+
+function finalizeParsedStatement(parsed, profile) {
+  let normalizedTransactions = dedupeTransactions((parsed.transacoes || []).map(tx => normalizeTransaction(tx, parsed)))
+  if (!normalizedTransactions.length) {
+    const tipoDocumento = parsed.tipo_documento || profile.tipo_documento
+    const fallbackTotal = Math.abs(Number(parsed.total_fatura) || Number(profile.total_fatura) || 0)
+
+    if (tipoDocumento === 'fatura_cartao' && fallbackTotal > 0) {
+      let fallbackDate = ''
+      const period = parsed.period || profile.period
+      if (period && period.end) {
+        fallbackDate = formatDateParts(period.end.day, period.end.month, period.end.year)
+      } else {
+        const ref = String(parsed.mes_referencia || profile.mes_referencia || '')
+        const parts = ref.split('/')
+        if (parts.length === 2) {
+          const month = Number(parts[0])
+          const year = Number(parts[1])
+          if (Number.isFinite(month) && Number.isFinite(year)) {
+            const lastDay = new Date(year, month, 0).getDate()
+            fallbackDate = formatDateParts(lastDay, month, year)
+          }
+        }
+      }
+
+      const synthetic = normalizeTransaction({
+        data: fallbackDate,
+        estabelecimento: 'Total da fatura',
+        valor: fallbackTotal,
+        natureza: 'gasto',
+        categoria: 'Outros',
+        parcelado: false,
+        parcela_atual: null,
+        total_parcelas: null,
+        _raw_description: 'TOTAL DA FATURA'
+      }, parsed)
+
+      normalizedTransactions = dedupeTransactions([synthetic])
+    } else {
+      const kind = tipoDocumento === 'extrato_conta' ? 'extrato' : 'fatura'
+      throw new Error(`Nao consegui identificar transacoes suficientes neste ${kind}. Envie um PDF digital com a lista detalhada de movimentacoes. Se for conta corrente, CSV ou OFX tende a funcionar melhor.`)
+    }
+  }
+
+  const result = {
+    tipo_documento: parsed.tipo_documento || profile.tipo_documento,
+    banco: parsed.banco || profile.bank,
+    source_kind: parsed.source_kind || profile.source_kind || null,
+    identificador: parsed.identificador || profile.identificador || 'principal',
+    ultimos_digitos: parsed.ultimos_digitos || profile.ultimos_digitos,
+    mes_referencia: parsed.mes_referencia || profile.mes_referencia,
+    titular: parsed.titular || profile.titular,
+    total_fatura: Math.abs(Number(parsed.total_fatura) || Number(profile.total_fatura) || 0),
+    total_fatura_cabecalho: Math.abs(Number(parsed.total_fatura_cabecalho) || Number(profile.total_fatura_cabecalho) || 0),
+    total_fatura_resumo: Math.abs(Number(parsed.total_fatura_resumo) || Number(profile.total_fatura_resumo) || 0),
+    total_fatura_resumo_label: parsed.total_fatura_resumo_label || profile.total_fatura_resumo_label || '',
+    total_gastos_periodo: Math.abs(Number(parsed.total_gastos_periodo) || Number(profile.total_gastos_periodo) || 0),
+    daily_expense_totals: parsed.daily_expense_totals || profile.daily_expense_totals || {},
+    transacoes: normalizedTransactions
+  }
+
+  const expenseTxs = getExpenseTransactions(result.transacoes)
+  const derivedTotal = fromCents(sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0))))
+
+  if (!result.total_gastos_periodo) result.total_gastos_periodo = derivedTotal
+  if (result.tipo_documento === 'fatura_cartao' && !result.total_fatura) result.total_fatura = derivedTotal
+
+  return result
+}
+
+function normalizeTransaction(tx, item) {
+  const estabelecimento = tx && tx.estabelecimento ? tx.estabelecimento : 'Estabelecimento nao identificado'
+  const natureza = normalizeNatureza(tx && tx.natureza, Number(tx && tx.valor) || 0, item && item.tipo_documento)
+  return {
+    data: tx && tx.data ? tx.data : '',
+    estabelecimento,
+    valor: Number(tx && tx.valor) || 0,
+    natureza,
+    categoria: categorizeTransaction(estabelecimento, natureza, Number(tx && tx.valor) || 0, tx && tx.categoria ? tx.categoria : 'Outros'),
+    parcelado: Boolean(tx && tx.parcelado),
+    parcela_atual: tx && tx.parcela_atual != null ? tx.parcela_atual : null,
+    total_parcelas: tx && tx.total_parcelas != null ? tx.total_parcelas : null,
+    tipo_documento: item && item.tipo_documento ? item.tipo_documento : null,
+    banco: item && item.banco ? item.banco : null,
+    identificador: item && (item.identificador || item.ultimos_digitos) ? (item.identificador || item.ultimos_digitos) : null,
+    ultimos_digitos: item && item.ultimos_digitos ? item.ultimos_digitos : null,
+    mes_referencia: item && item.mes_referencia ? item.mes_referencia : null,
+    _source_row_index: tx && tx._source_row_index != null ? tx._source_row_index : null,
+    _raw_description: tx && tx._raw_description ? tx._raw_description : ''
+  }
+}
+
+function normalizeNullable(value) {
+  const normalized = String(value == null ? '' : value).trim()
+  return !normalized || normalized.toLowerCase() === 'null' ? null : normalized
+}
+
+function parseMoneyNumber(value) {
+  const normalized = String(value == null ? '' : value)
+    .replace(/[^\d,.\-]/g, '')
+    .replace(/\.(?=\d{3}(\D|$))/g, '')
+    .replace(',', '.')
+  const num = Number(normalized)
+  return Number.isFinite(num) ? num : 0
+}
+
+function parseNullableInteger(value) {
+  const normalized = normalizeNullable(value)
+  if (normalized == null) return null
+  const num = parseInt(normalized, 10)
+  return Number.isFinite(num) ? num : null
+}
+
+function roundMoney(value) {
+  return Math.round((Number(value) || 0) * 100) / 100
+}
+
+// Funções auxiliares para cálculo preciso em centavos (evita erros de floating point)
+function toCents(value) {
+  return Math.round((Number(value) || 0) * 100)
+}
+
+function fromCents(cents) {
+  return cents / 100
+}
+
+function addCents(a, b) {
+  return a + b
+}
+
+function sumCents(values) {
+  return values.reduce((sum, val) => sum + toCents(val), 0)
+}
+
+/**
+ * Normaliza o valor de uma transação considerando seu contexto (sinal e descrição)
+ * Implementa a lógica de detecção de crédito/estorno vs. compra
+ * @param {string} valueStr - Ex: "R$ 159,98" ou "-R$ 159,98"
+ * @param {string} description - Ex: "Estorno de Tokstok" ou "CREDITO DE CONFIANCA"
+ * @returns {number} Negativo para crédito (subtrai da fatura), positivo para compra (soma na fatura)
+ */
+function normalizeTransactionValue(valueStr, description) {
+  // 1. Limpeza de string: remove R$, pontos de milhar e troca vírgula por ponto
+  let cleanValue = String(valueStr || '')
+    .replace(/R\$/gi, '')
+    .replace(/\./g, '')
+    .replace(',', '.')
+    .trim()
+
+  let numericValue = parseFloat(cleanValue) || 0
+
+  // 2. Identificação de Crédito (Entradas/Estornos)
+  // Verifica se tem o sinal de menos OU se a descrição contém palavras-chave
+  const desc = String(description || '').toLowerCase()
+  const isCredit = String(valueStr || '').includes('-') ||
+                   /estorno|crédito|cancelamento|reembolso|devolução|pagamento recebido/i.test(desc)
+
+  // Se for crédito, garantimos que o número seja negativo (subtrai da fatura)
+  // Se for compra, garantimos que seja positivo (soma na fatura)
+  return isCredit ? -Math.abs(numericValue) : Math.abs(numericValue)
+}
+
+/**
+ * Calcula o total de despesas da fatura/extrato filtrando casos especiais
+ * @param {Array} transactions - Lista de objetos {date, description, valor, valueStr, estabelecimento}
+ * @param {string} tipoDocumento - 'fatura_cartao' ou 'extrato_conta'
+ * @returns {number} Total em reais
+ */
+function calculateFincheckTotal(transactions, tipoDocumento) {
+  return transactions.reduce((total, t) => {
+    if (!t) return total
+
+    const desc = String(t.description || t.estabelecimento || '').toLowerCase()
+
+    // Regra de Negócio 1: Pagamentos de faturas anteriores não devem somar
+    // no "Gasto Real" para não inflar a métrica de comprometimento
+    if (/pagamento\s+(?:em|de\s+fatura)|fatura\s+anterior|em\s+\d{2}\/\d{2}/.test(desc)) {
+      return total
+    }
+
+    // Regra de Negócio 2: Créditos/Estornos (valor negativo) já descartam automaticamente
+    // Usa o valor já normalizado (que deve ter o sinal correto)
+    const value = Number(t.valor) || 0
+    if (value < 0) {
+      return total
+    }
+
+    return total + value
+  }, 0)
+}
+
+function parseDelimitedRows(content) {
+  const source = String(content || '').replace(/^\uFEFF/, '')
+  const lines = source.split(/\r?\n/).filter(line => line.trim())
+  if (!lines.length) return []
+
+  const delimiters = [';', ',', '\t']
+  const delimiter = delimiters
+    .map(char => ({ char, score: (lines[0].match(new RegExp(`\\${char}`, 'g')) || []).length }))
+    .sort((a, b) => b.score - a.score)[0].char
+
+  return lines.map(line => splitDelimitedLine(line, delimiter))
+}
+
+function splitDelimitedLine(line, delimiter) {
+  const cells = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i]
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+
+    if (char === delimiter && !inQuotes) {
+      cells.push(current.trim())
+      current = ''
+      continue
+    }
+
+    current += char
+  }
+
+  cells.push(current.trim())
+  return cells
+}
+
+function findHeaderIndex(header, aliases) {
+  const normalizedAliases = aliases.map(normalizeDocText)
+  return header.findIndex(column => normalizedAliases.some(alias => column.includes(alias)))
+}
+
+function parseCsvRow(row, indexes) {
+  const rawDate = row[indexes.dateIdx]
+  const rawDescription = row[indexes.descIdx]
+  if (!rawDate || !rawDescription) return null
+
+  let amount = 0
+  if (indexes.amountIdx !== -1) {
+    amount = parseMoneyNumber(row[indexes.amountIdx])
+  } else {
+    const debit = indexes.debitIdx !== -1 ? Math.abs(parseMoneyNumber(row[indexes.debitIdx])) : 0
+    const credit = indexes.creditIdx !== -1 ? Math.abs(parseMoneyNumber(row[indexes.creditIdx])) : 0
+    amount = credit > 0 ? credit : -debit
+  }
+
+  if (!amount) return null
+
+  const date = normalizeImportedDate(rawDate)
+  if (!date) return null
+
+  const natureza = inferCsvNatureza(indexes.schema, rawDescription, amount, indexes.tipoDocumento)
+  const cleaned = cleanImportedDescription(rawDescription, indexes.schema, natureza)
+  const installments = extractInstallmentInfo(cleaned)
+
+  return {
+    data: date,
+    estabelecimento: installments.cleanDescription || cleaned,
+    valor: applyImportedAmountSignal(amount, natureza, indexes.tipoDocumento),
+    natureza,
+    categoria: 'Outros',
+    parcelado: installments.parcelado,
+    parcela_atual: installments.parcela_atual,
+    total_parcelas: installments.total_parcelas,
+    identificador: indexes.identifierIdx !== -1 ? normalizeSpace(row[indexes.identifierIdx]) || null : null,
+    _source_row_index: Number.isFinite(indexes.rowIndex) ? indexes.rowIndex : null,
+    _raw_description: normalizeSpace(rawDescription)
+  }
+}
+
+function inferCsvNatureza(schema, rawDescription, amount, tipoDocumento) {
+  const source = normalizeDocText(rawDescription)
+
+  if (tipoDocumento === 'fatura_cartao') {
+    if (/PAGAMENTO RECEBIDO|ESTORNO|CANCELAMENTO|CREDITO|PAGAMENTO EM|PAGAMENTO DE FATURA|SALDO RESTANTE|FATURA ANTERIOR|REEMBOLSO|DEVOLUCAO/i.test(source)) {
+      return 'estorno'
+    }
+    return amount < 0 ? 'estorno' : 'gasto'
+  }
+
+  if (schema === 'nubank' || schema === 'movement_template' || schema === 'generic') {
+    return amount > 0 ? 'entrada' : 'gasto'
+  }
+
+  return amount > 0 ? 'entrada' : 'gasto'
+}
+
+function applyImportedAmountSignal(amount, natureza, tipoDocumento) {
+  const absolute = Math.abs(Number(amount) || 0)
+  if (tipoDocumento === 'fatura_cartao') {
+    return natureza === 'gasto' ? absolute : -absolute
+  }
+  return natureza === 'entrada' ? absolute : -absolute
+}
+
+function cleanImportedDescription(rawDescription, schema, natureza) {
+  const source = normalizeSpace(rawDescription)
+  if (!source) return 'Movimentacao'
+
+  let cleaned = source
+    .replace(/\bPagamento recebido\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia recebida\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia enviada pelo Pix\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia enviada\b\s*-\s*/i, '')
+    .replace(/\bPagamento de boleto efetuado\b\s*-\s*/i, '')
+    .replace(/\bCompra no d[eé]bito\b\s*-\s*/i, '')
+    .replace(/\bCompra no cr[eé]dito\b\s*-\s*/i, '')
+    .replace(/\bPagamento de fatura\b\s*-\s*/i, '')
+    .replace(/\bRecebimento via Pix\b\s*-\s*/i, '')
+    .replace(/\bTransfer[eê]ncia entre contas\b\s*-\s*/i, '')
+    .replace(/\s+-\s+\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}.*$/i, '')
+    .replace(/\s+-\s+.*?\((?:\d{4}|\d{3,4})\)\s+Ag[eê]ncia:.*$/i, '')
+    .replace(/\s+Ag[eê]ncia:\s*.+$/i, '')
+    .replace(/\s+Conta:\s*.+$/i, '')
+    .replace(/\s+-\s+NU PAGAMENTOS.*$/i, '')
+    .replace(/\s+-\s+ITA[ÚU].*$/i, '')
+    .replace(/\s+-\s+BCO .*$/i, '')
+    .replace(/\s+-\s+BANCO .*$/i, '')
+    .replace(/\*+/g, ' ')
+
+  if (schema === 'movement_template') {
+    cleaned = cleaned
+      .replace(/\bpayment\b\s*-\s*/i, '')
+      .replace(/\btransfer\b\s*-\s*/i, '')
+  }
+
+  cleaned = cleanMerchantName(cleaned)
+
+  if (!cleaned || cleaned === 'Pagamento de fatura' || /PAGAMENTO RECEBIDO/i.test(source)) {
+    return natureza === 'entrada' ? 'Recebimento' : 'Movimentacao'
+  }
+
+  return cleaned
+}
+
+function normalizeImportedDate(raw) {
+  const value = normalizeSpace(raw)
+  if (!value) return null
+
+  let match = value.match(/^(\d{4})-(\d{2})-(\d{2})/)
+  if (match) return formatDateParts(Number(match[3]), Number(match[2]), Number(match[1]))
+
+  match = value.match(/^(\d{2})\/(\d{2})\/(\d{2,4})$/)
+  if (match) {
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3])
+    return formatDateParts(Number(match[1]), Number(match[2]), year)
+  }
+
+  match = value.match(/^(\d{2})-(\d{2})-(\d{2,4})$/)
+  if (match) {
+    const year = Number(match[3].length === 2 ? `20${match[3]}` : match[3])
+    return formatDateParts(Number(match[1]), Number(match[2]), year)
+  }
+
+  return null
+}
+
+function parseOfxTransaction(block) {
+  const rawDate = extractOfxTag(block, 'DTPOSTED')
+  const rawAmount = extractOfxTag(block, 'TRNAMT')
+  const rawName = extractOfxTag(block, 'NAME')
+  const rawMemo = extractOfxTag(block, 'MEMO')
+  const rawType = normalizeDocText(extractOfxTag(block, 'TRNTYPE'))
+  if (!rawDate || !rawAmount) return null
+
+  const amount = Number(String(rawAmount).replace(',', '.'))
+  if (!Number.isFinite(amount) || amount === 0) return null
+
+  const date = normalizeOfxDate(rawDate)
+  if (!date) return null
+
+  const description = cleanMerchantName(rawName || rawMemo || rawType || 'Movimentacao OFX')
+  const natureza = amount > 0 ? 'entrada' : 'gasto'
+
+  return {
+    data: date,
+    estabelecimento: description,
+    valor: amount,
+    natureza,
+    categoria: 'Outros',
+    parcelado: false,
+    parcela_atual: null,
+    total_parcelas: null
+  }
+}
+
+function extractOfxTag(source, tag) {
+  const match = String(source || '').match(new RegExp(`<${tag}>([^<\\r\\n]+)`, 'i'))
+  return match ? normalizeSpace(match[1]) : ''
+}
+
+function normalizeOfxDate(raw) {
+  const match = String(raw || '').match(/^(\d{4})(\d{2})(\d{2})/)
+  if (!match) return null
+  return formatDateParts(Number(match[3]), Number(match[2]), Number(match[1]))
+}
+
+function inferReferenceMonthFromTransactions(transacoes) {
+  const first = [...(transacoes || [])]
+    .sort((a, b) => getTransactionDateValue(a) - getTransactionDateValue(b))[0]
+  if (!first || !first.data) return null
+  const parts = String(first.data).split('/')
+  if (parts.length !== 3) return null
+  return `${parts[1]}/${parts[2]}`
+}
+
+function normalizeSpace(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim()
+}
+
+function stripAccents(value) {
+  return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+}
+
+function normalizeDocText(value) {
+  return stripAccents(normalizeSpace(value)).toUpperCase()
+}
+
+function getDocumentLines(document) {
+  return (document.pages || []).flatMap(page => (page.lines || []).map(line => line.text))
+}
+
+function detectBankName(fullText, fileName) {
+  const source = `${fullText} ${normalizeDocText(fileName)}`
+  if (/\bAFINZ\b|\bAFINZ\.COM\.BR\b/.test(source)) return 'Afinz'
+  if (/\bNUBANK\b|\bNU_\b|\bNU\b|NUBANK\.COM\.BR/.test(source)) return 'Nubank'
+  if (/\bPICPAY\b|PICPAY\.COM\.BR/.test(source)) return 'PicPay'
+  if (/\bITAU\b|\bUNIBANCO\b|ITAU\.COM\.BR/.test(source)) return 'Itau'
+  if (/\bXP\b|XP\.COM\.BR/.test(source)) return 'XP'
+  if (/\bBRADESCO\b|BRADESCO\.COM\.BR/.test(source)) return 'Bradesco'
+  if (/\bC6\b|C6BANK|C6BANK\.COM\.BR/.test(source)) return 'C6'
+  if (/\bSANTANDER\b|SANTANDER\.COM\.BR/.test(source)) return 'Santander'
+  if (/\bINTER\b|BANCOINTER|INTER\.CO/.test(source)) return 'Inter'
+  return 'Banco nao identificado'
+}
+
+function detectDocumentType(fullText) {
+  if (/TOTAL DE ENTRADAS|TOTAL DE SAIDAS|SALDO FINAL DO PERIODO|RENDIMENTO LIQUIDO|AGENCIA .* CONTA/.test(fullText)) {
+    return 'extrato_conta'
+  }
+  return 'fatura_cartao'
+}
+
+function extractDateRange(fullText) {
+  const match = fullText.match(/(\d{1,2})\s+DE\s+([A-Z]+)\s+DE\s+(\d{4})\s+A\s+(\d{1,2})\s+DE\s+([A-Z]+)\s+DE\s+(\d{4})/)
+  if (!match) return null
+
+  const startMonth = MONTH_MAP[match[2]]
+  const endMonth = MONTH_MAP[match[5]]
+  if (!startMonth || !endMonth) return null
+
+  return {
+    start: { day: Number(match[1]), month: startMonth, year: Number(match[3]) },
+    end: { day: Number(match[4]), month: endMonth, year: Number(match[6]) }
+  }
+}
+
+function extractReferenceMonth(fullText) {
+  const match = fullText.match(/\b(0[1-9]|1[0-2])\/(\d{4})\b/)
+  return match ? `${match[1]}/${match[2]}` : null
+}
+
+function extractIdentifier(lines, fullText, tipoDocumento) {
+  const source = lines.join(' \n ')
+  const accountMatch = source.match(/CONTA\s+([\d.\-]+)/i)
+  if (accountMatch) return accountMatch[1]
+
+  const cardMatch = source.match(/FINAL\s+(\d{4})/i) || source.match(/CARTAO\s+.*?(\d{4})/i)
+  if (cardMatch) return cardMatch[1]
+
+  if (tipoDocumento === 'extrato_conta') {
+    const fallbackAccount = fullText.match(/CONTA\s+([\d.\-]+)/)
+    if (fallbackAccount) return fallbackAccount[1]
+  }
+
+  return null
+}
+
+function extractLast4(value) {
+  const match = String(value || '').match(/(\d{4})(?!.*\d)/)
+  return match ? match[1] : null
+}
+
+function extractHolderName(lines) {
+  const cpfIndex = lines.findIndex(line => /CPF/i.test(line))
+  if (cpfIndex === -1) return null
+
+  const currentLine = lines[cpfIndex] || ''
+  const beforeCpf = normalizeSpace(currentLine.split(/CPF/i)[0])
+  if (beforeCpf) return beforeCpf
+
+  const previous = normalizeSpace(lines[cpfIndex - 1] || '')
+  return previous || null
+}
+
+function extractLabeledMoney(fullText, labels) {
+  const matchLabeled = (text, label) =>
+    text.match(new RegExp(`${label}[\\s\\S]{0,40}?([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
+
+  for (const label of labels) {
+    const match = matchLabeled(fullText, label)
+    if (match) return parseMoneyNumber(match[1])
+  }
+
+  // OCR às vezes separa letras (ex: "V A L O R"), então tentamos versão compactada
+  const compactText = fullText.replace(/\s+/g, '')
+  for (const label of labels) {
+    const compactLabel = label.replace(/\s+/g, '')
+    const match = matchLabeled(compactText, compactLabel)
+    if (match) return parseMoneyNumber(match[1])
+  }
+
+  return 0
+}
+
+function extractLabeledMoneyWithLabel(fullText, labels, fallbackText = '') {
+  const matchLabeled = (text, label) =>
+    text.match(new RegExp(`${label}[\\s\\S]{0,40}?([+\\-−]?\\s*\\d{1,3}(?:\\.\\d{3})*,\\d{2})`))
+
+  for (const label of labels) {
+    const match = matchLabeled(fullText, label)
+    if (match) return { value: parseMoneyNumber(match[1]), label }
+  }
+
+  const compactText = fullText.replace(/\s+/g, '')
+  for (const label of labels) {
+    const compactLabel = label.replace(/\s+/g, '')
+    const match = matchLabeled(compactText, compactLabel)
+    if (match) return { value: parseMoneyNumber(match[1]), label }
+  }
+
+  if (fallbackText) {
+    return extractLabeledMoneyWithLabel(fallbackText, labels, '')
+  }
+
+  return { value: 0, label: '' }
+}
+
+function extractSummaryBlock(fullText) {
+  const start = fullText.indexOf('RESUMO')
+  if (start === -1) return ''
+  const tail = fullText.slice(start)
+  const endMarkers = [
+    'PAGAMENTO MINIMO',
+    'PAGAMENTO TOTAL',
+    'IMPORTANTE',
+    'AUTENTICACAO',
+    'FICHA DE COMPENSACAO',
+    'PAGAMENTOS POR BOLETO',
+    'SAIBA QUAIS SAO AS MODALIDADES'
+  ]
+  let end = tail.length
+  for (const marker of endMarkers) {
+    const idx = tail.indexOf(marker)
+    if (idx !== -1 && idx < end) end = idx
+  }
+  return tail.slice(0, Math.min(end, 1200))
+}
+
+function extractHeaderInvoiceValue(fullText) {
+  // Ex: "FATURA DEZEMBRO, NO VALOR DE R$ 3.378,22"
+  // ou "FATURA ... VALOR DE R$ 3.378,22"
+  const patterns = [
+    /FATURA[^\d]{0,120}(?:NO\s+VALOR\s+DE|VALOR\s+DE)\s*([+\-−]?\s*\d{1,3}(?:\.\d{3})*,\d{2})/
+  ]
+  for (const pattern of patterns) {
+    const match = fullText.match(pattern)
+    if (match) return parseMoneyNumber(match[1])
+  }
+
+  // Fallback para OCR com letras espaçadas
+  const compactText = fullText.replace(/\s+/g, '')
+  const compactPattern = /FATURA[^\d]{0,160}(?:NOVALORDE|VALORDE)([+\-−]?\d{1,3}(?:\.\d{3})*,\d{2})/
+  const compactMatch = compactText.match(compactPattern)
+  if (compactMatch) return parseMoneyNumber(compactMatch[1])
+
+  return 0
+}
+
+function hasLeadingDate(line) {
+  return Boolean(parseLeadingDate(line, { period: null, mes_referencia: null }))
+}
+
+function isDateHeadingLine(normalizedLine) {
+  return /^\d{1,2}\s+[A-Z]{3,9}\s+\d{4}$/.test(normalizedLine) || /^\d{1,2}\/\d{1,2}(?:\/\d{2,4})?$/.test(normalizedLine)
+}
+
+function parseLeadingDate(line, profile) {
+  const source = normalizeSpace(line)
+  let match = source.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/)
+  if (match) {
+    const year = inferYear(match[3], Number(match[2]), profile)
+    return {
+      date: formatDateParts(Number(match[1]), Number(match[2]), year),
+      endIndex: match[0].length
+    }
+  }
+
+  match = source.match(/^(\d{1,2})\s+([A-Za-z]{3,9})(?:\s+(\d{2,4}))?\b/)
+  if (!match) return null
+
+  const month = MONTH_MAP[normalizeDocText(match[2])]
+  if (!month) return null
+
+  const year = inferYear(match[3], month, profile)
+  return {
+    date: formatDateParts(Number(match[1]), month, year),
+    endIndex: match[0].length
+  }
+}
+
+function inferYear(rawYear, month, profile) {
+  if (rawYear) {
+    const num = Number(rawYear)
+    if (num < 100) return 2000 + num
+    return num
+  }
+
+  if (profile && profile.period) {
+    const startYear = profile.period.start.year
+    const endYear = profile.period.end.year
+    const endMonth = profile.period.end.month
+    return month > endMonth ? startYear : endYear
+  }
+
+  if (profile && profile.mes_referencia) {
+    return Number(String(profile.mes_referencia).split('/')[1]) || new Date().getFullYear()
+  }
+
+  return new Date().getFullYear()
+}
+
+function formatDateParts(day, month, year) {
+  return [
+    String(day).padStart(2, '0'),
+    String(month).padStart(2, '0'),
+    String(year).padStart(4, '0')
+  ].join('/')
+}
+
+function shouldIgnoreTransactionLine(normalizedLine) {
+  if (!normalizedLine) return true
+  return [
+    'SALDO INICIAL',
+    'SALDO FINAL',
+    'SALDO FINAL DO PERIODO',
+    'TOTAL DE ENTRADAS',
+    'TOTAL DE SAIDAS',
+    'RENDIMENTO LIQUIDO',
+    'VALORES EM',
+    'CPF',
+    'AGENCIA',
+    'CONTA',
+    'COMO FUNCIONA',
+    'PAGINA ',
+    'DIAGNOSTICO',
+    'COMPROMETIMENTO'
+  ].some(marker => normalizedLine.includes(marker))
+}
+
+function isSectionTotalLabel(normalizedLine) {
+  return normalizedLine === 'TOTAL DE ENTRADAS' || normalizedLine === 'TOTAL DE SAIDAS'
+}
+
+function isNubankOperationLine(normalizedLine) {
+  return [
+    'TRANSFERENCIA RECEBIDA',
+    'TRANSFERENCIA ENVIADA PELO PIX',
+    'PAGAMENTO DE BOLETO EFETUADO',
+    'PAGAMENTO DE FATURA',
+    'COMPRA NO DEBITO',
+    'APLICACAO RDB',
+    'ESTORNO'
+  ].includes(normalizedLine)
+}
+
+function shouldIgnoreNubankMetaLine(normalizedLine) {
+  if (!normalizedLine) return true
+  if (shouldIgnoreTransactionLine(normalizedLine)) return true
+  return [
+    'MOVIMENTACOES',
+    'EXTRATO GERADO DIA',
+    'TEM ALGUMA DUVIDA',
+    'CASO A SOLUCAO FORNECIDA',
+    'METROPOLITANAS',
+    'ATENDIMENTO 24H',
+    'ATENDIMENTO DAS 8H AS 18H EM DIAS UTEIS',
+    'DISPONIVEIS EM NUBANK.COM.BR/CONTATOS#OUVIDORIA'
+  ].some(marker => normalizedLine.includes(marker))
+}
+
+function shouldIgnoreCounterpartyDetailLine(normalizedLine) {
+  return [
+    'AGENCIA:',
+    'CONTA:',
+    'BCO ',
+    'BANCO ',
+    ' ITAU ',
+    ' PICPAY ',
+    ' CIELO ',
+    ' MERCADO PAGO ',
+    ' NU PAGAMENTOS ',
+    ' LTDA.',
+    ' LTDA - ',
+    ' S.A.',
+    ' S/A',
+    ' IP ',
+    'CNPJ',
+    'CPF'
+  ].some(marker => normalizedLine.includes(marker))
+}
+
+function isStandaloneOperation(normalizedLine) {
+  return normalizedLine === 'PAGAMENTO DE FATURA' || normalizedLine === 'APLICACAO RDB'
+}
+
+function parseStandaloneAmountLine(line) {
+  const source = normalizeSpace(line).replace(/\s+/g, ' ')
+  const match = source.match(/^([+\-−]?\s*R?\$?\s*\d{1,3}(?:\.\d{3})*,\d{2})$/i)
+  return match ? match[1] : null
+}
+
+function isLikelyMerchantLine(normalizedLine) {
+  if (!normalizedLine) return false
+  if (isDateHeadingLine(normalizedLine)) return false
+  if (isNubankOperationLine(normalizedLine)) return false
+  if (isSectionTotalLabel(normalizedLine)) return false
+  if (parseStandaloneAmountLine(normalizedLine)) return false
+  if (shouldIgnoreNubankMetaLine(normalizedLine)) return false
+  if (shouldIgnoreCounterpartyDetailLine(normalizedLine)) return false
+  return true
+}
+
+function shouldAppendMerchantLine(normalizedLine, merchantParts) {
+  if (!normalizedLine || merchantParts.length >= 2) return false
+  if (isNubankOperationLine(normalizedLine)) return false
+  if (isSectionTotalLabel(normalizedLine)) return false
+  if (shouldIgnoreNubankMetaLine(normalizedLine)) return false
+  if (shouldIgnoreCounterpartyDetailLine(normalizedLine)) return false
+  return true
+}
+
+function extractInstallmentInfo(description) {
+  const match = String(description || '').match(/\b(\d{1,2})\/(\d{1,2})\b/)
+  return {
+    parcelado: Boolean(match),
+    parcela_atual: match ? parseInt(match[1], 10) : null,
+    total_parcelas: match ? parseInt(match[2], 10) : null,
+    cleanDescription: normalizeSpace(String(description || '').replace(/\b\d{1,2}\/\d{1,2}\b/, ' '))
+  }
+}
+
+function cleanMerchantName(value) {
+  return normalizeSpace(String(value || '')
+    .replace(/\bR\$\b/gi, '')
+    .replace(/\b(?:PIX|TED|DOC)\b\s*(?:ENVIADO|RECEBIDO)?/gi, '')
+    .replace(/\s{2,}/g, ' '))
+}
+
+function inferNatureza(description, rawAmount, tipoDocumento, options) {
+  const source = normalizeDocText(description)
+  const hasMinus = /[-−]/.test(rawAmount)
+  const hasPlus = /\+/.test(rawAmount)
+
+  // Detecta pagamentos de fatura anterior, ajustes e estornos
+  if (/ESTORNO|CREDITO DE CONFIANCA|CANCELAMENTO|REEMBOLSO|DEVOLUCAO|PAGAMENTO EM|PAGAMENTO DE FATURA|SALDO RESTANTE|FATURA ANTERIOR/.test(source)) {
+    return 'estorno'
+  }
+
+  if (tipoDocumento === 'extrato_conta') {
+    if (hasPlus) return 'entrada'
+    if (hasMinus) return 'gasto'
+    if (/SALARIO|RECEBIDO|RENDIMENTO|DEPOSITO|CREDITO|TRANSFERENCIA RECEBIDA|PIX RECEB/.test(source)) return 'entrada'
+    if (/PAGAMENTO|COMPRA|TRANSFERENCIA|PIX ENVI|DEBITO|SAQUE|BOLETO|TARIFA/.test(source)) return 'gasto'
+    return options && options.preferExplicitSignal ? 'gasto' : 'entrada'
+  }
+
+  return hasMinus ? 'estorno' : 'gasto'
+}
+
+function applyAmountSignal(rawAmount, natureza, tipoDocumento) {
+  let value = Math.abs(parseMoneyNumber(rawAmount))
+  const hasMinus = /[-−]/.test(rawAmount)
+  const hasPlus = /\+/.test(rawAmount)
+
+  if (hasMinus) return -value
+  if (hasPlus) return value
+
+  if (tipoDocumento === 'extrato_conta') {
+    return natureza === 'entrada' ? value : -value
+  }
+
+  return natureza === 'estorno' ? -value : value
+}
+
+function dedupeTransactions(items) {
+  const seen = new Set()
+  return items.filter(item => {
+    if (!item) return false
+
+    // Preferir _source_row_index quando disponível, para preservar transações
+    // idênticas porém legítimas (mesmo valor/data/estabelecimento em diferentes linhas).
+    // Remover duplicatas somente quando não há outra forma segura de identificar linha.
+    const key = item._source_row_index != null
+      ? `${item._statement_key || 'unknown'}|row:${item._source_row_index}`
+      : [
+        item.data,
+        normalizeDocText(item.estabelecimento),
+        Number(item.valor || 0).toFixed(2),
+        String(item.parcela_atual || ''),
+        String(item.total_parcelas || '')
+      ].join('|')
+
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
+
+function getFriendlyImportError(error, file) {
+  const message = String(error && error.message ? error.message : error || '').trim()
+  const kind = file && file.kind ? file.kind : detectFileKind(file && file.name)
+
+  if (error && error.name === 'PasswordException') {
+    return 'Este PDF esta protegido por senha. Remova a senha do arquivo antes de enviar.'
+  }
+
+  if (/No password given/i.test(message)) {
+    return 'Este PDF esta protegido por senha. Remova a senha do arquivo antes de enviar.'
+  }
+
+  if (kind === 'image' && /transacoes suficientes neste arquivo/i.test(message)) {
+    return 'Li a imagem via OCR, mas nao encontrei transacoes suficientes. Envie um print mais nitido, de preferencia com a lista completa da fatura ou do extrato.'
+  }
+
+  return message || 'Nao foi possivel processar este arquivo.'
+}
+
+async function startParsing() {
+  const startedAt = Date.now()
+  trackEvent('processing_start', {
+    file_count: fileQueue.length,
+    file_kinds: getFileKindsSummary(fileQueue)
+  })
+  showScreen('loading')
+  document.getElementById('parseBtn').disabled = true
+  setPill(1, 'done')
+  setPill(2, 'active')
+  setPill(3, '')
+  startLoadingCycle()
+  updateLoadingFiles()
+
+  for (const f of fileQueue) {
+    if (f.status === 'done') continue
+    try {
+      f.status = 'extracting'
+      f.progress = 0
+      updateLoadingFiles()
+
+      f.parsed = await parseImportedFile(f.file, f.kind, p => {
+        f.progress = p / 2
+        updateLoadingFiles()
+      })
+
+      f.status = 'parsing'
+      f.progress = 50
+      updateLoadingFiles()
+
+      const parsed = f.parsed
+      f.progress = 100
+      updateLoadingFiles()
+
+      const key = `${parsed.banco}|${parsed.identificador || parsed.ultimos_digitos || 'principal'}|${parsed.mes_referencia}`
+      if (cardRegistry[key]) {
+        dedupPending = { key, incoming: parsed, existing: cardRegistry[key] }
+      } else {
+        cardRegistry[key] = parsed
+        mergeTransactions(parsed)
+      }
+
+      f.status = 'done'
+      updateLoadingFiles()
+    } catch (e) {
+      const friendlyError = getFriendlyImportError(e, f)
+      trackEvent('processing_error', {
+        file_kind: f.kind || 'unknown',
+        error_type: classifyImportError(e)
+      })
+      f.status = 'error'
+      stopLoadingCycle()
+      updateLoadingFiles(friendlyError)
+      showScreen('upload')
+      setPill(1, 'active')
+      setPill(2, '')
+      setPill(3, '')
+      renderQueue()
+      alert(`Erro ao processar ${f.name}: ${friendlyError}`)
+      document.getElementById('parseBtn').disabled = fileQueue.length === 0
+      return
+    }
+  }
+
+  const elapsed = Date.now() - startedAt
+  if (elapsed < 5000) {
+    await wait(5000 - elapsed)
+  }
+
+  stopLoadingCycle()
+  renderQueue()
+  if (dedupPending) {
+    cardRegistry[dedupPending.key] = dedupPending.incoming
+    mergeTransactions(dedupPending.incoming)
+    dedupPending = null
+  }
+  if (allTransactions.length > 0) {
+    trackEvent('report_ready', {
+      file_count: fileQueue.length,
+      file_kinds: getFileKindsSummary(fileQueue),
+      transactions: allTransactions.length,
+      elapsed_ms: Date.now() - startedAt
+    })
+    showResults()
+  }
+}
+
+function mergeTransactions(parsed) {
+  const identifier = parsed.identificador || parsed.ultimos_digitos || 'principal'
+  const statementKey = `${parsed.banco}|${identifier}|${parsed.mes_referencia || 'sem-mes'}|${parsed.tipo_documento}`
+  const txs = (parsed.transacoes || []).map(tx => ({
+    ...tx,
+    tipo_documento: parsed.tipo_documento,
+    banco: parsed.banco,
+    _source_kind: parsed.source_kind || parsed.sourceKind || null,
+    identificador: identifier,
+    ultimos_digitos: parsed.ultimos_digitos,
+    mes_referencia: parsed.mes_referencia,
+    _statement_key: statementKey,
+    _official_day_total: parsed.daily_expense_totals && tx.data ? parsed.daily_expense_totals[tx.data] || null : null,
+    _statement_total_gastos_periodo: parsed.total_gastos_periodo || null,
+    _statement_total_cabecalho: parsed.total_fatura_cabecalho || null,
+    _statement_total_resumo: parsed.total_fatura_resumo || null,
+    _statement_total_resumo_label: parsed.total_fatura_resumo_label || null,
+    _key: tx._source_row_index != null
+      ? `${statementKey}|row:${tx._source_row_index}`
+      : `${statementKey}|${tx.data}|${tx.estabelecimento}|${tx.valor}|${tx.identificador || ''}|${tx.parcela_atual || ''}|${tx.total_parcelas || ''}`
+  }))
+
+  const existingKeys = new Set(allTransactions.map(t => t._key))
+  const newTxs = txs.filter(t => !existingKeys.has(t._key))
+  allTransactions.push(...newTxs)
+  return newTxs.length
+}
+
+function showDedupBanner(parsed) {
+  const b = document.getElementById('dedupBanner')
+  const incomingCount = parsed.transacoes ? parsed.transacoes.length : 0
+  const existing = cardRegistry[`${parsed.banco}|${parsed.ultimos_digitos}|${parsed.mes_referencia}`]
+  const existingCount = existing && existing.transacoes ? existing.transacoes.length : 0
+  document.getElementById('dedupText').innerHTML =
+    `Ja existe uma fatura do <strong>${escapeHtml(parsed.banco)} ····${escapeHtml(parsed.ultimos_digitos || '????')}</strong> para <strong>${escapeHtml(parsed.mes_referencia || 'sem mes')}</strong> com ${existingCount} transacoes. A nova tem ${incomingCount}. Como deseja tratar?`
+  b.classList.add('show')
+}
+
+function applyMerge() {
+  if (!dedupPending) return
+  const added = mergeTransactions(dedupPending.incoming)
+  log(`✓ Mesclado: ${added} transacoes novas adicionadas`, 'ok')
+  closeDedupBanner()
+  showResults()
+}
+
+function applyReplace() {
+  if (!dedupPending) return
+  allTransactions = allTransactions.filter(t =>
+    !(t.banco === dedupPending.incoming.banco &&
+      t.ultimos_digitos === dedupPending.incoming.ultimos_digitos &&
+      t.mes_referencia === dedupPending.incoming.mes_referencia)
+  )
+  cardRegistry[dedupPending.key] = dedupPending.incoming
+  mergeTransactions(dedupPending.incoming)
+  log('✓ Fatura substituida', 'ok')
+  closeDedupBanner()
+  showResults()
+}
+
+function closeDedupBanner() {
+  document.getElementById('dedupBanner').classList.remove('show')
+  dedupPending = null
+}
+
+function showResults() {
+  showScreen('report')
+  setPill(1, 'done')
+  setPill(2, 'done')
+  setPill(3, 'active')
+  renderResults()
+}
+
+function getFilteredTxs() {
+  if (activeCard === 'all') return allTransactions
+  return allTransactions.filter(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}` === activeCard)
+}
+
+function shouldShowDebug() {
+  return new URLSearchParams(window.location.search).has('debug')
+}
+
+function pickUniquePositive(values) {
+  const uniq = [...new Set((values || []).filter(v => Number.isFinite(v) && v > 0))]
+  return uniq.length === 1 ? uniq[0] : 0
+}
+
+function renderResults() {
+  const txs = getFilteredTxs()
+  if (!txs.length) return
+
+  document.getElementById('resultSub').textContent = getDateRangeLabel(txs)
+
+  const cards = [...new Set(allTransactions.map(t => `${t.banco}|${t.identificador || t.ultimos_digitos || 'principal'}`))]
+  const chips = document.getElementById('cardChips')
+  chips.innerHTML = `<div class="chip ${activeCard === 'all' ? 'active' : ''}" data-card="all" onclick="setCard('all')">
+    Todos
+  </div>` + cards.map((c, i) => {
+    const [banco, last4] = c.split('|')
+    return `<div class="chip ${activeCard === c ? 'active' : ''}" data-card="${escapeAttr(c)}" onclick="setCard('${escapeJs(c)}')">
+      ${escapeHtml(banco)} ····${escapeHtml(last4 || 'principal')}
+    </div>`
+  }).join('')
+
+  const expenseTxs = getExpenseTransactions(txs)
+  const effectiveDailyTotals = getEffectiveDailyTotals(expenseTxs)
+  const total = getEffectiveExpenseTotal(txs, effectiveDailyTotals)
+  const purchaseCount = expenseTxs.length
+  const daysSet = new Set()
+  expenseTxs.forEach(tx => {
+    const date = getTransactionDate(tx)
+    if (Number.isNaN(date.getTime())) return
+    daysSet.add(toIsoDate(date))
+  })
+  const daysCount = daysSet.size || 1
+  const avgPerDay = total / daysCount
+  const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
+  const pct = Math.round((total / monthsCount / renda) * 100)
+  const pctColor = pct < 30 ? 'var(--green)' : pct < 60 ? 'var(--amber)' : 'var(--red)'
+  const monthlyTotal = total / monthsCount
+
+  document.getElementById('summaryGrid').innerHTML = `
+    <div class="sum-card"><div class="sum-label">Total gasto</div>
+      <div class="sum-val">${fmt(total)}</div>
+      <div class="sum-sub">${monthsCount > 1 ? monthsCount + ' meses' : 'no mês'}</div></div>
+    <div class="sum-card"><div class="sum-label">Transacoes</div>
+      <div class="sum-val">${purchaseCount}</div>
+      <div class="sum-sub">&nbsp;</div></div>
+    <div class="sum-card"><div class="sum-label">Média de gastos</div>
+      <div class="sum-val">${fmt(avgPerDay)}</div>
+      <div class="sum-sub">por dia</div></div>
+    <div class="sum-card"><div class="sum-label">Comprometimento</div>
+      <div class="sum-val" style="color:${pctColor}">${pct}%</div>
+      <div class="sum-sub">da renda do mês</div></div>`
+
+  const debugEl = document.getElementById('debugTotals')
+  if (debugEl) {
+    if (!shouldShowDebug()) {
+      debugEl.style.display = 'none'
+    } else {
+      const headerTotal = pickUniquePositive(txs.map(t => Number(t._statement_total_cabecalho || 0)))
+      const resumoTotal = pickUniquePositive(txs.map(t => Number(t._statement_total_resumo || 0)))
+      const periodoTotal = pickUniquePositive(txs.map(t => Number(t._statement_total_gastos_periodo || 0)))
+      const diffHeader = headerTotal ? (headerTotal - total) : 0
+      const diffResumo = resumoTotal ? (resumoTotal - total) : 0
+      debugEl.style.display = 'block'
+      debugEl.innerHTML = `
+        <div class="ptitle" style="margin-bottom:.5rem">debug • totais detectados</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.5rem;font-size:.78rem">
+          <div><span style="color:var(--text3)">total calculado</span><br><strong>${fmt(total)}</strong></div>
+          <div><span style="color:var(--text3)">cabecalho</span><br><strong>${headerTotal ? fmt(headerTotal) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">resumo</span><br><strong>${resumoTotal ? fmt(resumoTotal) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">periodo</span><br><strong>${periodoTotal ? fmt(periodoTotal) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">delta cabecalho</span><br><strong>${headerTotal ? fmt(diffHeader) : '—'}</strong></div>
+          <div><span style="color:var(--text3)">delta resumo</span><br><strong>${resumoTotal ? fmt(diffResumo) : '—'}</strong></div>
+        </div>`
+    }
+  }
+
+  document.getElementById('incomeDisplay').textContent = fmt(renda)
+  document.getElementById('rendaVal').textContent = fmt(renda)
+  const barW = Math.min(pct, 100)
+  document.getElementById('ibarFill').style.width = barW + '%'
+  document.getElementById('ibarFill').style.background = pctColor
+  document.getElementById('ipct').textContent = pct + '%'
+  document.getElementById('ipct').style.color = pctColor
+
+  renderDiagnosisOverview({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct })
+  renderHeatmap(expenseTxs, effectiveDailyTotals)
+  renderInsights({ txs: expenseTxs, total, monthsCount, monthlyTotal, pct, dailyTotals: effectiveDailyTotals })
+
+  const bycat = {}
+  expenseTxs.forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
+  })
+  const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1])
+  const topCats = sorted.slice(0, 7)
+  document.getElementById('catList').innerHTML = topCats.map(([cat, val], idx) => {
+    const pctC = total ? Math.round((val / total) * 100) : 0
+    const color = CAT_COLORS[cat] || '#6b7080'
+    return `<div class="cat-row">
+      <div class="cat-head"><span class="cat-name">${escapeHtml(cat)}</span>
+        <span class="cat-pct">${fmt(val)} · ${pctC}%</span></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${Math.min(pctC, 100)}%;background:${color}"></div></div>
+    </div>`
+  }).join('')
+
+  const bymerch = {}
+  expenseTxs.forEach(t => {
+    bymerch[t.estabelecimento] = (bymerch[t.estabelecimento] || 0) + Math.abs(Number(t.valor) || 0)
+  })
+  const sortedM = Object.entries(bymerch).sort((a, b) => b[1] - a[1])
+  const maxM = sortedM[0] ? sortedM[0][1] : 1
+  document.getElementById('merchantList').innerHTML = sortedM.slice(0, 8).map(([name, val]) => {
+    const pctM = Math.round((val / maxM) * 100)
+    return `<div class="cat-row">
+      <div class="cat-head"><span class="cat-name" style="font-size:.75rem">${escapeHtml(name)}</span>
+        <span class="cat-pct">${fmt(val)}</span></div>
+      <div class="cbar-bg"><div class="cbar" style="width:${pctM}%;background:var(--blue)"></div></div>
+    </div>`
+  }).join('')
+
+  const txSorted = [...txs].sort((a, b) => getTransactionDateValue(b) - getTransactionDateValue(a))
+  document.getElementById('txBody').innerHTML = txSorted.map(tx => {
+    const color = CAT_COLORS[tx.categoria] || '#6b7080'
+    const isExpense = isExpenseTransaction(tx)
+    const isIncome = isIncomeTransaction(tx)
+    const valueColor = isIncome ? 'var(--green)' : isExpense ? 'var(--text)' : 'var(--muted)'
+    const signal = isIncome ? '+' : isExpense && tx.valor < 0 ? '−' : ''
+    return `<tr>
+      <td style="font-family:'DM Mono',monospace;font-size:.7rem;white-space:nowrap">${escapeHtml(tx.data || '')}</td>
+      <td>${escapeHtml(tx.estabelecimento || '')}${tx.parcelado ? ` <span style="font-size:.6rem;color:var(--muted)">${escapeHtml(String(tx.parcela_atual || '?'))}/${escapeHtml(String(tx.total_parcelas || '?'))}</span>` : ''}</td>
+      <td><span class="ttag" style="background:${color}22;color:${color}">${escapeHtml(tx.categoria || 'Outros')}</span></td>
+      <td><span class="tcard">${escapeHtml(tx.banco || '')} ····${escapeHtml(tx.identificador || tx.ultimos_digitos || 'principal')}</span></td>
+      <td style="color:${valueColor};font-size:.78rem">
+        ${signal}${Math.abs(tx.valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+      </td>
+    </tr>`
+  }).join('')
+}
+
+function setCard(card) {
+  activeCard = card
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', c.dataset.card === card))
+  renderResults()
+}
+
+function updateRenda(v) {
+  renda = parseInt(v, 10)
+  document.getElementById('rendaVal').textContent = fmt(renda)
+  renderResults()
+}
+
+function setRendaFromInput(value) {
+  const { cents, formatted } = parseCurrencyInput(value)
+  const input = document.getElementById('rendaInputUpload')
+  if (input) input.value = formatted
+  if (!Number.isFinite(cents)) return
+  const safe = Math.max(600, Math.round(cents / 100))
+  renda = safe
+  const slider = document.getElementById('rendaSlider')
+  if (slider) slider.value = String(safe)
+  if (document.getElementById('screenReport').classList.contains('active')) {
+    renderResults()
+  }
+}
+
+function parseCurrencyInput(raw) {
+  const digits = String(raw || '').replace(/[^\d]/g, '')
+  if (!digits) return { cents: NaN, formatted: '' }
+  const cents = parseInt(digits, 10)
+  const value = cents / 100
+  return {
+    cents,
+    formatted: value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+  }
+}
+
+function resetAll() {
+  fileQueue = []
+  allTransactions = []
+  cardRegistry = {}
+  activeCard = 'all'
+  dedupPending = null
+  renda = 1621
+  document.getElementById('rendaSlider').value = '1621'
+  document.getElementById('rendaVal').textContent = fmt(renda)
+  document.getElementById('incomeDisplay').textContent = fmt(renda)
+  const rendaInput = document.getElementById('rendaInputUpload')
+  if (rendaInput) rendaInput.value = ''
+  document.getElementById('fileQueue').innerHTML = ''
+  document.getElementById('parseBtn').disabled = true
+  document.getElementById('dedupBanner').classList.remove('show')
+  stopLoadingCycle()
+  setLoadingPhase(0)
+  showScreen('upload')
+  setPill(1, 'active')
+  setPill(2, '')
+  setPill(3, '')
+}
+
+function fmt(n) {
+  const num = Number(n) || 0
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function renderDiagnosisOverview(data) {
+  const score = getHealthScore(data.pct)
+  const headline = score >= 8 ? 'Saude em dia' : score >= 6 ? 'Atencao necessaria' : score >= 4 ? 'Pede ajustes' : 'Ajuste urgente'
+  const commitmentText = data.pct > 100
+    ? 'comprometendo mais do que a sua renda declarada.'
+    : `comprometendo ${data.pct}% da renda declarada.`
+  const text = data.monthsCount > 1
+    ? `Voce teve media mensal de ${fmt(data.monthlyTotal)} em gastos, ${commitmentText}`
+    : `Voce teve ${fmt(data.total)} em gastos no periodo analisado, ${commitmentText}`
+  const meterColor = score >= 8 ? 'var(--green)' : score >= 6 ? 'var(--amber)' : 'var(--red)'
+
+  document.getElementById('diagnosisHeadline').textContent = headline
+  document.getElementById('diagnosisCopy').textContent = text
+  document.getElementById('diagnosisMeterVal').textContent = score.toFixed(1).replace('.', ',')
+  const meter = document.getElementById('diagnosisMeter')
+  meter.style.setProperty('--pct', String(score * 10))
+  meter.style.setProperty('--meter-color', meterColor)
+}
+
+function renderHeatmap(txs, providedDailyTotals) {
+  const grid = document.getElementById('heatmapGrid')
+  const weekdays = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom']
+  const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
+  const dates = Object.keys(dailyTotals).sort()
+
+  let startDate
+  let endDate
+
+  if (dates.length) {
+    startDate = parseIsoDate(dates[0])
+    endDate = parseIsoDate(dates[dates.length - 1])
+  } else {
+    const now = new Date()
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1, 12, 0, 0)
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 12, 0, 0)
+  }
+
+  const periodStart = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(), 12, 0, 0)
+  const periodEnd = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate(), 12, 0, 0)
+  const offset = (periodStart.getDay() + 6) % 7
+  const max = Math.max(...Object.values(dailyTotals), 1)
+
+  const cells = []
+  for (let i = 0; i < offset; i++) cells.push('<div class="heatmap-empty"></div>')
+
+  for (let cursor = new Date(periodStart); cursor <= periodEnd; cursor.setDate(cursor.getDate() + 1)) {
+    const key = toIsoDate(cursor)
+    const value = dailyTotals[key] || 0
+    const intensity = value / max
+    const alpha = value ? (0.15 + intensity * 0.75).toFixed(2) : '0.06'
+    const label = value ? shortMoney(value) : 'R$ 0'
+    const title = `${formatDate(cursor)} · ${fmt(value)}`
+    const dayLabel = formatShortDayMonth(cursor)
+
+    cells.push(`
+      <div class="heatmap-cell" style="background:rgba(200,245,100,${alpha});border-color:${value ? 'rgba(200,245,100,.22)' : 'rgba(255,255,255,.04)'}" title="${title}">
+        <div class="heatmap-day">${dayLabel}</div>
+        <div class="heatmap-value">${label}</div>
+      </div>
+    `)
+  }
+
+  while (cells.length % 7 !== 0) cells.push('<div class="heatmap-empty"></div>')
+
+  grid.innerHTML = weekdays.map(day => `<div class="heatmap-col-head">${day}</div>`).join('') + cells.join('')
+}
+
+function renderInsights(data) {
+  const insightGrid = document.getElementById('insightGrid')
+  const topDay = getTopSpendingDay(data.txs, data.dailyTotals)
+  const topWeekdays = getTopAverageWeekdays(data.txs, data.dailyTotals)
+  const topCategories = getTopCategories(data.txs, data.total)
+
+  const cards = [
+    {
+      icon: '01',
+      kicker: 'Pico do periodo',
+      text: topDay
+        ? `Seu maior gasto diario foi em <strong>${topDay.label}</strong>, com <strong>${fmt(topDay.total)}</strong> somados naquele dia.`
+        : 'Ainda nao foi possivel identificar um dia com gastos no periodo analisado.'
+    },
+    {
+      icon: '02',
+      kicker: 'Média de gastos por dia da semana',
+      text: topWeekdays.length
+        ? `Em media, seus gastos se concentram em <strong>${topWeekdays.map(day => `${day.label} (${fmt(day.average)})`).join('</strong> e <strong>')}</strong>.`
+        : 'Ainda nao houve dados suficientes para comparar os dias da semana.'
+    },
+    {
+      icon: '03',
+      kicker: 'Categorias dominantes',
+      text: topCategories.length
+        ? `As maiores categorias foram <strong>${topCategories.map(cat => `${cat.name} (${cat.pct}%)`).join('</strong>, <strong>')}</strong> do total gasto.`
+        : 'Ainda nao houve volume suficiente para destacar categorias dominantes.'
+    }
+  ]
+
+  insightGrid.innerHTML = cards.map(card => `
+    <div class="insight-card">
+      <div class="insight-icon">${card.icon}</div>
+      <div class="insight-kicker">${card.kicker}</div>
+      <div class="insight-text">${card.text}</div>
+    </div>
+  `).join('')
+}
+
+function getHealthScore(pct) {
+  if (pct <= 10) return 10
+  if (pct <= 15) return 9
+  if (pct <= 20) return 8
+  if (pct <= 25) return 7
+  if (pct <= 30) return 6
+  if (pct <= 40) return 5
+  if (pct <= 50) return 4
+  if (pct <= 65) return 3
+  if (pct <= 80) return 2
+  if (pct <= 100) return 1
+  return 0
+}
+
+function getTopCategoryShare(txs, total) {
+  if (!total) return { name: '', pct: 0 }
+  const bycat = {}
+  txs.forEach(t => {
+    bycat[t.categoria] = (bycat[t.categoria] || 0) + Math.abs(Number(t.valor) || 0)
+  })
+  const top = Object.entries(bycat).sort((a, b) => b[1] - a[1])[0]
+  if (!top) return { name: '', pct: 0 }
+  return { name: top[0], pct: Math.round((top[1] / total) * 100) }
+}
+
+function getDailyTotals(txs) {
+  return buildDailyTotalsFromTransactions(txs)
+}
+
+function buildDailyTotalsFromTransactions(txs) {
+  const totals = {}
+  ;(txs || []).forEach(tx => {
+    const date = getTransactionDate(tx)
+    if (Number.isNaN(date.getTime())) return
+    const key = toIsoDate(date)
+    const cents = toCents(Math.abs(Number(tx.valor) || 0))
+    totals[key] = fromCents((toCents(totals[key] || 0)) + cents)
+  })
+  return totals
+}
+
+function getEffectiveDailyTotals(txs) {
+  const totals = {}
+  const groupedByStatement = {}
+
+  const addDaily = (isoDate, amount) => {
+    if (!isoDate || !Number.isFinite(Number(amount))) return
+    const cents = toCents(amount)
+    totals[isoDate] = fromCents((toCents(totals[isoDate] || 0)) + cents)
+  }
+
+  ;(txs || []).forEach(tx => {
+    const statementKey = tx && tx._statement_key ? tx._statement_key : 'default'
+    if (!groupedByStatement[statementKey]) groupedByStatement[statementKey] = []
+    groupedByStatement[statementKey].push(tx)
+  })
+
+  Object.values(groupedByStatement).forEach(statementTxs => {
+    const officialDailyTotals = {}
+    let hasOfficialTotals = false
+    let officialEntries = 0
+    let officialSum = 0
+
+    statementTxs.forEach(tx => {
+      if (!tx || !tx.data) return
+      const date = getTransactionDate(tx)
+      if (Number.isNaN(date.getTime())) return
+      const isoDate = toIsoDate(date)
+
+      if (tx._official_day_total != null) {
+        const officialValue = Number(tx._official_day_total)
+        if (Number.isFinite(officialValue) && officialValue > 0) {
+          officialDailyTotals[isoDate] = officialValue
+          hasOfficialTotals = true
+          officialEntries += 1
+          officialSum += officialValue
+        }
+      }
+    })
+
+    if (hasOfficialTotals && officialEntries > 0 && officialSum > 0) {
+      const parsedSumCents = sumCents(statementTxs.map(tx => Math.abs(Number(tx.valor) || 0)))
+      const parsedSum = fromCents(parsedSumCents)
+      // Se a soma oficial estiver muito abaixo do somado pelos itens, pode sinalizar falha de captura mínima,
+      // então preferimos o total base do parser em vez de valores diários incompletos.
+      if (Math.abs(parsedSum - officialSum) > 1.0) {
+        // fallback: use parsed totals, mantendo a lógica de não alterar os valores originais
+        statementTxs.forEach(tx => {
+          const date = getTransactionDate(tx)
+          if (Number.isNaN(date.getTime())) return
+          const isoDate = toIsoDate(date)
+          addDaily(isoDate, tx.valor)
+        })
+        return
+      }
+
+      Object.entries(officialDailyTotals).forEach(([date, value]) => {
+        addDaily(date, value)
+      })
+      return
+    }
+
+    statementTxs.forEach(tx => {
+      if (!tx || !tx.data) return
+      const date = getTransactionDate(tx)
+      if (Number.isNaN(date.getTime())) return
+      const isoDate = toIsoDate(date)
+      addDaily(isoDate, tx.valor)
+    })
+  })
+
+  return totals
+}
+
+function getEffectiveExpenseTotal(txs, effectiveDailyTotals) {
+  const source = txs || []
+  const expenseTxs = getExpenseTransactions(source)
+
+  // Calcular total em centavos para precisão absoluta
+  const parsedExpenseTotalCents = sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0)))
+
+  const dailyTotals = effectiveDailyTotals || getEffectiveDailyTotals(expenseTxs)
+  const dailyTotalSumCents = sumCents(Object.values(dailyTotals))
+
+  // Só usar a soma dos totais por dia quando estiver consistente com parsedExpenseTotal.
+  // Caso contrário, usamos o total direto do parser para evitar deixar sair diferença.
+  const baseTotalCents = (dailyTotalSumCents > 0 && Math.abs(dailyTotalSumCents - parsedExpenseTotalCents) <= 100)
+    ? dailyTotalSumCents
+    : parsedExpenseTotalCents
+
+  // Calcular ajustes em centavos
+  const statementAdjustmentsCents = sumCents(source
+    .filter(tx => tx && tx.tipo_documento === 'fatura_cartao' &&
+                  (tx.natureza === 'estorno' || tx.natureza === 'ajuste') &&
+                  !isCardPaymentEntry(tx))
+    .map(tx => Math.abs(Number(tx.valor) || 0)))
+
+  const computedTotalCents = Math.max(0, baseTotalCents - statementAdjustmentsCents)
+
+  // Se houver total oficial da fatura disponível, use esse como fonte de verdade
+  const statementTotals = [...new Set(source
+    .map(tx => Number(tx._statement_total_gastos_periodo || 0))
+    .filter(v => Number.isFinite(v) && v > 0))]
+  const hasImageSource = source.some(tx => tx && tx._source_kind === 'image')
+  const hasPdfSource = source.some(tx => tx && tx._source_kind === 'pdf')
+  const strongTotalLabel = source
+    .map(tx => String(tx._statement_total_resumo_label || ''))
+    .some(label => /TOTAL A PAGAR|TOTAL DA FATURA|VALOR DA FATURA|VALOR TOTAL DA FATURA|FATURA ATUAL/.test(label))
+
+  if (statementTotals.length === 1) {
+    const statementTotalCents = toCents(statementTotals[0])
+    // Só confiar no total oficial quando ele estiver alinhado ao total calculado com estornos.
+    if (Math.abs(statementTotalCents - computedTotalCents) <= 1) {
+      return fromCents(statementTotalCents)
+    }
+    if (hasImageSource) {
+      return fromCents(statementTotalCents)
+    }
+    if (hasPdfSource && strongTotalLabel) {
+      return fromCents(statementTotalCents)
+    }
+  }
+
+  // Protect the UI from inconsistent totals when parsed expenses exist
+  // but a statement-level heuristic collapses the amount to zero.
+  if (computedTotalCents <= 0 && parsedExpenseTotalCents > 0) {
+    return fromCents(parsedExpenseTotalCents)
+  }
+
+  return fromCents(computedTotalCents)
+}
+
+function isCardPaymentEntry(tx) {
+  const description = normalizeDocText(tx && tx._raw_description ? tx._raw_description : tx && tx.estabelecimento ? tx.estabelecimento : '')
+  const amount = Math.abs(Number(tx && tx.valor) || 0)
+  // Detecta pagamentos, ajustes de fatura anterior, saldo restante, etc
+  if (!/PAGAMENTO RECEBIDO|PAGAMENTO DE FATURA|PAGAMENTO EM|SALDO RESTANTE|FATURA ANTERIOR/.test(description)) return false
+  return amount >= 50
+}
+
+function getTopSpendingDay(txs, providedDailyTotals) {
+  const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
+  const topEntry = Object.entries(dailyTotals).sort((a, b) => b[1] - a[1])[0]
+  if (!topEntry) return null
+  return {
+    key: topEntry[0],
+    total: topEntry[1],
+    label: formatDate(parseIsoDate(topEntry[0]))
+  }
+}
+
+function getTopAverageWeekdays(txs, providedDailyTotals) {
+  const labels = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+  const buckets = Array.from({ length: 7 }, () => ({ total: 0, dates: new Set() }))
+  const dailyTotals = Object.keys(providedDailyTotals || {}).length ? providedDailyTotals : getDailyTotals(txs)
+
+  Object.entries(dailyTotals).forEach(([key, total]) => {
+    const date = parseIsoDate(key)
+    if (Number.isNaN(date.getTime())) return
+    const day = date.getDay()
+    buckets[day].total += Number(total) || 0
+    buckets[day].dates.add(key)
+  })
+
+  return buckets
+    .map((bucket, day) => ({
+      label: labels[day],
+      average: bucket.dates.size ? bucket.total / bucket.dates.size : 0
+    }))
+    .filter(day => day.average > 0)
+    .sort((a, b) => b.average - a.average)
+    .slice(0, 2)
+}
+
+function getTopCategories(txs, total) {
+  if (!total) return []
+  const bycat = {}
+  txs.forEach(tx => {
+    const category = tx.categoria || 'Outros'
+    bycat[category] = (bycat[category] || 0) + Math.abs(Number(tx.valor) || 0)
+  })
+  const sorted = Object.entries(bycat).sort((a, b) => b[1] - a[1]).slice(0, 3)
+  return sorted.map(([name, value]) => ({
+    name,
+    value,
+    pct: Math.round((value / total) * 100)
+  }))
+}
+
+function getTopMerchantShare(txs, total) {
+  if (!total) return { name: '', pct: 0 }
+  const byMerchant = {}
+  txs.forEach(tx => {
+    byMerchant[tx.estabelecimento] = (byMerchant[tx.estabelecimento] || 0) + Math.abs(Number(tx.valor) || 0)
+  })
+  const top = Object.entries(byMerchant).sort((a, b) => b[1] - a[1])[0]
+  if (!top) return { name: '', pct: 0 }
+  return { name: top[0], pct: Math.round((top[1] / total) * 100) }
+}
+
+function getWeekendShare(txs, total) {
+  if (!total) return 0
+  let weekendTotal = 0
+  txs.forEach(tx => {
+    const date = getTransactionDate(tx)
+    if (Number.isNaN(date.getTime())) return
+    const day = date.getDay()
+    if (day === 5 || day === 6) weekendTotal += Math.abs(Number(tx.valor) || 0)
+  })
+  return Math.round((weekendTotal / total) * 100)
+}
+
+function getCategoryMonthlyValue(txs, monthsCount, categories) {
+  const totalCents = sumCents(txs
+    .filter(t => categories.includes(t.categoria))
+    .map(tx => Math.abs(Number(tx.valor) || 0)))
+  const total = fromCents(totalCents)
+  return total / (monthsCount || 1)
+}
+
+function getExpenseTransactions(txs) {
+  const source = txs || []
+  const explicit = source.filter(tx => tx.natureza === 'gasto')
+  if (explicit.length) return explicit
+
+  // fallback inteligente para casos onde a classificação falha e temos pequenos encargos
+  const likelyExpenses = source.filter(tx => {
+    const desc = String(tx.estabelecimento || '').toLowerCase()
+    return tx.natureza === 'entrada' && Math.abs(Number(tx.valor) || 0) <= 20 && /metro rj|iof|tarifa|fatura anterior|outros lan[çc]amentos/.test(desc)
+  })
+  if (likelyExpenses.length) return [...explicit, ...likelyExpenses]
+
+  const negatives = source.filter(tx => Number(tx.valor) < 0)
+  const positives = source.filter(tx => Number(tx.valor) > 0)
+  const hasAccountStatement = source.some(tx => tx.tipo_documento === 'extrato_conta')
+
+  if (hasAccountStatement && negatives.length) return negatives
+  if (positives.length >= negatives.length) return positives
+  return negatives
+}
+
+function isExpenseTransaction(tx) {
+  if (!tx) return false
+  if (tx.natureza === 'gasto') return true
+  if (tx.natureza === 'entrada') return false
+  if (tx.natureza === 'estorno') return false
+  if (tx.natureza === 'ajuste') return false
+  if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) < 0
+  return Number(tx.valor) > 0
+}
+
+function isIncomeTransaction(tx) {
+  if (!tx) return false
+  if (tx.natureza === 'entrada') return true
+  if (tx.tipo_documento === 'extrato_conta') return Number(tx.valor) > 0
+  return false
+}
+
+function normalizeNatureza(rawNatureza, valor, tipoDocumento) {
+  const normalized = String(rawNatureza || '').toLowerCase().trim()
+  if (normalized === 'gasto' || normalized === 'entrada' || normalized === 'estorno' || normalized === 'ajuste') {
+    return normalized
+  }
+  if (tipoDocumento === 'extrato_conta') return valor < 0 ? 'gasto' : 'entrada'
+  return valor < 0 ? 'estorno' : 'gasto'
+}
+
+const CATEGORY_MAP = {
+  Alimentacao: [
+    'IFOOD', '99FOOD', '99 FOOD', 'RAPPI', 'UBER EATS', 'MCDONALDS', 'BK', 'BURGER', 'PIZZA', 'PIZZARIA', 'SUSHI',
+    'YAKISOBA', 'TEMAKI', 'ACAI', 'BAR', 'CAFETERIA', 'STARBUCKS', 'PADARIA', 'PANIFICADORA',
+    'RESTAURANTE', 'CHURRASCARIA', 'LANCHONETE', 'COCO BAMBU', 'OUTBACK'
+  ],
+  Mercado: [
+    'SUPERMERCADO', 'SUPERMERC', 'MERCADO', 'ATACAD', 'CARREFOUR', 'EXTRA', 'PAO DE ACUCAR',
+    'HORTIFRU', 'ASSAI', 'CONDOR', 'MUFFATO', 'ZAFFARI', 'ATACADAO', 'SAMS CLUB',
+    'MINIMERCADO', 'MERCEARIA', 'MERCADINHO', 'COOP'
+  ],
+  Transporte: [
+    'UBER', '99APP', '99POP', 'CABIFY', 'ESTACIONAMENTO', 'PEDAGIO', 'CONECTCAR',
+    'SEMPARAR', 'VELOE', 'BTG MOBI', 'AZUL', 'LATAM', 'GOL LINHAS', 'RODOVIARIA',
+    'METRO', 'TREM', 'ONIBUS', 'BUS'
+  ],
+  Combustivel: [
+    'POSTO', 'COMBUSTIV', 'SHELL', 'IPIRANGA', 'PETROBRAS', 'TEXACO', 'BR MANIA'
+  ],
+  Assinaturas: [
+    'APPLE COM', 'APPLECOM', 'APPLE', 'GOOGLE', 'AWS', 'CLOUD', 'MSFT', 'MICROSOFT',
+    'WELLHUB', 'GYMPASS', 'CLARO', 'VIVO', 'TIM', 'SKY', 'NET SERV', 'GLOBO', 'NETFLIX',
+    'SPOTIFY', 'YOUTUBE', 'HBOMAX', 'HBO MAX', 'DISNEY', 'AMAZON PRIME', 'PARAMOUNT',
+    'CRUNCHYROLL', 'PLAYSTATION', 'LAYSTATION', 'PLAY STATION', 'PSN', 'XBOX'
+  ],
+  Saude: [
+    'FARMACIA', 'DROGARIA', 'DROGASIL', 'DROGASMIL', 'DROGA RAIA', 'RAIA', 'PAGUE MENOS', 'NISSEI', 'PANVEL',
+    'HOSPITAL', 'MEDICO', 'CLINICA', 'ODONT', 'EXAME', 'LABORATORIO', 'PSICOLOG',
+    'ACADEMIA', 'SMARTFIT', 'BLUEFIT'
+  ],
+  Varejo: [
+    'AMAZON', 'MERCADO LIVRE', 'MERCADOLIVRE', 'SHOPEE', 'SHEIN', 'MAGALU', 'MAGAZINE',
+    'AMERICANAS', 'CASAS BAHIA', 'ALIEXPRESS', 'KABUM', 'RIACHUELO', 'RENNER', 'CEA',
+    'ZARA', 'NIKE', 'ADIDAS', 'NETSHOES'
+  ],
+  Educacao: [
+    'FACULDADE', 'ESCOLA', 'CURSO', 'UDEMY', 'HOTMART', 'ALURA', 'EDUZZ', 'FGV', 'PUC',
+    'ESTACIO', 'WIZARD', 'FISK', 'CULTURA INGLESA', 'SENAC', 'SENAI', 'COURSERA'
+  ],
+  Moradia: ['HABITACAO', 'ALUGUEL', 'CONDOMINIO', 'IMOB', 'QUINTOANDAR', 'LOCA', 'GCI CAIXA'],
+  Contas: ['ENERGIA', 'AGUA', 'SABESP', 'ENEL', 'CEG', 'NATURAL', 'VIVO', 'CLARO', 'TIM'],
+  Seguros: ['SEGURO', 'PROTECAO VEICULAR', 'GARANTIA', 'BV GARANTIA'],
+  Emprestimos: ['AFINZ', 'EMPRESTIMO', 'FINANCIAMENTO'],
+  Doacoes: ['IGREJA', 'DIZIMO', 'OFERTA', 'UNIVERSAL', 'DOACAO'],
+  Transferencias: ['PIX', 'TED', 'DOC', 'TRANSFERENCIA', 'ITAU UNIBANCO', 'BANCO ITAU', 'CAIXA ECONOMICA'],
+  Hospedagem: ['HOTEL', 'POUSADA', 'AIRBNB'],
+  Viagem: ['PASSAGEM', 'AEREA', 'VIAGEM'],
+  Lazer: ['CINEMA', 'TEATRO', 'SHOW', 'SHOPPING']
+}
+
+const CATEGORY_RULES = buildCategoryRules(CATEGORY_MAP)
+
+function normalizeCategoryText(value) {
+  return normalizeDocText(value)
+    .replace(/[^A-Z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function buildCategoryRules(map) {
+  const rules = []
+  Object.entries(map).forEach(([category, keywords]) => {
+    ;(keywords || []).forEach(keyword => {
+      const normalized = normalizeCategoryText(keyword)
+      if (!normalized || normalized.length < 2) return
+      rules.push({ category, keyword: normalized })
+    })
+  })
+  rules.sort((a, b) => b.keyword.length - a.keyword.length)
+  return rules
+}
+
+function categorizeTransaction(name, natureza, valor, fallback) {
+  if (natureza === 'entrada') return 'Recebimentos'
+
+  const source = normalizeCategoryText(name || '')
+
+  // Evita classificar transações de 'CREDITO' genérico como empréstimos.
+  // Ex: 'CREDITO DE CONFIANCA' no extrato do Nubank não é empréstimo.
+  if (/\bCREDITO\b/.test(source) && !/\b(EMPRESTIMO|FINANCIAMENTO|AFINZ)\b/.test(source)) {
+    return 'Recebimentos'
+  }
+
+  for (const rule of CATEGORY_RULES) {
+    if (source.includes(rule.keyword)) return rule.category
+  }
+
+  if (natureza === 'entrada' && valor > 0) return 'Recebimentos'
+  return fallback && fallback !== 'Outros' ? fallback : 'Outros'
+}
+
+function getTransactionDate(tx) {
+  const raw = String(tx && tx.data ? tx.data : '').trim()
+  const parts = raw.split('/')
+  if (parts.length < 2) return new Date('invalid')
+
+  const day = Number(parts[0])
+  const month = Number(parts[1])
+  let year = parts.length >= 3 ? Number(parts[2]) : NaN
+
+  if (!Number.isFinite(year)) {
+    const ref = String(tx && tx.mes_referencia ? tx.mes_referencia : '')
+    const refParts = ref.split('/')
+    year = refParts.length === 2 ? Number(refParts[1]) : new Date().getFullYear()
+  }
+
+  return new Date(year, Math.max(0, month - 1), day, 12, 0, 0)
+}
+
+function getTransactionDateValue(tx) {
+  const date = getTransactionDate(tx)
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime()
+}
+
+function toIsoDate(date) {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0')
+  ].join('-')
+}
+
+function parseIsoDate(value) {
+  const [year, month, day] = String(value || '').split('-').map(Number)
+  return new Date(year, Math.max(0, (month || 1) - 1), day || 1, 12, 0, 0)
+}
+
+function formatDate(date) {
+  return date.toLocaleDateString('pt-BR')
+}
+
+function formatShortDayMonth(date) {
+  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
+  return `${String(date.getDate()).padStart(2, '0')}/${months[date.getMonth()] || ''}`
+}
+
+function getDateRangeLabel(txs) {
+  const validDates = (txs || [])
+    .map(getTransactionDate)
+    .filter(date => !Number.isNaN(date.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime())
+
+  if (!validDates.length) return 'Periodo nao identificado'
+
+  const start = validDates[0]
+  const end = validDates[validDates.length - 1]
+  return `${formatShortDayMonth(start)} - ${formatShortDayMonth(end)}`
+}
+
+function getReportContext() {
+  const txs = getFilteredTxs()
+  const expenseTxs = getExpenseTransactions(txs)
+  const total = fromCents(sumCents(expenseTxs.map(tx => Math.abs(Number(tx.valor) || 0))))
+  const monthsCount = [...new Set(txs.map(t => t.mes_referencia).filter(Boolean))].length || 1
+  const monthlyTotal = total / monthsCount
+  const pct = Math.round((total / monthsCount / renda) * 100)
+  const avgTicket = expenseTxs.length ? total / expenseTxs.length : 0
+  const score = getHealthScore(pct)
+  return { txs, expenseTxs, total, monthsCount, monthlyTotal, pct, avgTicket, score }
+}
+
+function downloadReportPdf() {
+  const button = document.querySelector('.pdf-btn')
+  const previousLabel = button ? button.textContent : ''
+  if (button) {
+    button.disabled = true
+    button.textContent = 'Abrindo impressão...'
+  }
+
+  setTimeout(() => {
+    window.print()
+    if (button) {
+      button.disabled = false
+      button.textContent = previousLabel || '↓ Baixar PDF'
+    }
+  }, 80)
+}
+
+function shortMoney(n) {
+  const num = Number(n) || 0
+  return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 })
+}
+
+function showScreen(screen) {
+  document.getElementById('screenUpload').classList.toggle('active', screen === 'upload')
+  document.getElementById('screenLoading').classList.toggle('active', screen === 'loading')
+  document.getElementById('screenReport').classList.toggle('active', screen === 'report')
+  trackEvent('screen_view', { screen_name: screen })
+  if (window.gtag) {
+    window.gtag('event', 'page_view', {
+      page_path: `/fincheck/analisar/${screen}`,
+      page_title: `fincheck_analisar_${screen}`
+    })
+  }
+}
+
+function startLoadingCycle() {
+  setLoadingPhase(0)
+  if (loadingInterval) clearInterval(loadingInterval)
+  loadingInterval = setInterval(() => {
+    loadingPhaseIndex = (loadingPhaseIndex + 1) % LOADING_PHASES.length
+    setLoadingPhase(loadingPhaseIndex)
+  }, 1800)
+}
+
+function stopLoadingCycle() {
+  if (loadingInterval) {
+    clearInterval(loadingInterval)
+    loadingInterval = null
+  }
+  document.querySelectorAll('.loading-phase').forEach((phase, index, phases) => {
+    phase.classList.toggle('done', index < phases.length - 1)
+    phase.classList.toggle('active', index === phases.length - 1)
+  })
+}
+
+function setLoadingPhase(index) {
+  loadingPhaseIndex = index
+  const phase = LOADING_PHASES[index]
+  const textWrap = document.getElementById('loadingText')
+  textWrap.classList.add('swap')
+  setTimeout(() => {
+    document.getElementById('loadingTitle').textContent = phase.title
+    document.getElementById('loadingCopy').textContent = phase.copy
+    textWrap.classList.remove('swap')
+  }, 170)
+  const list = document.getElementById('loadingPhaseList')
+  list.innerHTML = LOADING_PHASES.map((item, itemIndex) => {
+    const cls = itemIndex < index ? 'done' : itemIndex === index ? 'active' : ''
+    return `<div class="loading-phase ${cls}"><span>${item.title}</span><span class="loading-dot"></span></div>`
+  }).join('')
+}
+
+function updateLoadingFiles(errorMessage) {
+  const total = fileQueue.length
+  const processed = fileQueue.filter(file => file.status === 'done').length
+  const current = fileQueue.find(file => file.status === 'extracting' || file.status === 'parsing')
+  const suffix = errorMessage
+    ? ` · erro: ${errorMessage}`
+    : current
+      ? ` · agora: ${current.name}`
+      : processed === total && total > 0
+        ? ' · finalizando seu relatório'
+        : ''
+  document.getElementById('loadingFiles').textContent = `${processed}/${total} arquivo(s) processados${suffix}`
+}
+
+function setPill(n, state) {
+  const el = document.getElementById('pill' + n)
+  el.className = 'step-pill' + (state ? ' ' + state : '')
+}
+
+function toSortableDate(dateStr) {
+  if (!dateStr || !dateStr.includes('/')) return 0
+  const parts = dateStr.split('/')
+  if (parts.length !== 3) return 0
+  return new Date(`${parts[2]}-${parts[1]}-${parts[0]}T00:00:00`).getTime() || 0
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value)
+}
+
+function escapeJs(value) {
+  return String(value).replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+}
+
+setLoadingPhase(0)
+trackEvent('screen_view', { screen_name: 'upload' })
+</script>
+</body>
+</html>

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.61 - 10/04/2026, 15:00:39 -->
+  <!-- fincheck v1.0.62 - 10/04/2026, 15:33:44 -->
 
+  
   
   
   
@@ -653,7 +654,7 @@
     <div class="nav-inner">
       <span class="nav-logo">fincheck<sup style="font-size:.5em;vertical-align:super;font-family:'DM Mono',monospace;color:var(--text3)">®</sup><em>.</em></span>
       <span class="nav-badge">TESTE GRATUITO</span>
-      <a href="app/index.html" class="nav-cta">
+      <a href="/fincheck/analisar" class="nav-cta">
         Começar agora
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M7 3l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
@@ -674,7 +675,7 @@
       </p>
 
       <div class="hero-actions fade-up delay-3">
-        <a href="app/index.html" class="btn-primary">
+        <a href="/fincheck/analisar" class="btn-primary">
           Análise grátis
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
@@ -888,7 +889,7 @@
       <div class="cta-box reveal">
         <h2>Pronto para saber a<br/><em>verdade</em> sobre seus gastos?</h2>
         <p>Grátis, sem cadastro, sem conectar sua conta bancária. Só o PDF, imagem, CSV ou OFX do extrato ou fatura.</p>
-        <a href="app/index.html" class="btn-primary">
+        <a href="/fincheck/analisar" class="btn-primary">
           Analisar meu extrato ou fatura agora
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
@@ -937,6 +938,13 @@
     function trackEvent(name, params) {
       if (!window.gtag) return;
       window.gtag('event', name, params || {});
+    }
+
+    if (window.gtag) {
+      window.gtag('event', 'page_view', {
+        page_path: '/fincheck',
+        page_title: 'fincheck_home'
+      });
     }
 
     document.querySelectorAll('a.nav-cta, a.btn-primary, a.btn-ghost').forEach((link) => {

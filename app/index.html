@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.61 - 10/04/2026, 15:00:39 -->
+  <!-- fincheck v1.0.62 - 10/04/2026, 15:33:44 -->
 
+  
   
   
   
@@ -591,7 +592,7 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 <div class="wrap">
 
   <div class="page-back">
-    <a class="header-home" href="../index.html">&lt; Voltar para página inicial</a>
+    <a class="header-home" href="/fincheck">&lt; Voltar para página inicial</a>
   </div>
 
   <header>
@@ -3890,8 +3891,8 @@ function showScreen(screen) {
   trackEvent('screen_view', { screen_name: screen })
   if (window.gtag) {
     window.gtag('event', 'page_view', {
-      page_path: `/app/${screen}`,
-      page_title: `app_${screen}`
+      page_path: `/fincheck/analisar/${screen}`,
+      page_title: `fincheck_analisar_${screen}`
     })
   }
 }

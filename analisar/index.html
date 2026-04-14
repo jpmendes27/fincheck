@@ -606,7 +606,7 @@ header{display:flex;flex-direction:column;align-items:center;justify-content:cen
 
   <div id="screenUpload" class="screen active">
     <div class="drop-zone fu" id="dropZone">
-      <input type="file" id="fileInput" accept=".pdf,.csv,.ofx,.png,.jpg,.jpeg,.webp" multiple onchange="handleFiles(this.files)">
+      <input type="file" id="fileInput" accept=".pdf,.csv,.ofx,.png,.jpg,.jpeg,.webp" multiple>
       <span class="drop-icon">📄</span>
       <div class="drop-title">Envie seu extrato ou fatura</div>
       <div class="drop-sub">Baixe no app do seu banco a fatura/extrato em <strong>PDF, CSV ou OFX</strong> e envie aqui. Se for print/foto, envie a imagem.</div>
@@ -810,6 +810,16 @@ const LOADING_PHASES = [
 ]
 
 const dropZone = document.getElementById('dropZone')
+const fileInput = document.getElementById('fileInput')
+
+if (fileInput) {
+  fileInput.addEventListener('change', e => {
+    handleFiles(e.target.files)
+    // Permite reenviar o mesmo arquivo e disparar tracking novamente.
+    e.target.value = ''
+  })
+}
+
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over') })
 dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'))
 dropZone.addEventListener('drop', e => {

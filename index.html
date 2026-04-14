@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <!-- fincheck v1.0.64 - 10/04/2026, 15:45:45 -->
+  <!-- fincheck v1.0.65 - 14/04/2026, 17:37:45 -->
 
+  
   
   
   
@@ -940,13 +941,6 @@
     function trackEvent(name, params) {
       if (!window.gtag) return;
       window.gtag('event', name, params || {});
-    }
-
-    if (window.gtag) {
-      window.gtag('event', 'page_view', {
-        page_path: '/fincheck',
-        page_title: 'fincheck_home'
-      });
     }
 
     document.querySelectorAll('a.nav-cta, a.btn-primary, a.btn-ghost').forEach((link) => {
